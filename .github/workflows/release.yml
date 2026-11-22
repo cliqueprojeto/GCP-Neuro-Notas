@@ -177,6 +177,11 @@ jobs:
         run: |
           npx tauri android init --ci
           npx tauri icon assets/branding/icon-1024.png
+          # Ícone adaptativo sem bordas (preenche círculo, squircle ou gota) gerado de assets/branding/icon-android.svg
+          cp -r packaging/android/res/. src-tauri/gen/android/app/src/main/res/
+          for f in $(grep -l 'name="ic_launcher_background"' src-tauri/gen/android/app/src/main/res/values*/*.xml); do
+            [ "$(basename "$f")" = ic_launcher_background.xml ] && [ "$(basename "$(dirname "$f")")" = values ] || sed -i '/name="ic_launcher_background"/d' "$f"
+          done
           # Atividade própria: áreas seguras (barra de status/gestos/teclado) e fonte sem a escala do sistema.
           MAIN=$(grep -rl "class MainActivity" src-tauri/gen/android/app/src/main/java | head -1)
           test -n "$MAIN"
