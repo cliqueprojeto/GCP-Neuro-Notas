@@ -198,7 +198,7 @@ jobs:
           fi
           mkdir -p out
           zipalign -p -f 4 "$APK" aligned.apk
-          apksigner sign --ks release.jks --ks-pass "pass:$KS_PASS" --key-pass "pass:${KEY_PASS:-$KS_PASS}" --ks-key-alias "$KEY_ALIAS" \
+          apksigner sign --v4-signing-enabled false --ks release.jks --ks-pass "pass:$KS_PASS" --key-pass "pass:${KEY_PASS:-$KS_PASS}" --ks-key-alias "$KEY_ALIAS" \
             --out "out/GCP-Notas-${VERSION}-Android.apk" aligned.apk
           apksigner verify --print-certs "out/GCP-Notas-${VERSION}-Android.apk" | head -3
           rm -f release.jks
