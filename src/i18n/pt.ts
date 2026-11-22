@@ -562,6 +562,19 @@ export const pt = {
   'present.tr.fade': 'Esmaecer',
   'present.tr.slide': 'Deslizar',
   'present.tr.none': 'Corte seco',
+  'wipe.title': 'Apagar tudo e recomeçar',
+  'wipe.subtitle': 'Remove o banco de dados, as configurações e as preferências deste aparelho. O app volta ao assistente inicial, como numa instalação nova.',
+  'wipe.button': 'Apagar tudo…',
+  'wipe.confirmTitle': 'Apagar tudo deste aparelho?',
+  'wipe.irreversible': 'Esta ação não pode ser desfeita.',
+  'wipe.item1': 'Todas as páginas, bases, relatórios, quadros e conversas com IA',
+  'wipe.item2': 'A senha mestra, a chave de recuperação e o histórico de versões',
+  'wipe.item3': 'Chaves de IA, contas de nuvem, Notion, modelos e preferências',
+  'wipe.keeps': 'Backups já exportados e as cópias no Google Drive/OneDrive não são apagados: dá para restaurar depois no assistente inicial.',
+  'wipe.typeToConfirm': 'Para confirmar, digite {w}',
+  'wipe.word': 'REMOVER',
+  'wipe.confirm': 'Apagar tudo',
+  'wipe.backupFirst': 'Fazer backup antes',
 };
 
 export type Dict = Record<keyof typeof pt, string>;

@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.3.1 — Apagar tudo e recomeçar
+
+- Em **Configurações › Backup e sincronização**, nova zona de perigo **Apagar tudo e recomeçar**: remove o banco de dados interno, as configurações e as preferências do aparelho e volta ao assistente inicial, como numa instalação nova.
+- Janela de aviso com a lista do que será apagado, atalho para **fazer backup antes** e confirmação digitando a palavra no idioma do app (**REMOVER**, **DELETE** ou **ELIMINAR**).
+- Backups já exportados e as cópias no Google Drive/OneDrive não são apagados.
+
 ## 1.3.0 — Componentes e quadro estilo Figma
 
 ### Componentes estilo site

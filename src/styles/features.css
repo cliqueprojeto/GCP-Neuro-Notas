@@ -553,3 +553,14 @@ tr:hover .row-grip .grip-ic { display: block; }
 @keyframes pawiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
 @media (prefers-reduced-motion: reduce) { .pa, .pa-fade, .pa-slide-up, .pa-slide-left, .pa-zoom, .pa-pop, .pa-spin, .pa-pulse, .pa-float, .pa-wiggle, .gbtn { animation: none !important; } .pa-wait { opacity: 1; } }
 .comp-tools .select { width: auto; flex: 0 0 auto; }
+
+/* Zona de perigo: apagar tudo */
+.danger-zone { border-color: color-mix(in srgb, #ef4444 45%, var(--border)) !important; }
+.card-icon.danger { background: rgba(239, 68, 68, .14) !important; color: #ef4444 !important; }
+.btn.danger-solid { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: 0; box-shadow: 0 6px 18px rgba(239, 68, 68, .3); }
+.btn.danger-solid:disabled { opacity: .45; box-shadow: none; }
+.wipe-modal .modal-head h3 { color: #ef4444; display: flex; align-items: center; gap: 8px; }
+.wipe-alert { padding: 12px 14px; border-radius: 12px; background: rgba(239, 68, 68, .08); border: 1px solid rgba(239, 68, 68, .35); margin-bottom: 14px; }
+.wipe-alert p { margin: 0 0 6px; }
+.wipe-alert ul { margin: 0 0 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.wipe-input { font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }

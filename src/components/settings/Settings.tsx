@@ -18,6 +18,7 @@ import { CloudRestoreModal, cloudErrorText } from './CloudRestore';
 import { CloudGuide } from './CloudGuide';
 import { GoogleDriveIcon, OneDriveIcon } from './BrandIcons';
 import { NotionCard } from './NotionCard';
+import { WipeCard } from './WipeCard';
 import { PROVIDERS, detectBestModel, guessProvider, providerMeta, chat } from '../../ai/providers';
 import type { AiProvider, AiProviderId, UpdateFrequency } from '../../lib/types';
 import { uid } from '../../lib/crypto';
@@ -327,6 +328,7 @@ function Backup() {
       <CloudRestoreModal open={restoreOpen} onClose={() => setRestoreOpen(false)} />
       {guide && <CloudGuide open initial={guide} onClose={() => setGuide('')} />}
       <NotionCard />
+      <WipeCard onBackup={() => setExpOpen(true)} />
       <ImportShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   );

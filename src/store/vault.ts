@@ -524,3 +524,22 @@ export function breadcrumb(pages: Record<string, Page>, id: string): Page[] {
 window.addEventListener('beforeunload', () => {
   void useVault.getState().flush();
 });
+
+/**
+ * Apaga TUDO neste aparelho (banco de dados interno, configurações e preferências)
+ * e reinicia o app como numa instalação nova. Cópias na nuvem e arquivos de backup
+ * já exportados não são tocados.
+ */
+export async function wipeEverything(): Promise<void> {
+  if (flushTimer) clearTimeout(flushTimer);
+  dirty.clear();
+  useVault.setState({ key: null, pages: {}, status: 'loading' });
+  await storage.clear();
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith('gcp')) localStorage.removeItem(k);
+    sessionStorage.clear();
+  } catch {
+    /* armazenamento do navegador indisponível */
+  }
+  location.reload();
+}
