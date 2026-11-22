@@ -169,3 +169,24 @@ describe('bases de dados 1.2', () => {
     expect(db.properties.length).toBe(5);
   });
 });
+
+describe('rodapé: cálculos por coluna', async () => {
+  const { calcColumn, makeProperty } = await import('../src/database/logic');
+  const name = makeProperty('text', 'Responsável');
+  const hours = makeProperty('number', 'Horas');
+  const done = makeProperty('checkbox', 'Feito');
+  const rows = [['Ana', 6, true], ['Bruno', 4, false], ['Ana', '', true], ['', 2, false]].map(([a, b, c], i) => ({ id: 'r' + i, cells: { [name.id]: a, [hours.id]: b, [done.id]: c }, createdAt: i, updatedAt: i }));
+  it('números', () => {
+    expect(calcColumn(hours, rows, 'sum')?.value).toBe(12);
+    expect(calcColumn(hours, rows, 'avg')?.value).toBe(4);
+    expect(calcColumn(hours, rows, 'median')?.value).toBe(4);
+    expect(calcColumn(hours, rows, 'range')?.value).toBe(4);
+    expect(calcColumn(hours, rows, 'empty')?.value).toBe(1);
+  });
+  it('textos e caixas', () => {
+    expect(calcColumn(name, rows, 'unique')?.value).toBe(2);
+    expect(calcColumn(name, rows, 'filled')?.value).toBe(3);
+    expect(calcColumn(name, rows, 'pctFilled')?.value).toBe(75);
+    expect(calcColumn(done, rows, 'pctChecked')?.value).toBe(50);
+  });
+});

@@ -24,6 +24,7 @@ import type { AiProvider, AiProviderId, UpdateFrequency } from '../../lib/types'
 import { uid } from '../../lib/crypto';
 import { formatDate, relativeTime } from '../../lib/doc';
 import { ImportShareModal } from '../ShareModal';
+import { askConfirm, askText } from '../PromptHost';
 
 const TABS = [
   { id: 'general', icon: Palette },
@@ -167,7 +168,7 @@ function Security() {
             <button className="btn ghost" onClick={() => copyText(code).then(() => toast(t('common.copied'), 'success'))}>{t('common.copy')}</button>
           </>
         ) : (
-          <button className="btn ghost" onClick={async () => { if (window.confirm(t('security.regenConfirm'))) setCode(await v.regenerateRecovery()); }}>
+          <button className="btn ghost" onClick={async () => { if (await askConfirm({ title: t('security.regen'), message: t('security.regenConfirm') })) setCode(await v.regenerateRecovery()); }}>
             <RefreshCw size={15} /> {t('security.regen')}
           </button>
         )}
@@ -216,9 +217,9 @@ function Backup() {
   const doImport = async () => {
     const f = await pickBackupFile().catch((e) => (toast(String(e), 'error'), null));
     if (!f) return;
-    const pass = window.prompt(t('backup.filePassword'));
+    const pass = await askText({ title: t('backup.importFile'), label: t('backup.filePassword'), password: true });
     if (pass == null) return;
-    const mode = window.confirm(t('backup.mergeQuestion')) ? 'merge' : 'replace';
+    const mode = (await askConfirm({ title: t('backup.importFile'), message: t('backup.mergeQuestion'), okLabel: t('backup.merge'), cancelLabel: t('backup.replace') })) ? 'merge' : 'replace';
     await run('import', async () => {
       const n = await importBackup(f, pass, mode);
       toast(t('backup.imported', { n }), 'success');

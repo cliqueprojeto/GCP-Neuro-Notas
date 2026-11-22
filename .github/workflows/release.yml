@@ -183,6 +183,12 @@ jobs:
           cp "$MAIN" /tmp/MainActivity.original.kt
           cp packaging/android/MainActivity.kt "$MAIN"
           echo "MAIN=$MAIN" >> "$GITHUB_ENV"
+          # Microfone e câmera para gravar áudio e vídeo nas páginas.
+          MANIFEST=src-tauri/gen/android/app/src/main/AndroidManifest.xml
+          for perm in RECORD_AUDIO MODIFY_AUDIO_SETTINGS CAMERA; do
+            grep -q "android.permission.$perm" "$MANIFEST" || sed -i "s#<application#<uses-permission android:name=\"android.permission.$perm\" />\n    <application#" "$MANIFEST"
+          done
+          grep -c "uses-permission" "$MANIFEST"
       - name: Compilar APK (arm64, armv7 e x86_64)
         run: |
           if ! npx tauri android build --apk --ci --target aarch64 armv7 x86_64; then

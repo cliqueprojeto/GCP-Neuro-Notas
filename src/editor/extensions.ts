@@ -27,6 +27,7 @@ import Superscript from '@tiptap/extension-superscript';
 import { common, createLowlight } from 'lowlight';
 import { CalloutView, FormView, GalleryView, PollView, RaffleView, ToggleView } from './blocks';
 import { ButtonsBlockView, CardsBlockView } from './components';
+import { ImageView, MediaRecView, YoutubeView } from './media';
 import type { SuggestItem } from './suggest';
 import { moveCurrentBlock } from './BlockHandle';
 
@@ -102,6 +103,38 @@ export const Raffle = atomBlock(
 );
 export const Form = atomBlock('form', { title: '', description: '', fields: [], responses: [] }, FormView);
 export const Gallery = atomBlock('gallery', { images: [], columns: 3 }, GalleryView);
+export const MediaRec = atomBlock('mediaRec', { kind: 'audio', src: '', size: null, align: 'center', width: null, caption: '', duration: 0 }, MediaRecView);
+
+const dataAttr = (name: string, def: any = null) => ({
+  default: def,
+  parseHTML: (el: HTMLElement) => {
+    const v = el.getAttribute('data-' + name);
+    return v == null ? def : /^\d+$/.test(v) ? Number(v) : v === 'false' ? false : v === 'true' ? true : v;
+  },
+  renderHTML: (a: any) => (a[name] == null || a[name] === '' ? {} : { ['data-' + name]: String(a[name]) }),
+});
+const mediaAttrs = { size: dataAttr('size'), align: dataAttr('align'), width: dataAttr('width'), caption: dataAttr('caption') };
+
+/** Imagem com tamanho, alinhamento, legenda, sombra e redimensionar. */
+export const PremiumImage = Image.extend({
+  addAttributes() {
+    return { ...this.parent?.(), ...mediaAttrs, shadow: dataAttr('shadow'), rounded: dataAttr('rounded') };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageView);
+  },
+});
+
+/** Vídeo do YouTube com tamanho, alinhamento e legenda. */
+export const PremiumYoutube = Youtube.extend({
+  addAttributes() {
+    return { ...this.parent?.(), ...mediaAttrs };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(YoutubeView);
+  },
+});
+
 export const Buttons = atomBlock('buttons', { items: [], align: 'left' }, ButtonsBlockView);
 export const Cards = atomBlock('cards', { items: [], columns: 3, style: 'glass', hover: 'lift' }, CardsBlockView);
 
@@ -173,7 +206,7 @@ function base(placeholder?: string): AnyExtension[] {
     Highlight.configure({ multicolor: true }),
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: 'noopener noreferrer' } }),
-    Image.configure({ allowBase64: true, HTMLAttributes: { class: 'doc-image' } }),
+    PremiumImage.configure({ allowBase64: true, HTMLAttributes: { class: 'doc-image' } }),
     TaskList,
     TaskItem.configure({ nested: true }),
     Table.configure({ resizable: true }),
@@ -181,7 +214,7 @@ function base(placeholder?: string): AnyExtension[] {
     TableHeader,
     TableCell,
     CodeBlockLowlight.configure({ lowlight }),
-    Youtube.configure({ nocookie: true, width: 640, height: 360 }),
+    PremiumYoutube.configure({ nocookie: true, width: 640, height: 360 }),
     Typography,
     Callout,
     Toggle,
@@ -191,6 +224,7 @@ function base(placeholder?: string): AnyExtension[] {
     Gallery,
     Buttons,
     Cards,
+    MediaRec,
     ...(placeholder !== undefined ? [Placeholder.configure({ placeholder, includeChildren: false }), CharacterCount] : []),
   ];
 }

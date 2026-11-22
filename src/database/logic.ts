@@ -1,4 +1,4 @@
-import type { CondRule, DatabaseData, Filter, Property, PropType, Row, SelectOption, View } from '../lib/types';
+import type { CalcKind, CondRule, DatabaseData, Filter, Property, PropType, Row, SelectOption, View } from '../lib/types';
 import { uid } from '../lib/crypto';
 import { normalize } from '../lib/doc';
 import { evaluate, toNumber, toText, type FValue } from './formula';
@@ -452,4 +452,62 @@ export function importMatrix(db: DatabaseData, aoa: any[][], mode: 'append' | 'r
   });
   const next = recompute({ ...db, properties: props, rows: mode === 'replace' ? rows : [...db.rows, ...rows] });
   return { db: next, added: rows.length };
+}
+
+// ------------------------------------------------- cálculos do rodapé
+
+export function calcOptions(p: Property): CalcKind[] {
+  const base: CalcKind[] = ['none', 'count', 'filled', 'empty', 'unique', 'pctFilled', 'pctEmpty'];
+  if (isNumericProp(p) || ((p.type === 'formula' || p.type === 'conditional') && p.resultFormat !== 'text'))
+    return ['none', 'sum', 'avg', 'median', 'min', 'max', 'range', ...base.slice(1)];
+  if (p.type === 'checkbox') return ['none', 'count', 'checked', 'unchecked', 'pctChecked'];
+  if (p.type === 'date' || p.type === 'created') return ['none', 'earliest', 'latest', 'range', ...base.slice(1)];
+  return base;
+}
+
+export function defaultCalc(p: Property): CalcKind {
+  if (p.type === 'progress' || p.type === 'rating') return 'avg';
+  if (isNumericProp(p)) return 'sum';
+  return 'none';
+}
+
+const isEmptyVal = (v: any) => v == null || v === '' || (Array.isArray(v) && !v.length);
+
+/** Calcula o resumo de uma coluna. `kind` diz como apresentar o resultado. */
+export function calcColumn(p: Property, rows: Row[], calc: CalcKind): { value: number | string; kind: 'num' | 'count' | 'pct' | 'date' | 'days' } | null {
+  if (calc === 'none' || !rows.length) return null;
+  const vals = rows.map((r) => cellValue(p, r));
+  const filled = vals.filter((v) => !isEmptyVal(v));
+  const nums = filled.map(Number).filter((n) => !isNaN(n));
+  const pct = (n: number) => ({ value: Math.round((n / rows.length) * 1000) / 10, kind: 'pct' as const });
+  switch (calc) {
+    case 'count': return { value: rows.length, kind: 'count' };
+    case 'filled': return { value: filled.length, kind: 'count' };
+    case 'empty': return { value: rows.length - filled.length, kind: 'count' };
+    case 'unique': return { value: new Set(rows.flatMap((r) => filterKey(p, r)).filter((k) => k !== '')).size, kind: 'count' };
+    case 'pctFilled': return pct(filled.length);
+    case 'pctEmpty': return pct(rows.length - filled.length);
+    case 'checked': return { value: vals.filter(Boolean).length, kind: 'count' };
+    case 'unchecked': return { value: vals.filter((v) => !v).length, kind: 'count' };
+    case 'pctChecked': return pct(vals.filter(Boolean).length);
+    case 'sum': return nums.length ? { value: nums.reduce((a, b) => a + b, 0), kind: 'num' } : null;
+    case 'avg': return nums.length ? { value: nums.reduce((a, b) => a + b, 0) / nums.length, kind: 'num' } : null;
+    case 'median': {
+      if (!nums.length) return null;
+      const s = [...nums].sort((a, b) => a - b), m = Math.floor(s.length / 2);
+      return { value: s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2, kind: 'num' };
+    }
+    case 'min': return nums.length ? { value: Math.min(...nums), kind: 'num' } : null;
+    case 'max': return nums.length ? { value: Math.max(...nums), kind: 'num' } : null;
+    case 'earliest': case 'latest': case 'range': {
+      if (p.type === 'date' || p.type === 'created') {
+        const ts = filled.map((v) => (p.type === 'created' ? Number(v) : Date.parse(String(v).slice(0, 10) + 'T00:00:00'))).filter((n) => !isNaN(n));
+        if (!ts.length) return null;
+        if (calc === 'range') return { value: Math.round((Math.max(...ts) - Math.min(...ts)) / 86400000), kind: 'days' };
+        return { value: calc === 'earliest' ? Math.min(...ts) : Math.max(...ts), kind: 'date' };
+      }
+      return nums.length && calc === 'range' ? { value: Math.max(...nums) - Math.min(...nums), kind: 'num' } : null;
+    }
+  }
+  return null;
 }

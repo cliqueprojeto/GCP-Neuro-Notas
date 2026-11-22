@@ -1,3 +1,4 @@
+import { PromptHost } from './components/PromptHost';
 import { CalendarHub } from './components/CalendarHub';
 import { Boards } from './components/Boards';
 import { useEffect, useState } from 'react';
@@ -53,8 +54,8 @@ export default function App() {
       </div>
     );
   const needWizard = status === 'new' || (status === 'unlocked' && !onboarded && pageCount === 0);
-  if (needWizard) return (<><Wizard /><Toasts /></>);
-  if (status === 'locked') return (<><LoginScreen /><Toasts /></>);
+  if (needWizard) return (<><Wizard /><Toasts /><PromptHost /></>);
+  if (status === 'locked') return (<><LoginScreen /><Toasts /><PromptHost /></>);
   return <Workspace />;
 }
 
@@ -134,6 +135,7 @@ function Workspace() {
       <MobileNav />
       <AIPanel />
       <CommandPalette />
+      <PromptHost />
       <Toasts />
       {showUpdate && update && <UpdateDialog release={update} onClose={() => setShowUpdate(false)} />}
     </div>

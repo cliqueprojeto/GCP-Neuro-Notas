@@ -8,6 +8,7 @@ import { toast } from '../../store/ui';
 import { formatDate } from '../../lib/doc';
 import { PasswordInput } from '../Auth';
 import { isTauri } from '../../lib/platform';
+import { askConfirm, askText } from '../PromptHost';
 
 export function cloudErrorText(t: (k: any, v?: any) => string, e: unknown) {
   const m = String((e as Error)?.message || e);
@@ -59,7 +60,7 @@ export function CloudRestoreModal({ open, onClose, onDone }: { open: boolean; on
 
   const restore = async () => {
     if (!sel || !pw) return;
-    if (!window.confirm(t('cloud.restoreConfirm'))) return;
+    if (!(await askConfirm({ title: t('backup.restoreCloud'), message: t('cloud.restoreConfirm'), okLabel: t('common.done') }))) return;
     setBusy(true);
     try {
       const ok = await restoreFromCloud(provider, sel, pw);

@@ -4,13 +4,13 @@ import {
   Columns3, Copy, CopyPlus, Download, EyeOff, FileDown, FileSpreadsheet, Filter as FilterIcon, FilterX, GalleryVerticalEnd, GripVertical, LayoutList,
   Maximize2, MoreHorizontal, Plus, Printer, Search, Settings2, Table2, Trash2, Upload, X,
 } from 'lucide-react';
-import type { DatabaseData, Filter, Page, Property, PropType, Row, View, ViewType } from '../lib/types';
+import type { CalcKind, DatabaseData, Filter, Page, Property, PropType, Row, View, ViewType } from '../lib/types';
 import { useT, useLang, LOCALES, type TKey } from '../i18n';
 import { useVault } from '../store/vault';
 import { toast } from '../store/ui';
 import { ContextMenu, Modal, Popover, Select, longPress, type MenuEntry } from '../components/ui';
 import { Cell, OptionPill } from './Cell';
-import { COMPUTED, convertType, distinctValues, isNumericProp, importMatrix, makeProperty, newRow, recompute, titleProp, visibleRows } from './logic';
+import { COMPUTED, calcColumn, calcOptions, defaultCalc, convertType, distinctValues, isNumericProp, importMatrix, makeProperty, newRow, recompute, titleProp, visibleRows } from './logic';
 import { PropConfig, TypeIcon, TypeMenu } from './fields';
 import { printTable, readSpreadsheet, tableCsv, tablePdf, tableXlsx } from './io';
 import { SaveTemplateModal } from '../templates/user';
@@ -503,11 +503,15 @@ function TableView({ db, view, setView, props, rows, setRow, setProp, addRow, ad
             </tr>
           ))}
         </tbody>
-        {props.some((p) => isNumericProp(p)) && rows.length > 1 && (
+        {rows.length > 0 && (
           <tfoot>
             <tr>
               <td className="td-handle" />
-              {props.map((p) => <td key={p.id} className="td-sum">{isNumericProp(p) ? <SumCell prop={p} rows={rows} /> : null}</td>)}
+              {props.map((p) => (
+                <td key={p.id} className="td-sum">
+                  <CalcCell prop={p} rows={rows} calc={view.calcs?.[p.id] ?? defaultCalc(p)} onCalc={(c) => setView({ calcs: { ...(view.calcs || {}), [p.id]: c } })} />
+                </td>
+              ))}
               <td />
             </tr>
           </tfoot>
@@ -519,17 +523,41 @@ function TableView({ db, view, setView, props, rows, setRow, setProp, addRow, ad
   );
 }
 
-function SumCell({ prop, rows }: { prop: Property; rows: Row[] }) {
+/** Rodapé da coluna: escolha o cálculo (soma, média, contagem única, % preenchido…). */
+function CalcCell({ prop, rows, calc, onCalc }: { prop: Property; rows: Row[]; calc: CalcKind; onCalc: (c: CalcKind) => void }) {
   const t = useT();
-  const nums = rows.map((r) => Number(r.cells[prop.id])).filter((n) => !isNaN(n) && n !== null);
-  if (!nums.length) return null;
-  const avg = prop.type === 'progress' || prop.type === 'rating';
-  const v = avg ? nums.reduce((a, b) => a + b, 0) / nums.length : nums.reduce((a, b) => a + b, 0);
-  const fake = { id: 'x', cells: { [prop.id]: Math.round(v * 100) / 100 }, createdAt: 0, updatedAt: 0 } as Row;
+  const lang = useLang();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+  const r = calcColumn(prop, rows, calc);
+  let shown: React.ReactNode = null;
+  if (r) {
+    if (r.kind === 'pct') shown = `${r.value.toLocaleString(LOCALES[lang])}%`;
+    else if (r.kind === 'count') shown = Number(r.value).toLocaleString(LOCALES[lang]);
+    else if (r.kind === 'date') shown = new Date(Number(r.value)).toLocaleDateString(LOCALES[lang]);
+    else if (r.kind === 'days') shown = t('db.calc.days', { n: r.value });
+    else {
+      const fake = { id: 'x', cells: { [prop.id]: Math.round(Number(r.value) * 100) / 100 }, createdAt: 0, updatedAt: 0 } as Row;
+      const fp = prop.type === 'progress' ? { ...prop, type: 'number' as PropType } : prop.type === 'rating' ? { ...prop, type: 'number' as PropType } : prop;
+      shown = <Cell prop={fp} row={fake} compact readOnly onChange={() => undefined} onPropChange={() => undefined} />;
+    }
+  }
   return (
-    <span className="sum-cell" title={avg ? t('db.avg') : t('db.sum')}>
-      <small>{avg ? t('db.avg') : t('db.sum')}</small> <Cell prop={prop.type === 'progress' ? { ...prop, type: 'number' } : prop} row={fake} compact readOnly onChange={() => undefined} onPropChange={() => undefined} />
-    </span>
+    <>
+      <button ref={ref} className={'calc-cell' + (calc === 'none' ? ' empty' : '')} onClick={() => setOpen(!open)} title={t('db.calc.choose')}>
+        {calc === 'none' ? <span className="calc-hint">{t('db.calc.add')} ▾</span> : <><small>{t(`db.calc.${calc}` as TKey)}</small> <b>{shown ?? '—'}</b></>}
+      </button>
+      <Popover anchor={ref.current} open={open} onClose={() => setOpen(false)} align="right">
+        <div className="menu" style={{ width: 230 }}>
+          {calcOptions(prop).map((c) => (
+            <button key={c} className={'menu-item' + (c === calc ? ' active' : '')} onClick={() => (onCalc(c), setOpen(false))}>
+              <span className="grow">{t(`db.calc.${c}` as TKey)}</span>
+              {c === calc && <span className="calc-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      </Popover>
+    </>
   );
 }
 

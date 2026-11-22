@@ -23,6 +23,25 @@ pub fn run() {
             let dir = app.path().app_data_dir()?;
             let database = db::Db::open(dir.join("gcp-notas.db"))?;
             app.manage(database);
+            // Linux (WebKitGTK): libera microfone e câmera para gravar áudio e vídeo nas páginas.
+            #[cfg(target_os = "linux")]
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.with_webview(|wv| {
+                    use webkit2gtk::{glib::Cast, PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, WebViewExt};
+                    let view = wv.inner();
+                    if let Some(settings) = WebViewExt::settings(&view) {
+                        settings.set_enable_media_stream(true);
+                        settings.set_enable_mediasource(true);
+                    }
+                    view.connect_permission_request(|_, req| {
+                        if req.downcast_ref::<UserMediaPermissionRequest>().is_some() {
+                            req.allow();
+                            return true;
+                        }
+                        false
+                    });
+                });
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -3,7 +3,7 @@ import {
   Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
   Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle,
 } from 'lucide-react';
-import { Presenter } from './Presenter';
+import { Presenter, PresentSettings } from './Presenter';
 import { ButtonView, LinkPicker, followLink, linkLabel, newButton, type ButtonItem } from '../editor/components';
 import { Chart } from '../reports/ReportView';
 import { Select } from '../components/ui';
@@ -16,6 +16,7 @@ import { pickImages } from '../lib/platform';
 import { PageIcon, Popover } from '../components/ui';
 import { normalize } from '../lib/doc';
 import { pageToHtml } from '../lib/transfer';
+import { askConfirm, askText } from '../components/PromptHost';
 
 type Tool = 'select' | 'hand' | 'pen' | 'eraser' | 'connector' | 'frame' | 'text' | 'note' | 'shape';
 type ShapeKind = NonNullable<CanvasNode['shape']>;
@@ -118,6 +119,8 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   const shell = useRef<HTMLDivElement>(null);
   const [pickOpen, setPickOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [animOpen, setAnimOpen] = useState(false);
+  const animRef = useRef<HTMLButtonElement>(null);
   const [chartOpen, setChartOpen] = useState(false);
   const linkRef = useRef<HTMLButtonElement>(null);
   const chartRef = useRef<HTMLButtonElement>(null);
@@ -258,7 +261,10 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
 
   // ------------------------------------------------------ fundo do quadro
   const onBgDown = (e: React.PointerEvent) => {
-    const onNode = (e.target as HTMLElement).closest('[data-node]');
+    const hitEl = (e.target as HTMLElement).closest('[data-node]') as HTMLElement | null;
+    // Molduras contam como fundo para as ferramentas de criação (dá para criar dentro delas).
+    const creating = ['note', 'text', 'shape', 'frame'].includes(tool);
+    const onNode = hitEl && !(creating && hitEl.classList.contains('k-frame')) ? hitEl : null;
     const p = toWorld(e.clientX, e.clientY);
     if (tool === 'pen') {
       e.preventDefault();
@@ -345,6 +351,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   // ------------------------------------------------------------ nós
   const dragNode = (e: React.PointerEvent, n: CanvasNode, mode: 'move' | 'resize') => {
     if (tool === 'pen' || tool === 'eraser') return;
+    if (mode === 'move' && n.kind === 'frame' && ['note', 'text', 'shape', 'frame'].includes(tool)) return; // deixa o clique chegar ao fundo
     if (tool === 'connector' && mode === 'move') return startLink(e, n);
     if (edit === n.id && mode === 'move') return;
     e.stopPropagation();
@@ -479,8 +486,9 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   };
 
   const editLabel = (e: CanvasEdge) => {
-    const label = window.prompt(t('canvas.label'), e.label || '');
+    void askText({ title: t('canvas.label'), value: e.label || '', placeholder: t('canvas.label') }).then((label) => {
     if (label !== null) commit({ ...local, edges: local.edges.map((x) => (x.id === e.id ? { ...x, label } : x)) }, true);
+    });
   };
   const bounds = (() => {
     const pad = 4000;
@@ -539,6 +547,18 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     return () => document.removeEventListener('fullscreenchange', f);
   });
 
+  /** Toca o efeito do elemento ali mesmo, para conferir antes de apresentar. */
+  const previewAnim = (id: string) => {
+    const el = box.current?.querySelector(`[data-node="${id}"]`) as HTMLElement | null;
+    const n = local.nodes.find((x) => x.id === id);
+    if (!el || !n?.anim || n.anim === 'none') return;
+    el.classList.remove('pa', 'pa-' + n.anim);
+    void el.offsetWidth;
+    el.style.setProperty('--delay', '0s');
+    el.classList.add('pa', 'pa-' + n.anim);
+    setTimeout(() => el.classList.remove('pa', 'pa-' + n.anim), ((n.animDur || 0.7) + 0.2) * 1000 + (['pulse', 'float', 'wiggle'].includes(n.anim) ? 2500 : 0));
+  };
+
   const selNode = local.nodes.find((n) => n.id === sel);
   const selEdge = local.edges.find((e) => e.id === sel);
   const candidates = livePages(pages).filter((p) => normalize(p.title || '').includes(normalize(q))).slice(0, 12);
@@ -565,15 +585,19 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           {ordered.map((n) => {
             const target = n.pageId ? pages[n.pageId] : undefined;
             const fr = presenting ? frames[slide] : null;
-            const onSlide = presenting && n.kind !== 'frame' && (!fr || (n.x + n.w / 2 >= fr.x && n.x + n.w / 2 <= fr.x + fr.w && n.y + n.h / 2 >= fr.y && n.y + n.h / 2 <= fr.y + fr.h));
-            const animCls = presenting && n.anim && n.anim !== 'none' ? (onSlide ? ` pa pa-${n.anim}` : ' pa-wait') : '';
+            const assigned = n.slides?.length ? n.slides.filter((id) => frames.some((f) => f.id === id)) : [];
+            const inFrame = !fr || (n.x + n.w / 2 >= fr.x && n.x + n.w / 2 <= fr.x + fr.w && n.y + n.h / 2 >= fr.y && n.y + n.h / 2 <= fr.y + fr.h);
+            // Com slides escolhidos, o elemento só aparece neles; sem escolha, vale a posição dentro da moldura.
+            const onSlide = presenting && n.kind !== 'frame' && (assigned.length ? !!fr && assigned.includes(fr.id) : inFrame);
+            const hiddenHere = presenting && assigned.length > 0 && !onSlide;
+            const animCls = (presenting && n.anim && n.anim !== 'none' ? (onSlide ? ` pa pa-${n.anim}` : ' pa-wait') : '') + (hiddenHere ? ' pa-hidden' : '');
             const order = onSlide ? ordered.filter((x) => x.kind !== 'frame' && x.anim && x.anim !== 'none').sort((a, b) => a.y - b.y || a.x - b.x).findIndex((x) => x.id === n.id) : 0;
             return (
               <div
                 key={presenting && onSlide ? `${n.id}-s${slide}` : n.id}
                 data-node={n.id}
                 className={`cnode k-${n.kind} ${n.shape ? 's-' + n.shape : ''} ${sel === n.id ? 'sel' : ''} ${n.color === '#1e293b' ? 'dark' : ''} ${(draft?.kind === 'link' || draft?.kind === 'relink') && draft.snap?.id === n.id ? 'snap' : ''}${n.fill && n.fill !== 'solid' ? ' fill-' + n.fill : ''}${n.link && n.link.type !== 'none' && n.link.target ? ' has-link' : ''}${animCls}`}
-                style={{ left: n.x, top: n.y, width: n.w, height: n.h, ['--node' as any]: n.color, ['--delay' as any]: `${Math.max(0, order) * 140 + 250}ms` }}
+                style={{ left: n.x, top: n.y, width: n.w, height: n.h, ['--node' as any]: n.color, ['--delay' as any]: n.animDelay != null ? `${n.animDelay}s` : `${Math.max(0, order) * 140 + 250}ms`, ['--adur' as any]: `${n.animDur || 0.7}s` }}
                 onPointerDown={(e) => {
                   if (presenting) return;
                   if ((e.ctrlKey || e.metaKey) && n.link && followLink(n.link)) return e.stopPropagation();
@@ -733,7 +757,12 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               <>
                 <span className="tb-sep" />
                 <button ref={linkRef} className={'tb' + (selNode.link && selNode.link.type !== 'none' && selNode.link.target ? ' on' : '')} title={t('canvas.link')} onClick={() => setLinkOpen(!linkOpen)}><Link2 size={15} /></button>
-                <Select value={selNode.anim || 'none'} options={(['none', 'fade', 'slide-up', 'slide-left', 'zoom', 'pop', 'spin', 'pulse', 'float', 'wiggle'] as const).map((v) => ({ value: v, label: '✨ ' + t(`canvas.anim.${v}` as any) }))} onChange={(anim) => patchNode(selNode.id, { anim: anim as any }, true)} />
+                <button ref={animRef} className={'tb wide' + (selNode.anim && selNode.anim !== 'none' || selNode.slides?.length ? ' on' : '')} title={t('present.elTitle')} onClick={() => setAnimOpen(!animOpen)}>
+                  <Sparkle size={15} /> <span className="hide-xs">{selNode.anim && selNode.anim !== 'none' ? t(`canvas.anim.${selNode.anim}` as any) : t('present.elButton')}</span>
+                </button>
+                <Popover anchor={animRef.current} open={animOpen} onClose={() => setAnimOpen(false)}>
+                  <PresentSettings node={selNode} frames={frames} onChange={(p) => patchNode(selNode.id, p, true)} onPreview={() => previewAnim(selNode.id)} />
+                </Popover>
                 <Popover anchor={linkRef.current} open={linkOpen} onClose={() => setLinkOpen(false)}>
                   <div className="pad" style={{ width: 300 }}>
                     <div className="field-label"><Link2 size={12} /> {t('canvas.linkHint')}</div>

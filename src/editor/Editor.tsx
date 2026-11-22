@@ -4,11 +4,13 @@ import {
   AlignCenter, AlignLeft, AlignRight, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
   FileText, Heading1, Heading2, Heading3, Highlighter, ImageIcon, Images, Italic, Link2, List, ListOrdered, ListTree, Minus, MessageSquareQuote,
   PieChart, Plus, Quote, Redo2, Rows3, SmilePlus, Sparkles, Sticker, Strikethrough, Table2, Text, Trash2, Underline as UIcon, Undo2, Play,
-  CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid,
+  CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid, Mic, Video,
 } from 'lucide-react';
 import { editorExtensions } from './extensions';
 import { suggestRender, type SuggestItem } from './suggest';
 import { BlockHandle } from './BlockHandle';
+import { EmbedVideoModal } from './media';
+import { askText } from '../components/PromptHost';
 import { TEMPLATES, instantiate } from '../templates/templates';
 import { instantiateUser, UserTemplateBadge } from '../templates/user';
 import { usePrefs, detectLang } from '../store/prefs';
@@ -37,6 +39,7 @@ export function Editor({ page, editable = true }: Props) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [ytOpen, setYtOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const tRef = useRef(t);
@@ -58,9 +61,13 @@ export function Editor({ page, editable = true }: Props) {
               emoji: () => setEmojiOpen(true),
               sticker: () => setStickerOpen(true),
               ai: () => setAiOpen(true),
+              youtube: () => setYtOpen(true),
               page: pageRef.current,
             });
-            return q ? items.filter((i) => normalize(i.title + ' ' + (i.subtitle || '') + ' ' + i.id).includes(q)) : items;
+            if (!q) return items;
+            // Título que começa com a busca vem primeiro (ex.: "/vídeo" → Vídeo antes de YouTube).
+            const rank = (i: SuggestItem) => (normalize(i.title).startsWith(q) ? 0 : normalize(i.title).includes(q) ? 1 : 2);
+            return items.filter((i) => normalize(i.title + ' ' + (i.subtitle || '') + ' ' + i.id).includes(q)).sort((a, b) => rank(a) - rank(b));
           },
           render: suggestRender(() => tRef.current('editor.noResults')),
         },
@@ -234,6 +241,7 @@ export function Editor({ page, editable = true }: Props) {
         </div>
       </Modal>
       <AiWriteModal open={aiOpen} onClose={() => setAiOpen(false)} editor={editor} />
+      <EmbedVideoModal open={ytOpen} onClose={() => setYtOpen(false)} onInsert={(src, size) => editor.chain().focus().insertContent({ type: 'youtube', attrs: { src, size } }).run()} />
     </div>
   );
 }
@@ -241,7 +249,7 @@ export function Editor({ page, editable = true }: Props) {
 // ----------------------------------------------------------- comando "/"
 
 function buildSlash() {
-  return (t: (k: TKey, v?: any) => string, ctx: { emoji: () => void; sticker: () => void; ai: () => void; page: Page }): SuggestItem[] => {
+  return (t: (k: TKey, v?: any) => string, ctx: { emoji: () => void; sticker: () => void; ai: () => void; youtube: () => void; page: Page }): SuggestItem[] => {
     const g = { basic: t('slash.group.basic'), media: t('slash.group.media'), adv: t('slash.group.advanced'), pages: t('slash.group.pages'), ai: 'IA' };
     const childPage = (type: Page['type'], editor: TEditor) => {
       const np = useVault.getState().createPage({ type, parentId: ctx.page.id, title: '' });
@@ -273,12 +281,11 @@ function buildSlash() {
       },
       { id: 'gallery', tone: 'pink', group: g.media, title: t('slash.gallery'), icon: <Images size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'gallery' }).run() },
       {
-        id: 'youtube', tone: 'red', group: g.media, title: 'YouTube', icon: <Play size={18} />,
-        run: ({ editor }) => {
-          const url = window.prompt('URL');
-          if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run();
-        },
+        id: 'youtube', tone: 'red', group: g.media, title: 'YouTube', subtitle: t('media.youtubeSub'), icon: <Play size={18} />,
+        run: () => ctx.youtube(),
       },
+      { id: 'audio', tone: 'pink', group: g.media, title: t('media.audio'), subtitle: t('media.audioSlash'), icon: <Mic size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'mediaRec', attrs: { kind: 'audio' } }).run() },
+      { id: 'video', tone: 'violet', group: g.media, title: t('media.video'), subtitle: t('media.videoSlash'), icon: <Video size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'mediaRec', attrs: { kind: 'video', size: 'l' } }).run() },
       { id: 'emoji', tone: 'amber', group: g.media, title: t('slash.emoji'), icon: <SmilePlus size={18} />, run: () => ctx.emoji() },
       { id: 'sticker', tone: 'amber', group: g.media, title: t('slash.sticker'), icon: <Sticker size={18} />, run: () => ctx.sticker() },
       { id: 'poll', tone: 'violet', group: g.adv, title: t('slash.poll'), subtitle: t('slash.poll.sub'), icon: <BarChart3 size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'poll', attrs: { options: [{ id: 'a', label: '', votes: 0 }, { id: 'b', label: '', votes: 0 }] } }).run() },
@@ -452,10 +459,11 @@ function Bubble({ editor, onAi, busy }: { editor: TEditor; onAi: (a: AiAction, t
   const c = () => editor.chain().focus();
   const setLink = () => {
     const prev = editor.getAttributes('link').href || '';
-    const url = window.prompt('URL', prev);
-    if (url === null) return;
-    if (!url) c().unsetLink().run();
-    else c().extendMarkRange('link').setLink({ href: /^(https?:|mailto:)/.test(url) ? url : 'https://' + url }).run();
+    void askText({ title: t('media.linkTitle'), label: 'URL', value: prev, placeholder: 'https://…', hint: t('media.linkHint') }).then((url) => {
+      if (url === null) return;
+      if (!url.trim()) c().unsetLink().run();
+      else c().extendMarkRange('link').setLink({ href: /^(https?:|mailto:)/.test(url.trim()) ? url.trim() : 'https://' + url.trim() }).run();
+    });
   };
   return (
     <div className="bubble">

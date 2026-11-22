@@ -11,6 +11,7 @@ import { Spinner } from './ui';
 import { TEMPLATES, instantiate, CATEGORY_ICONS } from '../templates/templates';
 import { pickBackupFile, importBackup } from '../lib/transfer';
 import { CloudRestoreModal } from './settings/CloudRestore';
+import { askConfirm, askText } from './PromptHost';
 
 function LangPicker() {
   const lang = useLang();
@@ -180,7 +181,7 @@ export function Wizard() {
     try {
       const f = await pickBackupFile();
       if (!f) return;
-      const pass = window.prompt(t('backup.filePassword')) || '';
+      const pass = (await askText({ title: t('backup.filePassword'), label: t('backup.filePassword'), password: true })) || '';
       const n = await importBackup(f, pass, 'merge');
       toast(t('backup.imported', { n }), 'success');
       localStorage.setItem('gcp-notas:onboarded', '1');

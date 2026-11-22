@@ -113,3 +113,61 @@ export function Presenter({ frames, index, setIndex, onClose, onReorder, transit
     </div>
   );
 }
+
+const ANIMS = ['none', 'fade', 'slide-up', 'slide-left', 'zoom', 'pop', 'spin', 'pulse', 'float', 'wiggle'] as const;
+
+/** Configuração do elemento na apresentação: efeito, duração, atraso e em quais slides aparece. */
+export function PresentSettings({ node, frames, onChange, onPreview }: { node: CanvasNode; frames: CanvasNode[]; onChange: (p: Partial<CanvasNode>) => void; onPreview: () => void }) {
+  const t = useT();
+  const anim = node.anim || 'none';
+  const dur = node.animDur ?? 0.7;
+  const slides = node.slides || [];
+  const toggle = (id: string) => onChange({ slides: slides.includes(id) ? slides.filter((x) => x !== id) : [...slides, id] });
+  return (
+    <div className="present-settings">
+      <div className="section-label">{t('present.effect')}</div>
+      <div className="anim-grid">
+        {ANIMS.map((a) => (
+          <button key={a} className={'anim-opt' + (anim === a ? ' on' : '')} onClick={() => onChange({ anim: a })}>
+            <span className={'anim-demo d-' + a} />
+            <small>{t(`canvas.anim.${a}` as any)}</small>
+          </button>
+        ))}
+      </div>
+      {anim !== 'none' && (
+        <>
+          <div className="ps-row">
+            <span>{t('present.duration')}</span>
+            <input type="range" min={0.2} max={4} step={0.1} value={dur} onChange={(e) => onChange({ animDur: +e.target.value })} />
+            <b>{dur.toFixed(1)}s</b>
+          </div>
+          <div className="ps-row">
+            <span>{t('present.delay')}</span>
+            <input type="range" min={0} max={6} step={0.1} value={node.animDelay ?? 0} onChange={(e) => onChange({ animDelay: +e.target.value })} />
+            <b>{node.animDelay == null ? t('present.auto') : `${node.animDelay.toFixed(1)}s`}</b>
+            {node.animDelay != null && <button className="icon-btn xs" title={t('present.auto')} onClick={() => onChange({ animDelay: undefined })}>↺</button>}
+          </div>
+          <button className="btn ghost sm" onClick={onPreview}>▶ {t('present.preview')}</button>
+        </>
+      )}
+      <div className="section-label">{t('present.showOn')}</div>
+      {!frames.length ? (
+        <p className="muted small">{t('present.noFramesShort')}</p>
+      ) : (
+        <div className="ps-slides">
+          <label className={'ps-slide' + (!slides.length ? ' on' : '')}>
+            <input type="radio" checked={!slides.length} onChange={() => onChange({ slides: [] })} />
+            <span>{t('present.autoSlides')}</span>
+          </label>
+          {frames.map((f, i) => (
+            <label key={f.id} className={'ps-slide' + (slides.includes(f.id) ? ' on' : '')}>
+              <input type="checkbox" checked={slides.includes(f.id)} onChange={() => toggle(f.id)} />
+              <span className="pnum">{i + 1}</span> <span className="ellipsis">{f.text || `${t('present.slide')} ${i + 1}`}</span>
+            </label>
+          ))}
+          <p className="muted small">{t('present.showOnHint')}</p>
+        </div>
+      )}
+    </div>
+  );
+}

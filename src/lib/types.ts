@@ -112,7 +112,13 @@ export interface View {
   sort?: { prop: string; dir: 'asc' | 'desc' } | null;
   filters: Filter[];
   hidden?: string[];
+  calcs?: Record<string, CalcKind>; // cálculo do rodapé por coluna
 }
+
+export type CalcKind =
+  | 'none' | 'sum' | 'avg' | 'median' | 'min' | 'max' | 'range'
+  | 'count' | 'filled' | 'empty' | 'unique' | 'pctFilled' | 'pctEmpty'
+  | 'checked' | 'unchecked' | 'pctChecked' | 'earliest' | 'latest';
 
 export interface DatabaseData {
   properties: Property[];
@@ -253,6 +259,9 @@ export interface CanvasNode {
   fontSize?: number;
   link?: { type: 'none' | 'page' | 'url' | 'email'; target: string };
   anim?: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'pop' | 'spin' | 'pulse' | 'float' | 'wiggle';
+  animDur?: number; // duração do efeito (s)
+  animDelay?: number; // atraso de entrada (s); vazio = automático em ordem
+  slides?: string[]; // ids das molduras (slides) em que o elemento aparece; vazio = pela posição
   button?: { variant: string; shape: string; size: string; icon?: string };
   chart?: { reportId: string; widgetId: string };
   fill?: 'solid' | 'gradient' | 'glass';

@@ -15,6 +15,7 @@ import { coverCss } from '../lib/themes';
 import { AUTHOR_URL } from './Sidebar';
 import { RELEASES_URL, REPO } from '../lib/updater';
 import type { Page } from '../lib/types';
+import { askConfirm, askText } from './PromptHost';
 
 // Valores estáveis: um [] ou {} novo a cada leitura faria a tela redesenhar sem parar.
 const NO_TEMPLATES: never[] = [];
@@ -64,7 +65,7 @@ export function Templates() {
                 <div className="tpl-cover" style={{ background: `linear-gradient(135deg, ${tpl.color}, color-mix(in srgb, ${tpl.color} 55%, #000))` }}>
                   <UserTemplateBadge tpl={tpl} size={26} />
                 </div>
-                <button className="tpl-del" title={t('common.delete')} onClick={(e) => (e.stopPropagation(), confirm(t('utpl.confirmDelete')) && deleteUserTemplate(tpl.id))}><Trash2 size={14} /></button>
+                <button className="tpl-del" title={t('common.delete')} onClick={async (e) => { e.stopPropagation(); if (await askConfirm({ title: t('common.delete'), message: t('utpl.confirmDelete'), okLabel: t('common.delete'), danger: true })) deleteUserTemplate(tpl.id); }}><Trash2 size={14} /></button>
                 <div className="tpl-body">
                   <b>{tpl.name}</b>
                   <small className="muted">{tpl.description || t(`new.${tpl.kind === 'page' ? 'page' : tpl.kind}` as TKey)}</small>
@@ -121,14 +122,14 @@ export function Trash() {
         <Empty icon={<Trash2 size={30} />} title={t('trash.empty')} />
       ) : (
         <div className="panel">
-          <div className="row"><div className="grow" /><button className="btn ghost danger sm" onClick={() => window.confirm(t('trash.emptyConfirm')) && v.emptyTrash()}><Trash2 size={14} /> {t('trash.emptyAll')}</button></div>
+          <div className="row"><div className="grow" /><button className="btn ghost danger sm" onClick={async () => (await askConfirm({ title: t('trash.emptyAll'), message: t('trash.emptyConfirm'), okLabel: t('trash.emptyAll'), danger: true })) && v.emptyTrash()}><Trash2 size={14} /> {t('trash.emptyAll')}</button></div>
           {list.map((p) => (
             <div key={p.id} className="trash-row">
               <PageIcon icon={p.icon} size={18} />
               <span className="grow ellipsis">{p.title || t('page.untitled')}</span>
               <small className="muted">{relativeTime(p.deletedAt!, LOCALES[lang])}</small>
               <button className="btn ghost sm" onClick={() => v.restorePage(p.id)}><RotateCcw size={14} /> {t('trash.restore')}</button>
-              <button className="icon-btn sm" onClick={() => window.confirm(t('trash.purgeConfirm')) && v.purgePage(p.id)}><Trash2 size={15} /></button>
+              <button className="icon-btn sm" onClick={async () => (await askConfirm({ title: t('common.delete'), message: t('trash.purgeConfirm'), okLabel: t('common.delete'), danger: true })) && v.purgePage(p.id)}><Trash2 size={15} /></button>
             </div>
           ))}
         </div>

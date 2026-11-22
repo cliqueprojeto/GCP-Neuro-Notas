@@ -1,5 +1,26 @@
 # Histórico de versões
 
+## 1.3.3 — Mídia premium, gravação de áudio e vídeo e apresentação por elemento
+
+### Mídia nas páginas
+- **Imagens** com barra rápida de tamanho (P, M, G, largura total), alinhamento, legenda, sombra e redimensionamento pela borda.
+- **YouTube** com janela própria (cole o link e veja a prévia), tamanhos, alinhamento, legenda e abrir no YouTube.
+- **Gravar áudio e vídeo** direto na página (`/áudio`, `/vídeo`): microfone ou câmera, pausa, tempo de gravação, ou enviar arquivo; player com os mesmos controles de tamanho.
+- O comando `/` prioriza o título que começa com o que você digitou.
+
+### Janelas do app
+- Links, rótulos, senhas e confirmações agora usam janelas do próprio app — sem as caixas do sistema que mostravam "JavaScript – tauri://localhost".
+
+### Bases de dados
+- **Rodapé com cálculo por coluna**: soma, média, mediana, mínimo, máximo, amplitude, contagem, preenchidos, vazios, contagem única, % preenchido/vazio, marcados, % concluído, data mais antiga/recente — para qualquer tipo de campo, salvo por visualização.
+
+### Quadro e apresentação
+- Cada elemento tem seu painel de apresentação: efeito de entrada (com prévia), **duração**, **atraso** e **em quais slides aparece** (um, vários ou automático pela moldura).
+- Corrigido: com as ferramentas de nota, texto, forma e moldura agora dá para criar elementos **dentro** de uma moldura.
+
+### Permissões
+- Microfone e câmera habilitados no Android, no macOS (mensagens de permissão) e no Linux (WebKitGTK).
+
 ## 1.3.2 — Correção
 
 - **Templates** voltou a abrir: em cofres sem nenhum modelo próprio a tela travava o app (em todos os sistemas). O mesmo defeito foi corrigido na janela "Enviar ao Notion" e nas cores do Grafo.
