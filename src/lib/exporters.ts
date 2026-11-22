@@ -25,12 +25,32 @@ function isNum(prop: Property) {
 
 // ---------------------------------------------------------------- impressão
 
-export function printPage() {
+export async function printPage() {
+  // Documento: no fim do papel, a lista de links com QR Code (para quem lê impresso)
+  let extra: HTMLElement | null = null;
+  const editor = document.querySelector('.page-content .ProseMirror') as HTMLElement | null;
+  if (editor) {
+    try {
+      const { collectLinks, linksAppendix } = await import('./docPdf');
+      const links: { url: string; label: string }[] = [];
+      editor.querySelectorAll('.yt-player img').forEach((img) => {
+        const id = (img.getAttribute('src') || '').match(/vi\/([\w-]{11})/)?.[1];
+        if (id) links.push({ url: `https://www.youtube.com/watch?v=${id}`, label: '▶ ' + (img.closest('.yt-player')?.querySelector('.yt-title span:last-child')?.textContent || 'YouTube') });
+      });
+      editor.querySelectorAll('[data-href]').forEach((el) => links.push({ url: el.getAttribute('data-href') || '', label: '▣ ' + (el.getAttribute('data-label') || el.getAttribute('data-href')) }));
+      const tmp = editor.cloneNode(true) as HTMLElement;
+      tmp.querySelectorAll('[data-href]').forEach((e) => e.removeAttribute('data-href'));
+      collectLinks(tmp, links);
+      const lang = (document.documentElement.lang || 'pt').slice(0, 2);
+      extra = await linksAppendix(links, lang === 'en' ? 'Links and references' : lang === 'es' ? 'Enlaces y referencias' : 'Links e referências');
+      if (extra) (extra.classList.add('print-only'), editor.parentElement?.appendChild(extra));
+    } catch { /* imprime sem o apêndice */ }
+  }
   document.body.classList.add('printing');
   setTimeout(() => {
     window.print();
-    setTimeout(() => document.body.classList.remove('printing'), 500);
-  }, 50);
+    setTimeout(() => (document.body.classList.remove('printing'), extra?.remove()), 500);
+  }, 80);
 }
 
 // --------------------------------------------------------------------- PDF
@@ -41,6 +61,15 @@ export async function exportPdf(page: Page, liveElement?: HTMLElement | null) {
     const view = page.db.views.find((v) => v.id === page.db!.activeView) || page.db.views[0];
     const props = page.db.properties.filter((p) => !(view?.hidden || []).includes(p.id));
     return tablePdf(page.title || 'GCP-Neuro Notas', props, page.db.rows, '✓');
+  }
+  // Documento aberto no editor: PDF com o mesmo visual da tela, links clicáveis e QR Codes
+  const liveEditor = liveElement?.querySelector('.ProseMirror');
+  if (page.type === 'page' && page.mode !== 'edgeless' && liveEditor) {
+    const { exportDocPdf } = await import('./docPdf');
+    const lang = (document.documentElement.lang || 'pt').slice(0, 2);
+    const L = { pt: ['Links e referências', 'Página'], en: ['Links and references', 'Page'], es: ['Enlaces y referencias', 'Página'] }[lang as 'pt'] || ['Links e referências', 'Página'];
+    const buf = await exportDocPdf(page, liveElement!, { linksTitle: L[0], pageLabel: L[1], iconText: iconText(page) });
+    return saveBinaryFile(`${safeName(page)}.pdf`, bytesToB64(buf), [{ name: 'PDF', extensions: ['pdf'] }]);
   }
   const [{ jsPDF }, html2canvas] = await Promise.all([import('jspdf'), import('html2canvas-pro').then((m) => m.default)]);
   let el: HTMLElement;
@@ -95,7 +124,7 @@ export function toRgb(c: string): string {
 const MODERN = /(color-mix|color|oklch|oklab|lab|lch|hwb)\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/g;
 const COLOR_PROPS = ['color', 'background-color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'outline-color', 'text-decoration-color', 'fill', 'stroke', 'caret-color', 'column-rule-color'];
 const COMPLEX_PROPS = ['background-image', 'box-shadow', 'text-shadow'];
-function flattenColors(doc: Document) {
+export function flattenColors(doc: Document) {
   const win = doc.defaultView || window;
   doc.querySelectorAll<HTMLElement>('*').forEach((el) => {
     const cs = win.getComputedStyle(el);
@@ -229,6 +258,30 @@ export async function exportDocx(page: Page) {
           const sc = Math.min(1, max / w);
           const type = src.startsWith('data:image/png') ? 'png' : src.startsWith('data:image/gif') ? 'gif' : 'jpg';
           out.push(new Paragraph({ children: [new ImageRun({ type, data: Uint8Array.from(atob(src.split(',')[1]), (c) => c.charCodeAt(0)), transformation: { width: Math.round(w * sc), height: Math.round(h * sc) } } as any)] }));
+          break;
+        }
+        case 'qrcode': {
+          // QR Code: imagem gerada + legenda + link clicável
+          const { qrPayload, qrPng } = await import('./qr');
+          const data = qrPayload(n.attrs?.kind || 'link', n.attrs?.fields || {});
+          const src: string = n.attrs?.image || (data ? await qrPng(data, { fg: '#141414', bg: '#ffffff', dots: 'rounded', corners: 'extra-rounded', ...(n.attrs?.style || {}) }, 480) : '');
+          if (src.startsWith('data:')) {
+            const size = Math.min(260, n.attrs?.size || 220);
+            const img = new ImageRun({ type: 'png', data: Uint8Array.from(atob(src.split(',')[1]), (c) => c.charCodeAt(0)), transformation: { width: size, height: size } } as any);
+            const href = /^(https?:|mailto:|tel:)/.test(data) ? data : '';
+            out.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [href ? new ExternalHyperlink({ link: href, children: [img] }) : img] }));
+          }
+          if (n.attrs?.caption) out.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: n.attrs.caption, bold: true })] }));
+          break;
+        }
+        case 'youtube': {
+          const id = (String(n.attrs?.src || '').match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/) || [])[1];
+          if (id) out.push(new Paragraph({ children: [new TextRun({ text: '▶ ' }), new ExternalHyperlink({ link: `https://www.youtube.com/watch?v=${id}`, children: [new TextRun({ text: n.attrs?.caption || `YouTube — https://www.youtube.com/watch?v=${id}`, style: 'Hyperlink' })] })] }));
+          break;
+        }
+        case 'columns': {
+          // colunas: cada coluna em sequência, preservando o conteúdo
+          for (const col of n.content || []) out.push(...(await blocks(col.content || [])));
           break;
         }
         default: {

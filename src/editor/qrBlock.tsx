@@ -34,7 +34,7 @@ export function QrView({ node, updateAttributes, deleteNode, editor, selected }:
   return (
     <NodeViewWrapper className={'qr-block' + (selected ? ' sel' : '') + (open && editable ? ' editing' : '')} data-align={node.attrs.align || 'center'} contentEditable={false}>
       <div className="qr-main">
-        <div className={'qr-card' + (empty ? ' empty' : '')}>
+        <div className={'qr-card' + (empty ? ' empty' : '')} data-href={!empty && /^(https?:|mailto:|tel:)/.test(data) ? data : undefined} data-label={node.attrs.caption || undefined}>
           <div ref={box} className="qr-canvas" />
           {empty && <div className="qr-empty-tag">{t('qr.example')}</div>}
           <input className="qr-caption" placeholder={editable ? t('qr.captionPh') : ''} value={node.attrs.caption || ''} readOnly={!editable} onChange={(e) => updateAttributes({ caption: e.target.value })} />

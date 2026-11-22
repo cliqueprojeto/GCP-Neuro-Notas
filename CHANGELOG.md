@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.4.4 — Gerador de QR Code e exportações fiéis à tela, com links clicáveis
+
+- **QR Code** (`/qrcode`): link, texto, e-mail, telefone, SMS, WhatsApp, Wi-Fi, **Pix** (BR Code do Banco Central, com valor e identificador opcionais) e vCard; cor do código e do fundo, degradê, seis estilos de pontos, três estilos de cantos, logo central, três tamanhos, legenda, conteúdo gerado com copiar e download em PNG ou SVG.
+- **PDF de documentos com o visual da tela**: blocos premium, colunas, cartões, QR Codes e capas de vídeo em papel claro; quebras de página entre blocos; título e numeração no rodapé.
+- **Links clicáveis no PDF** (textos, vídeos e QR Codes) e um apêndice **"Links e referências"** com o QR Code de cada endereço — também na impressão.
+- **Word (.docx)**: QR Codes como imagem clicável com legenda, vídeos do YouTube como link e colunas preservadas.
+- Impressão sem controles de edição nem textos de ajuda.
+
 ## 1.4.3 — YouTube tocando na página e na apresentação, mídia no quadro e novo ícone em todos os sistemas
 
 - **YouTube**: capa do vídeo em alta resolução com título e botão de play; o vídeo toca dentro da página. Corrigido o "Erro 153" (configuração do player): no computador o player passa por uma página local do próprio app (127.0.0.1), que envia a origem exigida pelo YouTube; no Android o player recebe a política de referência correta.
