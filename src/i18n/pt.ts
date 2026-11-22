@@ -833,6 +833,11 @@ export const pt = {
   'pres.col.name': 'Nome',
   'pres.col.updated': 'Atualizada',
   'pres.deckSubtitle': 'Subtítulo · seu nome',
+  'canvas.align': 'Alinhamento',
+  'pres.importPptx': 'Importar PowerPoint',
+  'pres.importing': 'Importando…',
+  'pres.imported': '{n} slides importados do PowerPoint',
+  'pres.importError': 'Não foi possível importar este arquivo.',
 };
 
 export type Dict = Record<keyof typeof pt, string>;

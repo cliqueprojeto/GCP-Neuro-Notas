@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import {
-  Check, Copy, Folder, FolderInput, FolderMinus, FolderPlus, LayoutGrid, List, MoreHorizontal, Palette, Pencil, Play, Plus, Presentation, Search, Trash2,
+  Check, Copy, FileUp, Folder, FolderInput, FolderMinus, FolderPlus, LayoutGrid, List, MoreHorizontal, Palette, Pencil, Play, Plus, Presentation, Search, Trash2,
 } from 'lucide-react';
 import { useT, useLang, LOCALES } from '../i18n';
 import { useVault, livePages } from '../store/vault';
@@ -10,6 +10,7 @@ import { uid } from '../lib/crypto';
 import { ContextMenu, Empty, Modal, PageIcon, Popover, type MenuEntry } from './ui';
 import { IconPicker } from './IconPicker';
 import { askConfirm, askText } from './PromptHost';
+import { pickBinaryFile } from '../lib/platform';
 import { BoardThumb } from './Boards';
 import { BgPanel } from '../canvas/BoardStyle';
 import { BG_THEMES, themeOf } from '../canvas/backgrounds';
@@ -88,6 +89,7 @@ export function Presentations() {
   const duplicate = useVault((s) => s.duplicatePage);
   const trash = useVault((s) => s.trashPage);
   const go = useUi((s) => s.go);
+  const create = useVault((s) => s.createPage);
   const setUi = useUi((s) => s.set);
   const [filter, setFilter] = useState<Filter>('all');
   const [view, setView] = useState<'cards' | 'list'>(() => { try { return (localStorage.getItem('gcp.pres.view') as any) || 'cards'; } catch { return 'cards'; } });
@@ -129,6 +131,24 @@ export function Presentations() {
     updatePage(p.id, { presFolders: cur.includes(fid) ? cur.filter((x) => x !== fid) : [...cur, fid] });
   };
   const moveTo = (p: Page, fid: string | null) => updatePage(p.id, { presFolders: fid ? [fid] : [] });
+  const [importing, setImporting] = useState(false);
+  const toast = useUi((s) => s.toast);
+  const importDeck = async () => {
+    const f = await pickBinaryFile('.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    if (!f) return;
+    setImporting(true);
+    try {
+      const { importPptx } = await import('../lib/pptxDeck');
+      const { title, canvas } = await importPptx(f.bytes.buffer.slice(f.bytes.byteOffset, f.bytes.byteOffset + f.bytes.byteLength) as ArrayBuffer, { slide: t('present.slide') });
+      const p = create({ type: 'canvas', title: title || f.name.replace(/\.pptx$/i, ''), icon: 'lucide:Presentation:#f97316', presentation: true, presFolders: curFolder ? [curFolder.id] : [], canvas } as Partial<Page>);
+      toast(t('pres.imported', { n: canvas.nodes.filter((n) => n.kind === 'frame').length }), 'success');
+      go({ name: 'page', id: p.id });
+    } catch (e) {
+      toast(t('pres.importError') + ' ' + String((e as Error).message || e), 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
   const present = (p: Page) => { setUi({ presentNow: p.id }); go({ name: 'page', id: p.id }); };
 
   const openMenu = (p: Page, x: number, y: number, anchor?: HTMLElement) => {
@@ -216,6 +236,7 @@ export function Presentations() {
         <section className="pres-main">
           <div className="pres-toolbar">
             <button className="btn primary" onClick={() => setNewOpen(true)}><Plus size={16} /> {t('pres.new')}</button>
+            <button className="btn ghost" onClick={importDeck} disabled={importing}><FileUp size={15} /> {importing ? t('pres.importing') : t('pres.importPptx')}</button>
             <label className="pres-search"><Search size={14} /><input placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} /></label>
             <span className="grow" />
             <div className="seg sm">

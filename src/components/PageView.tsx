@@ -97,7 +97,10 @@ function PageInner({ page }: { page: Page }) {
       let path: string | null = null;
       if (kind === 'pdf') path = await exportPdf(page, contentRef.current);
       if (kind === 'docx') path = await exportDocx(page);
-      if (kind === 'pptx') path = await exportPptx(page, getTheme(theme).dark);
+      if (kind === 'pptx') {
+        if (page.canvas && (page.type === 'canvas' || page.mode === 'edgeless')) path = await (await import('../lib/pptxDeck')).exportDeckPptx(page, t('present.overview'));
+        else path = await exportPptx(page, getTheme(theme).dark);
+      }
       if (kind === 'xlsx') path = await exportXlsx(page);
       if (kind === 'md' || kind === 'html') path = await exportPageFile(page, kind);
       if (path) toast(t('export.done'), 'success');

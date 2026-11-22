@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
 import {
-  Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
+  Bold, Italic, AlignLeft, AlignCenter, AlignRight, Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
   Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle, Palette, LayoutTemplate,
 } from 'lucide-react';
 import { Presenter, PresentSettings, PresentPage } from './Presenter';
@@ -36,6 +37,17 @@ function isDarkColor(c?: string) {
   }
   return v;
 }
+const textStyle = (n: CanvasNode): React.CSSProperties | undefined => {
+  const st: React.CSSProperties = {};
+  if (n.fontSize) st.fontSize = n.fontSize;
+  if (n.kind === 'text') st.color = n.color;
+  else if (n.textColor) st.color = n.textColor;
+  if (n.bold) st.fontWeight = 700;
+  if (n.italic) st.fontStyle = 'italic';
+  if (n.align) st.textAlign = n.align;
+  if (n.font) st.fontFamily = n.font;
+  return st;
+};
 const NOTE_COLORS = ['#fde68a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#ddd6fe', '#fed7aa', '#e2e8f0', '#1e293b'];
 const INK = ['#1f2937', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
 const EMPTY: CanvasData = { nodes: [], edges: [], view: { x: 0, y: 0, zoom: 1 } };
@@ -43,7 +55,7 @@ const EMPTY: CanvasData = { nodes: [], edges: [], view: { x: 0, y: 0, zoom: 1 } 
 type Snap = { id: string; side: Side; x: number; y: number };
 
 /** Sem molduras: visão geral + um enquadramento para cada grupo de elementos ligados ou próximos. */
-function autoSlides(nodes: CanvasNode[], edges: CanvasEdge[], overview: string): CanvasNode[] {
+export function autoSlides(nodes: CanvasNode[], edges: CanvasEdge[], overview: string): CanvasNode[] {
   const items = nodes.filter((n) => n.kind !== 'frame');
   if (!items.length) return [];
   const parent = new Map(items.map((n) => [n.id, n.id]));
@@ -98,12 +110,12 @@ function nearestSide(n: CanvasNode, p: { x: number; y: number }): Side {
 }
 const oppositeSide = (s: Side): Side => ({ t: 'b', b: 't', l: 'r', r: 'l' } as const)[s];
 /** Lados automáticos para um conector sem lados fixos (o par mais curto). */
-function autoSides(a: CanvasNode, b: CanvasNode): [Side, Side] {
+export function autoSides(a: CanvasNode, b: CanvasNode): [Side, Side] {
   const dx = b.x + b.w / 2 - (a.x + a.w / 2), dy = b.y + b.h / 2 - (a.y + a.h / 2);
   if (Math.abs(dx) * (a.h + b.h) >= Math.abs(dy) * (a.w + b.w)) return dx >= 0 ? ['r', 'l'] : ['l', 'r'];
   return dy >= 0 ? ['b', 't'] : ['t', 'b'];
 }
-function edgePath(p1: { x: number; y: number }, s1: Side, p2: { x: number; y: number }, s2: Side, style: CanvasEdge['style']) {
+export function edgePath(p1: { x: number; y: number }, s1: Side, p2: { x: number; y: number }, s2: Side, style: CanvasEdge['style']) {
   const d1 = DIR[s1], d2 = DIR[s2];
   if (style === 'curve') {
     const k = Math.max(40, Math.hypot(p2.x - p1.x, p2.y - p1.y) * 0.4);
@@ -121,6 +133,23 @@ function edgePath(p1: { x: number; y: number }, s1: Side, p2: { x: number; y: nu
     return `M${p1.x},${p1.y} L${a.x},${a.y} ${mid} L${b.x},${b.y} L${p2.x},${p2.y}`;
   }
   return `M${p1.x},${p1.y} L${p2.x},${p2.y}`;
+}
+
+/** Geometria de um conector (pontos e caminho SVG), usada também na exportação. */
+export function edgeGeomOf(e: CanvasEdge, a: CanvasNode, b: CanvasNode) {
+  const [as, bs] = autoSides(a, b);
+  const fs = e.fromSide || as, ts = e.toSide || bs;
+  const p1 = sidePoint(a, fs), p2 = sidePoint(b, ts);
+  return { p1, p2, fs, ts, d: edgePath(p1, fs, p2, ts, e.style || 'curve') };
+}
+export function strokePathOf(pts: number[]) {
+  if (pts.length < 4) return '';
+  let d = `M${pts[0]},${pts[1]}`;
+  for (let i = 2; i < pts.length - 2; i += 2) {
+    const mx = (pts[i] + pts[i + 2]) / 2, my = (pts[i + 1] + pts[i + 3]) / 2;
+    d += ` Q${pts[i]},${pts[i + 1]} ${mx},${my}`;
+  }
+  return d + ` L${pts[pts.length - 2]},${pts[pts.length - 1]}`;
 }
 
 /**
@@ -772,9 +801,9 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                 )}
                 {(n.kind === 'note' || n.kind === 'shape' || n.kind === 'text') &&
                   (edit === n.id ? (
-                    <textarea autoFocus className="cnode-text" style={n.kind === 'text' ? { fontSize: n.fontSize, color: n.color } : undefined} value={n.text || ''} onChange={(e) => patchNode(n.id, { text: e.target.value })} onBlur={() => setEdit(null)} onKeyDown={(e) => e.key === 'Escape' && (e.currentTarget.blur(), setEdit(null))} onPointerDown={(e) => e.stopPropagation()} />
+                    <textarea autoFocus className="cnode-text" style={textStyle(n)} value={n.text || ''} onChange={(e) => patchNode(n.id, { text: e.target.value })} onBlur={() => setEdit(null)} onKeyDown={(e) => e.key === 'Escape' && (e.currentTarget.blur(), setEdit(null))} onPointerDown={(e) => e.stopPropagation()} />
                   ) : (
-                    <div className="cnode-text view" style={n.kind === 'text' ? { fontSize: n.fontSize, color: n.color } : undefined}>{n.text || <span className="ph">{t(n.kind === 'text' ? 'canvas.text' : 'canvas.empty')}</span>}</div>
+                    <div className="cnode-text view" style={textStyle(n)}>{n.text || (sel === n.id || n.kind === 'note' ? <span className="ph">{t(n.kind === 'text' ? 'canvas.text' : 'canvas.empty')}</span> : null)}</div>
                   ))}
                 {n.kind === 'page' && (
                   <div className="cnode-page">
@@ -894,10 +923,16 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               (selNode.kind === 'draw' || selNode.kind === 'text' || selNode.kind === 'button' ? INK : NOTE_COLORS).map((c) => (
                 <button key={c} className={'color-dot sm' + (selNode.color === c ? ' on' : '')} style={{ background: c }} onClick={() => patchNode(selNode.id, { color: c }, true)} />
               ))}
-            {selNode?.kind === 'text' && (
+            {selNode && ['text', 'shape', 'note'].includes(selNode.kind) && (
               <>
-                <button className="tb" onClick={() => patchNode(selNode.id, { fontSize: Math.max(12, (selNode.fontSize || 22) - 4) }, true)}>A−</button>
-                <button className="tb" onClick={() => patchNode(selNode.id, { fontSize: Math.min(96, (selNode.fontSize || 22) + 4) }, true)}>A+</button>
+                <span className="tb-sep" />
+                <button className="tb" onClick={() => patchNode(selNode.id, { fontSize: Math.max(10, (selNode.fontSize || (selNode.kind === 'text' ? 22 : 15)) - 2) }, true)}>A−</button>
+                <button className="tb" onClick={() => patchNode(selNode.id, { fontSize: Math.min(120, (selNode.fontSize || (selNode.kind === 'text' ? 22 : 15)) + 2) }, true)}>A+</button>
+                <button className={'tb' + (selNode.bold ? ' on' : '')} onClick={() => patchNode(selNode.id, { bold: !selNode.bold }, true)} title={t('tb.bold')}><Bold size={15} /></button>
+                <button className={'tb' + (selNode.italic ? ' on' : '')} onClick={() => patchNode(selNode.id, { italic: !selNode.italic }, true)} title={t('tb.italic')}><Italic size={15} /></button>
+                <button className="tb" onClick={() => patchNode(selNode.id, { align: selNode.align === 'center' ? 'right' : selNode.align === 'right' ? 'left' : 'center' }, true)} title={t('canvas.align')}>
+                  {selNode.align === 'center' ? <AlignCenter size={15} /> : selNode.align === 'right' ? <AlignRight size={15} /> : <AlignLeft size={15} />}
+                </button>
               </>
             )}
             {selNode?.kind === 'button' && (

@@ -264,6 +264,11 @@ export interface CanvasNode {
   points?: number[]; // traço livre (x,y relativos ao nó)
   stroke?: number;
   fontSize?: number;
+  bold?: boolean;
+  italic?: boolean;
+  align?: 'left' | 'center' | 'right';
+  textColor?: string; // cor do texto em formas/notas
+  font?: string;
   link?: { type: 'none' | 'page' | 'url' | 'email'; target: string };
   anim?: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'pop' | 'spin' | 'pulse' | 'float' | 'wiggle';
   animDur?: number; // duração do efeito (s)

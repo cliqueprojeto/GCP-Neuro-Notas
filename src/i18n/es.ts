@@ -817,4 +817,9 @@ export const es: Dict = {
   'pres.col.name': 'Nombre',
   'pres.col.updated': 'Actualizada',
   'pres.deckSubtitle': 'Subtítulo · su nombre',
+  'canvas.align': 'Alineación',
+  'pres.importPptx': 'Importar PowerPoint',
+  'pres.importing': 'Importando…',
+  'pres.imported': '{n} diapositivas importadas de PowerPoint',
+  'pres.importError': 'No se pudo importar este archivo.',
 };
