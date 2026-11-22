@@ -1,0 +1,178 @@
+name: Release — GCP Notas
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publicar a release ao final (desmarcado = fica como rascunho)
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+  VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  VITE_MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+
+jobs:
+  draft:
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.r.outputs.tag }}
+      version: ${{ steps.r.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rascunho da release
+        id: r
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v${VERSION}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "$TAG" ]; then
+            echo "A tag ${GITHUB_REF_NAME} não corresponde à versão ${VERSION} do package.json"; exit 1
+          fi
+          NOTES="docs/release-notes/${TAG}.md"
+          test -f "$NOTES" || NOTES=CHANGELOG.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG já existe; os arquivos serão substituídos."
+          else
+            gh release create "$TAG" --draft --target "$GITHUB_SHA" --title "GCP Notas ${VERSION}" --notes-file "$NOTES"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: draft
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: linux, runner: ubuntu-22.04, target: x86_64-unknown-linux-gnu, bundles: 'deb,rpm' }
+          - { id: windows, runner: windows-2022, target: x86_64-pc-windows-msvc, bundles: nsis }
+          - { id: macos-arm64, runner: macos-15, target: aarch64-apple-darwin, bundles: dmg }
+          - { id: macos-x86_64, runner: macos-15-intel, target: x86_64-apple-darwin, bundles: dmg }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.draft.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.id }}
+      - name: Dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libssl-dev patchelf rpm file
+      - name: Dependências e testes
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+      - name: Build do aplicativo e instaladores
+        run: npx tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+      - name: Nomear instaladores e gerar SHA-256
+        run: |
+          B="src-tauri/target/${{ matrix.target }}/release/bundle"
+          mkdir -p out
+          case "${{ matrix.id }}" in
+            linux)
+              cp "$(ls $B/deb/*.deb | head -1)" "out/gcp-notas_${VERSION}_amd64.deb"
+              cp "$(ls $B/rpm/*.rpm | head -1)" "out/gcp-notas-${VERSION}-1.x86_64.rpm" ;;
+            windows)
+              cp "$(ls $B/nsis/*-setup.exe | head -1)" "out/GCP-Notas-${VERSION}-Windows-x64-Setup.exe" ;;
+            macos-arm64)
+              cp "$(ls $B/dmg/*.dmg | head -1)" "out/GCP-Notas-${VERSION}-macOS-arm64.dmg" ;;
+            macos-x86_64)
+              cp "$(ls $B/dmg/*.dmg | head -1)" "out/GCP-Notas-${VERSION}-macOS-x86_64.dmg" ;;
+          esac
+          cd out
+          for f in *; do
+            if command -v sha256sum >/dev/null; then sha256sum "$f" > "$f.sha256"; else shasum -a 256 "$f" > "$f.sha256"; fi
+          done
+          ls -la
+      - name: Testar instalação do .deb (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y "./out/gcp-notas_${VERSION}_amd64.deb"
+          test -x /usr/bin/gcp-notas
+          desktop-file-validate /usr/share/applications/*.desktop || true
+          sudo apt-get remove -y gcp-notas || true
+      - name: Enviar ao rascunho da release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in 1 2 3 4; do
+            gh release upload "${{ needs.draft.outputs.tag }}" --clobber out/* && break
+            test "$attempt" -lt 4; sleep $((attempt * 15))
+          done
+      - uses: actions/upload-artifact@v4
+        if: matrix.id == 'linux'
+        with:
+          name: linux-deb
+          path: out/*.deb
+          retention-days: 3
+
+  arch:
+    needs: [draft, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.draft.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
+          path: dist
+      - name: Gerar pacote Arch (.pkg.tar.zst) no Arch Linux oficial
+        run: |
+          docker run --rm -e VERSION="$VERSION" -v "$PWD:/work" archlinux:base-devel bash /work/packaging/arch/build.sh
+          sudo chown -R "$(id -u):$(id -g)" dist
+          cd dist && sha256sum gcp-notas-bin-*.pkg.tar.zst > "$(ls gcp-notas-bin-*.pkg.tar.zst).sha256"
+      - name: Enviar ao rascunho da release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.draft.outputs.tag }}" --clobber dist/*.pkg.tar.zst dist/*.pkg.tar.zst.sha256
+
+  publish:
+    needs: [draft, build, arch]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conferir arquivos, gerar SHA256SUMS e publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.draft.outputs.tag }}
+          V: ${{ needs.draft.outputs.version }}
+          PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
+        run: |
+          mkdir release
+          gh release download "$TAG" --dir release --pattern '*'
+          rm -f release/SHA256SUMS.txt
+          for f in "GCP-Notas-$V-Windows-x64-Setup.exe" "GCP-Notas-$V-macOS-arm64.dmg" "GCP-Notas-$V-macOS-x86_64.dmg" \
+                   "gcp-notas_${V}_amd64.deb" "gcp-notas-$V-1.x86_64.rpm" "gcp-notas-bin-$V-1-x86_64.pkg.tar.zst"; do
+            test -s "release/$f"
+            (cd release && sha256sum -c "$f.sha256")
+          done
+          (cd release && sha256sum $(ls | grep -v '\.sha256$') > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          gh release upload "$TAG" --clobber release/SHA256SUMS.txt
+          if [ "$PUBLISH" = "true" ]; then gh release edit "$TAG" --draft=false --latest; fi

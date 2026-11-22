@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "GCP Notas",
+  "mainBinaryName": "gcp-notas",
+  "version": "1.0.0",
+  "identifier": "br.com.gestaoculturalpro.notas",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "GCP Notas",
+        "width": 1360,
+        "height": 860,
+        "minWidth": 380,
+        "minHeight": 560,
+        "center": true,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "rpm", "nsis", "dmg", "app"],
+    "publisher": "Bruno Albertini | Gestão Cultural Pro",
+    "copyright": "© 2026 Bruno Albertini | Gestão Cultural Pro — GPL-3.0",
+    "category": "Productivity",
+    "shortDescription": "Notas, bases de dados, relatórios e segundo cérebro — offline e criptografado.",
+    "longDescription": "GCP Notas reúne editor completo, páginas aninhadas, bases de dados, quadros, calendário, relatórios com gráficos, grafo de ideias, templates, IA opcional e backup criptografado no Google Drive e OneDrive.",
+    "homepage": "https://github.com/cliqueprojeto/GCP-Notas",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": {
+        "section": "utils",
+        "depends": []
+      },
+      "rpm": {
+        "release": "1"
+      }
+    },
+    "windows": {
+      "webviewInstallMode": { "type": "embedBootstrapper" },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["PortugueseBR", "English", "Spanish"],
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "signingIdentity": "-"
+    }
+  }
+}

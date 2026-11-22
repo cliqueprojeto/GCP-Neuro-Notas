@@ -1,0 +1,20 @@
+# Maintainer: Bruno Albertini | Gestão Cultural Pro <https://www.gestaoculturalpro.com.br>
+pkgname=gcp-notas-bin
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc="Notas, bases de dados, relatórios, quadro e segundo cérebro — offline e criptografado"
+arch=('x86_64')
+url="https://github.com/cliqueprojeto/GCP-Notas"
+license=('GPL-3.0-or-later')
+depends=('webkit2gtk-4.1' 'gtk3' 'libsoup3' 'openssl' 'hicolor-icon-theme')
+optdepends=('polkit: instalar atualizações pelo próprio aplicativo')
+provides=('gcp-notas')
+conflicts=('gcp-notas')
+options=('!strip' '!debug')
+source=("gcp-notas_${pkgver}_amd64.deb")
+sha256sums=('SKIP')
+
+package() {
+  bsdtar -xf data.tar.* -C "$pkgdir"
+  chmod -R u=rwX,go=rX "$pkgdir/usr"
+}
