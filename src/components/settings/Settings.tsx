@@ -15,6 +15,9 @@ import { RELEASES_URL, checkForUpdate, type CheckResult } from '../../lib/update
 import { exportBackup, exportAiContext, importBackup, importFiles, pickBackupFile } from '../../lib/transfer';
 import { CLOUD_NAMES, backupNow, clientConfig, connect, disconnect, syncNow, VaultMismatchError, type CloudProvider } from '../../cloud/cloud';
 import { CloudRestoreModal, cloudErrorText } from './CloudRestore';
+import { CloudGuide } from './CloudGuide';
+import { GoogleDriveIcon, OneDriveIcon } from './BrandIcons';
+import { NotionCard } from './NotionCard';
 import { PROVIDERS, detectBestModel, guessProvider, providerMeta, chat } from '../../ai/providers';
 import type { AiProvider, AiProviderId, UpdateFrequency } from '../../lib/types';
 import { uid } from '../../lib/crypto';
@@ -189,6 +192,7 @@ function Backup() {
   const cloud = v.settings.cloud;
   const [busy, setBusy] = useState<string>('');
   const [restoreOpen, setRestoreOpen] = useState(false);
+  const [guide, setGuide] = useState<'' | CloudProvider>('');
   const [shareOpen, setShareOpen] = useState(false);
   const [expOpen, setExpOpen] = useState(false);
   const [expPw, setExpPw] = useState('');
@@ -238,7 +242,7 @@ function Backup() {
           const cfg = clientConfig(p);
           return (
             <div key={p} className="cloud-row">
-              <div className={'cloud-logo ' + p}>{p === 'gdrive' ? 'G' : 'O'}</div>
+              <div className={'cloud-logo brand ' + p}>{p === 'gdrive' ? <GoogleDriveIcon size={26} /> : <OneDriveIcon size={30} />}</div>
               <div className="grow">
                 <b>{CLOUD_NAMES[p]}</b>
                 <small className="muted block">{acc ? `${t('cloud.connectedAs')} ${acc.email || '—'}` : cfg.clientId ? t('cloud.notConnected') : t('cloud.missingClient')}</small>
@@ -254,9 +258,12 @@ function Backup() {
                   <button className="btn ghost sm danger" onClick={() => disconnect(p)}>{t('cloud.disconnect')}</button>
                 </>
               ) : (
-                <button className="btn primary sm" onClick={() => run('c' + p, () => connect(p), t('cloud.connected', { p: CLOUD_NAMES[p] }))} disabled={!!busy || !isTauri}>
+                <>
+                {!cfg.clientId && <button className="btn ghost sm" onClick={() => setGuide(p)}><KeyRound size={14} /> {t('guide.setup')}</button>}
+                <button className="btn primary sm" onClick={() => (cfg.clientId ? run('c' + p, () => connect(p), t('cloud.connected', { p: CLOUD_NAMES[p] })) : setGuide(p))} disabled={!!busy || !isTauri}>
                   {busy === 'c' + p ? <Spinner /> : <Cloud size={14} />} {t('cloud.connectShort')}
                 </button>
+                </>
               )}
             </div>
           );
@@ -281,6 +288,10 @@ function Backup() {
         <details className="advanced">
           <summary>{t('cloud.advanced')}</summary>
           <p className="muted small">{t('cloud.advancedHint')}</p>
+          <div className="row wrap">
+            <button className="btn primary sm" onClick={() => setGuide('gdrive')}><GoogleDriveIcon size={15} /> {t('guide.setupGoogle')}</button>
+            <button className="btn ghost sm" onClick={() => setGuide('onedrive')}><OneDriveIcon size={17} /> {t('guide.setupMs')}</button>
+          </div>
           <Field label="Google Client ID"><input className="input mono" value={cloud.googleClientId || ''} placeholder={clientConfig('gdrive').clientId || '…apps.googleusercontent.com'} onChange={(e) => v.updateSettings((s) => ((s.cloud.googleClientId = e.target.value.trim()), s))} /></Field>
           <Field label="Google Client Secret"><input className="input mono" value={cloud.googleClientSecret || ''} onChange={(e) => v.updateSettings((s) => ((s.cloud.googleClientSecret = e.target.value.trim()), s))} /></Field>
           <Field label="Microsoft Application (client) ID"><input className="input mono" value={cloud.microsoftClientId || ''} placeholder={clientConfig('onedrive').clientId || '00000000-0000-0000-0000-000000000000'} onChange={(e) => v.updateSettings((s) => ((s.cloud.microsoftClientId = e.target.value.trim()), s))} /></Field>
@@ -314,6 +325,8 @@ function Backup() {
         <StrengthMeter password={expPw} />
       </Modal>
       <CloudRestoreModal open={restoreOpen} onClose={() => setRestoreOpen(false)} />
+      {guide && <CloudGuide open initial={guide} onClose={() => setGuide('')} />}
+      <NotionCard />
       <ImportShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   );
@@ -364,7 +377,7 @@ function AiSettings() {
   const test = async (p: AiProvider) => {
     setBusy('t' + p.id);
     try {
-      const r = await chat(p, 'Reply with one short friendly sentence.', [{ role: 'user', content: 'Say hello to the GCP Notas user.' }]);
+      const r = await chat(p, 'Reply with one short friendly sentence.', [{ role: 'user', content: 'Say hello to the GCP-Neuro Notas user.' }]);
       toast('✓ ' + r.slice(0, 140), 'success');
     } catch (e) {
       toast(t('ai.keyError') + ' ' + String((e as Error).message), 'error');

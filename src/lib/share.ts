@@ -1,7 +1,7 @@
 /**
  * Compartilhamento entre usuários: exporta páginas (com subpáginas e bases
  * usadas em relatórios) em um arquivo .gcpshare, opcionalmente protegido por
- * senha, que outra pessoa importa no próprio GCP Notas.
+ * senha, que outra pessoa importa no próprio GCP-Neuro Notas.
  */
 import { decryptBackup, encryptBackup, uid, type BackupFile } from './crypto';
 import { APP_VERSION, pickTextFiles, saveTextFile } from './platform';
@@ -45,11 +45,11 @@ export async function exportShare(ids: string[], password: string | null): Promi
   }
   const root = pages.find((p) => p.id === ids[0]);
   const name = (root?.title || 'GCP-Notas').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 60);
-  return saveTextFile(`${name}.gcpshare`, JSON.stringify(file), [{ name: 'GCP Notas', extensions: ['gcpshare'] }]);
+  return saveTextFile(`${name}.gcpshare`, JSON.stringify(file), [{ name: 'GCP-Neuro Notas', extensions: ['gcpshare'] }]);
 }
 
 export async function pickShareFile(): Promise<ShareFile | null> {
-  const files = await pickTextFiles([{ name: 'GCP Notas', extensions: ['gcpshare', 'json'] }]);
+  const files = await pickTextFiles([{ name: 'GCP-Neuro Notas', extensions: ['gcpshare', 'json'] }]);
   if (!files.length) return null;
   const data = JSON.parse(files[0].text);
   if (data.format !== 'gcp-notas-share' && data.format !== 'gcp-notas-share-encrypted') throw new Error('invalid-format');

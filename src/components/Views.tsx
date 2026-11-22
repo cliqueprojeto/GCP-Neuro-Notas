@@ -8,6 +8,7 @@ import { useVault, livePages } from '../store/vault';
 import { useUi, toast } from '../store/ui';
 import { PageIcon, Empty } from './ui';
 import { TEMPLATES, CATEGORY_ICONS, instantiate, type TemplateCategory } from '../templates/templates';
+import { instantiateUser, deleteUserTemplate, UserTemplateBadge } from '../templates/user';
 import { APP_VERSION, copyText, openUrl } from '../lib/platform';
 import { formatDate, relativeTime, todayKey } from '../lib/doc';
 import { coverCss } from '../lib/themes';
@@ -25,6 +26,7 @@ export function Templates() {
   const go = useUi((s) => s.go);
   const cats = Object.keys(CATEGORY_ICONS) as TemplateCategory[];
   const list = TEMPLATES.filter((x) => cat === 'all' || x.category === cat);
+  const mine = useVault((s) => s.settings.templates || []);
   return (
     <div className="page-shell">
       <div className="page-hero compact">
@@ -34,12 +36,45 @@ export function Templates() {
       </div>
       <div className="chips">
         <button className={'chip' + (cat === 'all' ? ' on' : '')} onClick={() => setCat('all')}>✨ {t('tpl.all')}</button>
+        {mine.length > 0 && <button className={'chip' + (cat === ('mine' as any) ? ' on' : '')} onClick={() => setCat('mine' as any)}>⭐ {t('utpl.mine')} ({mine.length})</button>}
         {cats.map((c) => (
           <button key={c} className={'chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{CATEGORY_ICONS[c]} {t(`tpl.cat.${c}` as TKey)}</button>
         ))}
       </div>
+      {(cat === 'all' || cat === ('mine' as any)) && (
+        <>
+          <h3 className="tpl-section-title">⭐ {t('utpl.mine')}</h3>
+          {!mine.length && <p className="muted small">{t('utpl.empty')}</p>}
+          <div className="tpl-grid">
+            {mine.map((tpl) => (
+              <div
+                key={tpl.id}
+                role="button"
+                tabIndex={0}
+                className="tpl-card user"
+                onClick={() => {
+                  const root = instantiateUser(tpl, null);
+                  toast(t('tpl.created'), 'success');
+                  go({ name: 'page', id: root.id });
+                }}
+              >
+                <div className="tpl-cover" style={{ background: `linear-gradient(135deg, ${tpl.color}, color-mix(in srgb, ${tpl.color} 55%, #000))` }}>
+                  <UserTemplateBadge tpl={tpl} size={26} />
+                </div>
+                <button className="tpl-del" title={t('common.delete')} onClick={(e) => (e.stopPropagation(), confirm(t('utpl.confirmDelete')) && deleteUserTemplate(tpl.id))}><Trash2 size={14} /></button>
+                <div className="tpl-body">
+                  <b>{tpl.name}</b>
+                  <small className="muted">{tpl.description || t(`new.${tpl.kind === 'page' ? 'page' : tpl.kind}` as TKey)}</small>
+                  <span className="tpl-cat">{t(`new.${tpl.kind === 'page' ? 'page' : tpl.kind}` as TKey)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {cat === 'all' && <h3 className="tpl-section-title">✨ {t('tpl.title')}</h3>}
+        </>
+      )}
       <div className="tpl-grid">
-        {list.map((tpl) => (
+        {cat !== ('mine' as any) && list.map((tpl) => (
           <button
             key={tpl.id}
             className="tpl-card"
@@ -242,13 +277,13 @@ export function About() {
     <div className="page-shell">
       <div className="page-hero compact">
         <div className="eyebrow"><Info size={13} /> {t('nav.about')}</div>
-        <h1>GCP Notas</h1>
+        <h1>GCP-Neuro Notas</h1>
         <p className="muted">{t('about.subtitle')}</p>
       </div>
       <section className="panel author-card">
         <img src="/logo.svg" alt="" className="author-logo" />
         <div>
-          <h3>GCP Notas {APP_VERSION}</h3>
+          <h3>GCP-Neuro Notas {APP_VERSION}</h3>
           <p className="muted">{t('about.text')}</p>
           <p>{t('about.developedBy')} <b>Bruno Albertini</b> · <button className="link-btn" onClick={() => openUrl(AUTHOR_URL)}>Gestão Cultural Pro <ExternalLink size={13} /></button></p>
         </div>

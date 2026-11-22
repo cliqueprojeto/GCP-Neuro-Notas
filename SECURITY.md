@@ -15,7 +15,7 @@
 | Compartilhamento | `.gcpshare` opcionalmente cifrado com senha combinada entre as pessoas. |
 | Atualizações | Instaladores baixados apenas das Releases do GitHub e conferidos por SHA-256 antes da instalação. |
 
-O núcleo nativo (Rust) nunca recebe texto em claro: só blobs cifrados. Não há telemetria, conta ou servidor do GCP Notas.
+O núcleo nativo (Rust) nunca recebe texto em claro: só blobs cifrados. Não há telemetria, conta ou servidor do GCP-Neuro Notas.
 
 ## Relatar uma vulnerabilidade
 

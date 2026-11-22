@@ -275,3 +275,23 @@ export function copyText(text: string): Promise<void> {
   ta.remove();
   return Promise.resolve();
 }
+
+export interface PickedBinary {
+  name: string;
+  bytes: Uint8Array;
+}
+
+/** Abre um arquivo binário (planilhas, JSON etc.) pelo seletor do sistema. */
+export function pickBinaryFile(accept: string): Promise<PickedBinary | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = accept;
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      if (!f) return resolve(null);
+      resolve({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) });
+    };
+    input.click();
+  });
+}

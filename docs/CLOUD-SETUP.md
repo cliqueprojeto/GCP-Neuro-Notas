@@ -1,6 +1,6 @@
 # Configurar Google Drive e OneDrive
 
-O GCP Notas conversa direto com o Google Drive e o OneDrive a partir do seu computador (OAuth com PKCE e retorno local em `127.0.0.1`). Não existe servidor intermediário. Para isso, o aplicativo precisa de um **ID de cliente OAuth** de cada provedor.
+O GCP-Neuro Notas conversa direto com o Google Drive e o OneDrive a partir do seu computador (OAuth com PKCE e retorno local em `127.0.0.1`). Não existe servidor intermediário. Para isso, o aplicativo precisa de um **ID de cliente OAuth** de cada provedor.
 
 - **Versões oficiais** (Releases do GitHub) já saem configuradas quando os segredos abaixo estão definidos no repositório.
 - **Quem compila por conta própria** pode informar os IDs em `.env` (veja `.env.example`) ou direto no app, em **Configurações → Backup e sincronização → Configuração avançada**.
@@ -14,7 +14,7 @@ O GCP Notas conversa direto com o Google Drive e o OneDrive a partir do seu comp
 5. Copie o **ID do cliente** e a **chave secreta do cliente**.
    - Em apps para computador, o Google trata essa "chave secreta" como pública; a segurança vem do PKCE.
 
-O GCP Notas guarda os arquivos na pasta oculta do aplicativo no seu Drive (`appDataFolder`): eles não aparecem na lista de arquivos e só o GCP Notas consegue lê-los.
+O GCP-Neuro Notas guarda os arquivos na pasta oculta do aplicativo no seu Drive (`appDataFolder`): eles não aparecem na lista de arquivos e só o GCP-Neuro Notas consegue lê-los.
 
 ## OneDrive (Microsoft)
 
@@ -24,7 +24,7 @@ O GCP Notas guarda os arquivos na pasta oculta do aplicativo no seu Drive (`appD
 4. Em **Permissões de API**, adicione (Microsoft Graph, delegadas): `Files.ReadWrite.AppFolder`, `User.Read` e `offline_access`.
 5. Copie o **ID do aplicativo (cliente)**. Não é preciso segredo.
 
-Os arquivos ficam em **Aplicativos/GCP Notas** no seu OneDrive.
+Os arquivos ficam em **Aplicativos/GCP-Neuro Notas** no seu OneDrive.
 
 ## Segredos do GitHub Actions (builds oficiais)
 

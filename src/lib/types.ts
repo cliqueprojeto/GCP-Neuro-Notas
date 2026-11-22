@@ -18,6 +18,7 @@ export interface Page {
   fullWidth?: boolean;
   journalDate?: string;
   mode?: 'doc' | 'edgeless';
+  chat?: { messages: { role: 'user' | 'assistant'; content: string; sources?: string[] }[]; provider?: string; contextId?: string };
   createdAt: number;
   updatedAt: number;
   deletedAt?: number | null;
@@ -39,7 +40,26 @@ export type PropType =
   | 'password'
   | 'rating'
   | 'progress'
-  | 'created';
+  | 'created'
+  | 'currency'
+  | 'formula'
+  | 'conditional'
+  | 'cpf'
+  | 'cnpj'
+  | 'cep';
+
+export type CondOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'empty' | 'notEmpty';
+
+/** Regra de fórmula condicional: SE [campo] [op] [valor] ENTÃO [resultado]. */
+export interface CondRule {
+  id: string;
+  prop: string;
+  op: CondOp;
+  value?: string;
+  value2?: string; // fim do intervalo (op "between")
+  result: string; // texto, número ou fórmula começando com "="
+  color?: string;
+}
 
 export interface SelectOption {
   id: string;
@@ -54,6 +74,14 @@ export interface Property {
   options?: SelectOption[];
   format?: 'number' | 'currency' | 'percent';
   width?: number;
+  currency?: string; // código ISO (BRL, USD, EUR…); vazio = detectado pelo sistema
+  locale?: string; // formato regional; vazio = do sistema
+  decimals?: number;
+  formula?: string; // expressão com {Campo}
+  resultFormat?: 'auto' | 'number' | 'currency' | 'percent' | 'text' | 'date';
+  rules?: CondRule[];
+  elseResult?: string;
+  phoneFormat?: 'br' | 'intl';
 }
 
 export interface Row {
@@ -64,7 +92,7 @@ export interface Row {
   updatedAt: number;
 }
 
-export type FilterOp = 'contains' | 'eq' | 'neq' | 'gt' | 'lt' | 'empty' | 'notEmpty' | 'checked' | 'unchecked' | 'before' | 'after';
+export type FilterOp = 'in' | 'contains' | 'eq' | 'neq' | 'gt' | 'lt' | 'empty' | 'notEmpty' | 'checked' | 'unchecked' | 'before' | 'after';
 
 export interface Filter {
   id: string;
@@ -91,6 +119,19 @@ export interface DatabaseData {
   rows: Row[];
   views: View[];
   activeView: string;
+}
+
+/** Modelo criado pelo usuário (estrutura de tabela ou documento). */
+export interface UserTemplate {
+  id: string;
+  kind: 'database' | 'page' | 'canvas' | 'report';
+  name: string;
+  description: string;
+  icon: string; // "lucide:Nome:#cor" ou emoji
+  color: string;
+  page: Partial<Page>; // estrutura salva (bases sem linhas, se assim escolhido)
+  withRows?: boolean;
+  createdAt: number;
 }
 
 export type ChartType = 'bar' | 'hbar' | 'stacked' | 'line' | 'area' | 'pie' | 'donut' | 'kpi' | 'table' | 'radar';
@@ -167,7 +208,7 @@ export interface CloudAccount {
 export type UpdateFrequency = 'startup' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'never';
 
 export interface VaultSettings {
-  ai: { providers: AiProvider[]; activeProvider?: string; language?: 'auto' | string; brain: boolean };
+  ai: { providers: AiProvider[]; activeProvider?: string; language?: 'auto' | string; brain: boolean; saveChats?: boolean };
   cloud: {
     accounts: CloudAccount[];
     googleClientId?: string;
@@ -182,6 +223,8 @@ export interface VaultSettings {
   editor: { font: 'sans' | 'serif' | 'mono'; width: 'normal' | 'wide'; spellcheck: boolean; fontSize: number };
   snapshots: { enabled: boolean; keep: number };
   chartPalettes: { id: string; name: string; colors: string[] }[];
+  templates?: UserTemplate[];
+  notion?: { token: string; lastSync?: number; links?: Record<string, string> };
 }
 
 export const DEFAULT_SETTINGS: VaultSettings = {
@@ -210,10 +253,15 @@ export interface CanvasNode {
   fontSize?: number;
 }
 
+export type Side = 't' | 'r' | 'b' | 'l';
+
 export interface CanvasEdge {
   id: string;
   from: string;
   to: string;
+  fromSide?: Side;
+  toSide?: Side;
+  arrow?: 'end' | 'both' | 'none';
   label?: string;
   style?: 'straight' | 'elbow' | 'curve';
   color?: string;

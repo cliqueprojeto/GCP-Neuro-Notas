@@ -17,7 +17,7 @@ import { Empty, Modal, Select, Switch } from '../components/ui';
 import { FilterEditor } from '../database/DatabaseView';
 import { computeWidget } from './aggregate';
 import { uid } from '../lib/crypto';
-import { titleProp } from '../database/logic';
+import { titleProp, isNumericProp } from '../database/logic';
 
 const TYPE_ICONS: Record<ChartType, any> = {
   bar: BarChart3, hbar: BarChartHorizontal, stacked: Layers, line: LineIcon, area: AreaIcon, pie: PieIcon, donut: Donut, kpi: Gauge, table: Table2, radar: RadarIcon,
@@ -298,7 +298,7 @@ function WidgetEditor({ w: initial, report, sources, onClose, onSave }: { w: Wid
   const set = (p: Partial<Widget>) => setW({ ...w, ...p });
   const db = sources.find((s) => s.id === w.source)?.db;
   const props = db?.properties || [];
-  const numeric = props.filter((p) => ['number', 'rating', 'progress'].includes(p.type));
+  const numeric = props.filter((p) => isNumericProp(p));
   const groupable = props.filter((p) => !['password'].includes(p.type));
   const palette = usePalette(report, { ...w, colors: undefined });
   const colors = w.colors?.length ? w.colors : palette;

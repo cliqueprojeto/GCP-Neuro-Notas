@@ -2,7 +2,7 @@
 import type { Page, Property } from './types';
 import { saveBinaryFile } from './platform';
 import { pageToHtml } from './transfer';
-import { cellText, cellValue } from '../database/logic';
+import { cellText, cellValue, isNumericProp } from '../database/logic';
 import { computeWidget } from '../reports/aggregate';
 import { CHART_PALETTES } from './themes';
 import { useVault } from '../store/vault';
@@ -20,7 +20,7 @@ function bytesToB64(buf: ArrayBuffer | Uint8Array): string {
 const iconText = (p: Page) => (p.icon && !p.icon.startsWith('lucide:') && !p.icon.startsWith('data:') ? p.icon + ' ' : '');
 
 function isNum(prop: Property) {
-  return ['number', 'rating', 'progress'].includes(prop.type);
+  return isNumericProp(prop);
 }
 
 // ---------------------------------------------------------------- impressão
@@ -36,7 +36,13 @@ export function printPage() {
 // --------------------------------------------------------------------- PDF
 
 export async function exportPdf(page: Page, liveElement?: HTMLElement | null) {
-  const [{ jsPDF }, html2canvas] = await Promise.all([import('jspdf'), import('html2canvas').then((m) => m.default)]);
+  if (page.type === 'database' && page.db) {
+    const { tablePdf } = await import('../database/io');
+    const view = page.db.views.find((v) => v.id === page.db!.activeView) || page.db.views[0];
+    const props = page.db.properties.filter((p) => !(view?.hidden || []).includes(p.id));
+    return tablePdf(page.title || 'GCP-Neuro Notas', props, page.db.rows, '✓');
+  }
+  const [{ jsPDF }, html2canvas] = await Promise.all([import('jspdf'), import('html2canvas-pro').then((m) => m.default)]);
   let el: HTMLElement;
   let cleanup = () => {};
   if (page.type === 'page' && page.mode !== 'edgeless') {
@@ -50,7 +56,8 @@ export async function exportPdf(page: Page, liveElement?: HTMLElement | null) {
     el = liveElement || (document.querySelector('.page-content') as HTMLElement);
   }
   try {
-    const canvas = await html2canvas(el, { scale: 2, backgroundColor: getComputedStyle(el).backgroundColor || '#ffffff', useCORS: true, logging: false });
+    const bg = toRgb(getComputedStyle(el).backgroundColor) || '#ffffff';
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: bg === 'rgba(0, 0, 0, 0)' ? '#ffffff' : bg, useCORS: true, logging: false, onclone: (doc) => flattenColors(doc) });
     const landscape = page.type !== 'page' || page.mode === 'edgeless';
     const pdf = new jsPDF({ orientation: landscape ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
     const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
@@ -66,12 +73,44 @@ export async function exportPdf(page: Page, liveElement?: HTMLElement | null) {
       if (i) pdf.addPage();
       pdf.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, w, part.height * scale);
     }
-    pdf.setProperties({ title: page.title, creator: 'GCP Notas' });
+    pdf.setProperties({ title: page.title, creator: 'GCP-Neuro Notas' });
     const b64 = bytesToB64(pdf.output('arraybuffer'));
     return saveBinaryFile(`${safeName(page)}.pdf`, b64, [{ name: 'PDF', extensions: ['pdf'] }]);
   } finally {
     cleanup();
   }
+}
+
+// Converte qualquer cor CSS moderna (color-mix, oklch, color(srgb…)) em rgb/hex,
+// que todo renderizador entende. O canvas 2D normaliza a cor para nós.
+let colorCtx: CanvasRenderingContext2D | null = null;
+export function toRgb(c: string): string {
+  if (!c) return c;
+  colorCtx ||= document.createElement('canvas').getContext('2d');
+  if (!colorCtx) return c;
+  colorCtx.fillStyle = '#000000';
+  colorCtx.fillStyle = c;
+  return String(colorCtx.fillStyle);
+}
+const MODERN = /(color-mix|color|oklch|oklab|lab|lch|hwb)\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/g;
+const COLOR_PROPS = ['color', 'background-color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'outline-color', 'text-decoration-color', 'fill', 'stroke', 'caret-color', 'column-rule-color'];
+const COMPLEX_PROPS = ['background-image', 'box-shadow', 'text-shadow'];
+function flattenColors(doc: Document) {
+  const win = doc.defaultView || window;
+  doc.querySelectorAll<HTMLElement>('*').forEach((el) => {
+    const cs = win.getComputedStyle(el);
+    for (const prop of COLOR_PROPS) {
+      const v = cs.getPropertyValue(prop);
+      if (v && MODERN.test(v)) el.style.setProperty(prop, toRgb(v), 'important');
+      MODERN.lastIndex = 0;
+    }
+    for (const prop of COMPLEX_PROPS) {
+      const v = cs.getPropertyValue(prop);
+      if (v && MODERN.test(v)) el.style.setProperty(prop, v.replace(MODERN, (m) => toRgb(m)), 'important');
+      MODERN.lastIndex = 0;
+    }
+    if (cs.backdropFilter && cs.backdropFilter !== 'none') el.style.setProperty('backdrop-filter', 'none', 'important');
+  });
 }
 
 function escape(s: string) {
@@ -225,7 +264,7 @@ export async function exportDocx(page: Page) {
   }
 
   const doc = new Document({
-    creator: 'GCP Notas',
+    creator: 'GCP-Neuro Notas',
     title: page.title,
     numbering: { config: [{ reference: 'num', levels: [0, 1, 2, 3].map((level) => ({ level, format: 'decimal' as any, text: `%${level + 1}.`, alignment: AlignmentType.START, style: { paragraph: { indent: { left: 720 * (level + 1), hanging: 360 } } } })) }] },
     styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
@@ -241,7 +280,7 @@ export async function exportPptx(page: Page, dark: boolean) {
   const PptxGenJS = (await import('pptxgenjs')).default;
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE';
-  pptx.author = 'GCP Notas';
+  pptx.author = 'GCP-Neuro Notas';
   pptx.title = page.title;
   const bg = dark ? '0D0F1F' : 'FFFFFF';
   const fg = dark ? 'ECEEFD' : '1F2330';

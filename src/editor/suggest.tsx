@@ -8,6 +8,7 @@ export interface SuggestItem {
   subtitle?: string;
   icon?: ReactNode;
   group?: string;
+  tone?: string;
   run: (props: SuggestionProps<SuggestItem>) => void;
 }
 
@@ -50,7 +51,7 @@ export const SuggestList = forwardRef<ListHandle, ListProps>(({ items, command, 
           <div key={it.id}>
             {header && <div className="suggest-group">{header}</div>}
             <button className={'suggest-item' + (i === sel ? ' is-selected' : '')} onMouseEnter={() => setSel(i)} onMouseDown={(e) => (e.preventDefault(), command(it))}>
-              <span className="suggest-icon">{it.icon}</span>
+              <span className={'suggest-icon' + (it.tone ? ' tone tone-' + it.tone : '')}>{it.icon}</span>
               <span className="suggest-text">
                 <b>{it.title}</b>
                 {it.subtitle && <small>{it.subtitle}</small>}
@@ -87,6 +88,8 @@ export function suggestRender(empty: () => string): SuggestionOptions<SuggestIte
       },
       onUpdate: (props) => {
         r?.updateProps({ items: props.items, command: props.command, empty: empty() });
+        // Com espaços na busca e nada encontrado, some e deixa o texto seguir normalmente.
+        if (el) el.style.display = !props.items.length && /\s/.test(props.query) ? 'none' : '';
         requestAnimationFrame(() => place(props));
       },
       onKeyDown: (props) => {
@@ -94,6 +97,7 @@ export function suggestRender(empty: () => string): SuggestionOptions<SuggestIte
           el?.remove();
           return true;
         }
+        if (el?.style.display === 'none') return false;
         return r?.ref?.onKeyDown(props.event) ?? false;
       },
       onExit: () => {

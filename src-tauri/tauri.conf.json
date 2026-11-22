@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "GCP Notas",
+  "productName": "GCP-Neuro Notas",
   "mainBinaryName": "gcp-notas",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "identifier": "br.com.gestaoculturalpro.notas",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "GCP Notas",
+        "title": "GCP-Neuro Notas",
         "width": 1360,
         "height": 860,
         "minWidth": 380,
@@ -39,7 +39,7 @@
     "copyright": "© 2026 Bruno Albertini | Gestão Cultural Pro — GPL-3.0",
     "category": "Productivity",
     "shortDescription": "Notas, bases de dados, relatórios e segundo cérebro — offline e criptografado.",
-    "longDescription": "GCP Notas reúne editor completo, páginas aninhadas, bases de dados, quadros, calendário, relatórios com gráficos, grafo de ideias, templates, IA opcional e backup criptografado no Google Drive e OneDrive.",
+    "longDescription": "GCP-Neuro Notas reúne editor completo, páginas aninhadas, bases de dados, quadros, calendário, relatórios com gráficos, grafo de ideias, templates, IA opcional e backup criptografado no Google Drive e OneDrive.",
     "homepage": "https://github.com/cliqueprojeto/GCP-Notas",
     "license": "GPL-3.0-or-later",
     "licenseFile": "../LICENSE",
@@ -53,10 +53,25 @@
     "linux": {
       "deb": {
         "section": "utils",
-        "depends": []
+        "depends": [],
+        "provides": [
+          "gcp-notas"
+        ],
+        "conflicts": [
+          "gcp-notas"
+        ],
+        "replaces": [
+          "gcp-notas"
+        ]
       },
       "rpm": {
-        "release": "1"
+        "release": "1",
+        "provides": [
+          "gcp-notas"
+        ],
+        "obsoletes": [
+          "gcp-notas"
+        ]
       }
     },
     "windows": {

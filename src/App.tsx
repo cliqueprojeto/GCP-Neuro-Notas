@@ -1,3 +1,5 @@
+import { CalendarHub } from './components/CalendarHub';
+import { Boards } from './components/Boards';
 import { useEffect, useState } from 'react';
 import { useVault } from './store/vault';
 import { usePrefs } from './store/prefs';
@@ -119,6 +121,8 @@ function Workspace() {
           {route.name === 'home' && <Home />}
           {route.name === 'page' && <PageView id={route.id} />}
           {route.name === 'graph' && <Graph />}
+          {route.name === 'calendar' && <CalendarHub date={route.date} mode={route.mode} />}
+          {route.name === 'boards' && <Boards />}
           {route.name === 'templates' && <Templates />}
           {route.name === 'trash' && <Trash />}
           {route.name === 'tasks' && <Tasks />}

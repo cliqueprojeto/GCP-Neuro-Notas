@@ -83,6 +83,12 @@ export function Popover({
     if (!open) return;
     const down = (e: MouseEvent) => {
       if (ref.current?.contains(e.target as Node) || anchor?.contains(e.target as Node)) return;
+      // Cliques em listas/menus abertos por cima deste (Select aninhado, menu de contexto, janela) não fecham o pai.
+      const t = e.target as HTMLElement;
+      if (t.closest?.('.popover, .ctx-back, .modal-back, .suggest-wrap')) {
+        const top = t.closest('.popover');
+        if (!top || top !== ref.current) return;
+      }
       onClose();
     };
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -213,4 +219,75 @@ export function Empty({ icon, title, text, action }: { icon: ReactNode; title: R
 
 export function Spinner({ size = 16 }: { size?: number }) {
   return <span className="spinner" style={{ width: size, height: size }} />;
+}
+
+// ------------------------------------------------------- menu de contexto
+
+export interface MenuEntry {
+  label?: ReactNode;
+  icon?: ReactNode;
+  onClick?: () => void;
+  danger?: boolean;
+  sep?: boolean;
+  disabled?: boolean;
+  hint?: string;
+}
+
+/** Menu do botão direito (ou toque longo), posicionado onde o usuário tocou. */
+export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuEntry[]; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ x, y });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setPos({ x: Math.max(8, Math.min(x, window.innerWidth - r.width - 8)), y: Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) });
+  }, [x, y]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', k);
+    window.addEventListener('resize', onClose);
+    return () => (window.removeEventListener('keydown', k), window.removeEventListener('resize', onClose));
+  }, [onClose]);
+  return createPortal(
+    <div className="ctx-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()} onContextMenu={(e) => (e.preventDefault(), onClose())}>
+      <div ref={ref} className="ctx-menu menu" style={{ left: pos.x, top: pos.y }} role="menu">
+        {items.map((it, i) =>
+          it.sep ? (
+            <div key={i} className="menu-sep" />
+          ) : (
+            <button key={i} className={'menu-item' + (it.danger ? ' danger' : '')} disabled={it.disabled} onClick={() => (onClose(), it.onClick?.())}>
+              {it.icon} <span className="grow">{it.label}</span> {it.hint && <kbd>{it.hint}</kbd>}
+            </button>
+          ),
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Toque longo (celular/tablet): chama `cb` após ~480 ms sem arrastar. */
+export function longPress(cb: (x: number, y: number) => void) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let sx = 0, sy = 0;
+  const clear = () => timer && (clearTimeout(timer), (timer = null));
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      const t = e.touches[0];
+      sx = t.clientX; sy = t.clientY;
+      clear();
+      timer = setTimeout(() => {
+        timer = null;
+        navigator.vibrate?.(12);
+        cb(sx, sy);
+      }, 480);
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      const t = e.touches[0];
+      if (Math.abs(t.clientX - sx) + Math.abs(t.clientY - sy) > 10) clear();
+    },
+    onTouchEnd: clear,
+    onTouchCancel: clear,
+  };
 }

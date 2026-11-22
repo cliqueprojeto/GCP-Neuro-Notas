@@ -1,60 +1,136 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Maximize, Minus, Network, Plus, Search, Sparkles } from 'lucide-react';
-import { useT } from '../i18n';
+import { ArrowUpRight, Link2, Maximize, Minus, Network, Plus, Search, Sparkles, Tags, X, Palette, Crosshair } from 'lucide-react';
+import { useT, type TKey } from '../i18n';
 import { useVault, livePages } from '../store/vault';
-import { useUi } from '../store/ui';
+import { useUi, toast } from '../store/ui';
 import { usePrefs } from '../store/prefs';
 import { getTheme } from '../lib/themes';
-import { normalize, outgoingLinks } from '../lib/doc';
-import { relatedPages } from '../ai/brain';
-import { Switch } from './ui';
+import { boardLinks, normalize, outgoingLinks } from '../lib/doc';
+import { relatedPages, unlinkedMentions } from '../ai/brain';
+import { PageIcon, Switch } from './ui';
 import type { Page } from '../lib/types';
 
-interface N { id: string; page: Page; x: number; y: number; vx: number; vy: number; deg: number }
-interface E { a: string; b: string; kind: 'link' | 'child' | 'related' }
+type Kind = 'link' | 'board' | 'child' | 'related' | 'mention' | 'tag' | 'data';
+interface N { id: string; page?: Page; tag?: string; label: string; x: number; y: number; vx: number; vy: number; deg: number; group: number }
+interface E { a: string; b: string; kind: Kind; both?: boolean }
 
-const TYPE_COLORS: Record<string, string> = { page: '#8b5cf6', database: '#14b8a6', report: '#ec4899', canvas: '#3b82f6' };
+const TYPE_COLORS: Record<string, string> = { page: '#8b5cf6', database: '#14b8a6', report: '#ec4899', canvas: '#3b82f6', tag: '#f59e0b' };
+const GROUP_COLORS = ['#8b5cf6', '#14b8a6', '#f59e0b', '#ec4899', '#3b82f6', '#22c55e', '#ef4444', '#06b6d4', '#a855f7', '#eab308', '#64748b'];
+const PRIORITY: Record<Kind, number> = { link: 6, board: 5, data: 4, child: 3, mention: 2, related: 1, tag: 0 };
 
-/** Grafo de conhecimento interativo (links, hierarquia e similaridade). */
+/** Comunidades por propagação de rótulos (agrupa ideias muito ligadas entre si). */
+function communities(ids: string[], edges: E[]): Map<string, number> {
+  const adj = new Map<string, string[]>(ids.map((i) => [i, []]));
+  for (const e of edges) if (e.kind !== 'related' && e.kind !== 'mention') (adj.get(e.a)?.push(e.b), adj.get(e.b)?.push(e.a));
+  const label = new Map(ids.map((i) => [i, i]));
+  for (let it = 0; it < 12; it++) {
+    let changed = false;
+    for (const id of ids) {
+      const ns = adj.get(id)!;
+      if (!ns.length) continue;
+      const count = new Map<string, number>();
+      for (const n of ns) count.set(label.get(n)!, (count.get(label.get(n)!) || 0) + 1);
+      let best = label.get(id)!, bc = 0;
+      for (const [l, c] of count) if (c > bc || (c === bc && l < best)) (best = l), (bc = c);
+      if (best !== label.get(id)) (label.set(id, best), (changed = true));
+    }
+    if (!changed) break;
+  }
+  const sizes = new Map<string, number>();
+  for (const l of label.values()) sizes.set(l, (sizes.get(l) || 0) + 1);
+  const order = [...sizes.entries()].sort((a, b) => b[1] - a[1]).map(([l]) => l);
+  return new Map(ids.map((i) => {
+    const l = label.get(i)!;
+    return [i, sizes.get(l)! > 1 ? order.indexOf(l) : -1];
+  }));
+}
+
+/** Grafo de conhecimento interativo: links, quadros, hierarquia, tags e sugestões. */
 export function Graph() {
   const t = useT();
   const pages = useVault((s) => s.pages);
+  const updatePage = useVault((s) => s.updatePage);
   const go = useUi((s) => s.go);
   const theme = usePrefs((s) => s.theme);
   const [q, setQ] = useState('');
   const [hier, setHier] = useState(true);
   const [similar, setSimilar] = useState(false);
+  const [mentions, setMentions] = useState(true);
+  const [tags, setTags] = useState(false);
   const [orphans, setOrphans] = useState(true);
+  const [colorBy, setColorBy] = useState<'type' | 'group'>('type');
+  const [focus, setFocus] = useState<{ id: string; depth: number } | null>(null);
+  const [selId, setSelId] = useState<string | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const state = useRef({ nodes: [] as N[], edges: [] as E[], view: { x: 0, y: 0, k: 1 }, drag: null as N | null, hover: null as N | null, alpha: 1 });
+  const state = useRef({ nodes: [] as N[], edges: [] as E[], view: { x: 0, y: 0, k: 1 }, drag: null as N | null, hover: null as N | null, sel: null as string | null, alpha: 1 });
 
   const all = livePages(pages);
-  const { nodes, edges } = useMemo(() => {
-    const edges: E[] = [];
+  const { nodes, edges, stats } = useMemo(() => {
     const ids = new Set(all.map((p) => p.id));
+    const map = new Map<string, E>();
+    const add = (a: string, b: string, kind: Kind) => {
+      if (a === b || !ids.has(a) && !a.startsWith('tag:') || !ids.has(b) && !b.startsWith('tag:')) return;
+      const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+      const cur = map.get(key);
+      if (!cur) return void map.set(key, { a, b, kind });
+      if (cur.kind === kind && (cur.a !== a)) cur.both = true;
+      if (PRIORITY[kind] > PRIORITY[cur.kind]) map.set(key, { a, b, kind, both: cur.both });
+    };
     for (const p of all) {
-      for (const l of outgoingLinks(p)) if (ids.has(l)) edges.push({ a: p.id, b: l, kind: 'link' });
-      if (hier && p.parentId && ids.has(p.parentId)) edges.push({ a: p.parentId, b: p.id, kind: 'child' });
+      for (const l of outgoingLinks(p)) {
+        const isBoardCard = p.type === 'canvas' || p.mode === 'edgeless';
+        add(p.id, l, isBoardCard && !(p.content && JSON.stringify(p.content).includes(l)) ? 'board' : 'link');
+      }
+      for (const [a, b] of boardLinks(p)) add(a, b, 'board');
+      if (p.report) for (const w of p.report.widgets) if (w.source) add(p.id, w.source, 'data');
+      if (hier && p.parentId) add(p.parentId, p.id, 'child');
+      if (tags) for (const tg of p.tags || []) add(p.id, 'tag:' + normalize(tg), 'tag');
     }
-    if (similar) for (const p of all.filter((x) => x.type === 'page').slice(0, 150)) for (const r of relatedPages(all, p, 2)) if (r.score > 0.15) edges.push({ a: p.id, b: r.page.id, kind: 'related' });
+    if (mentions) for (const p of all.filter((x) => (x.title || '').length >= 3).slice(0, 400)) for (const m of unlinkedMentions(all, p)) add(m.id, p.id, 'mention');
+    if (similar) for (const p of all.filter((x) => x.type === 'page').slice(0, 150)) for (const r of relatedPages(all, p, 2)) if (r.score > 0.15) add(p.id, r.page.id, 'related');
+    let edges = [...map.values()];
+    const tagNames = new Map<string, string>();
+    if (tags) for (const p of all) for (const tg of p.tags || []) tagNames.set('tag:' + normalize(tg), tg);
+
+    // Foco local: só os vizinhos até N passos do nó escolhido.
+    let keep: Set<string> | null = null;
+    if (focus) {
+      keep = new Set([focus.id]);
+      let frontier = [focus.id];
+      for (let d = 0; d < focus.depth; d++) {
+        const nextF: string[] = [];
+        for (const e of edges) {
+          if (frontier.includes(e.a) && !keep.has(e.b)) (keep.add(e.b), nextF.push(e.b));
+          if (frontier.includes(e.b) && !keep.has(e.a)) (keep.add(e.a), nextF.push(e.a));
+        }
+        frontier = nextF;
+      }
+      edges = edges.filter((e) => keep!.has(e.a) && keep!.has(e.b));
+    }
     const deg = new Map<string, number>();
     edges.forEach((e) => (deg.set(e.a, (deg.get(e.a) || 0) + 1), deg.set(e.b, (deg.get(e.b) || 0) + 1)));
     const prev = new Map(state.current.nodes.map((n) => [n.id, n]));
-    const nodes: N[] = all
-      .filter((p) => orphans || deg.get(p.id))
-      .map((p, i) => {
-        const o = prev.get(p.id);
-        const a = (i / Math.max(all.length, 1)) * Math.PI * 2;
-        return { id: p.id, page: p, x: o?.x ?? Math.cos(a) * 220 + Math.random() * 20, y: o?.y ?? Math.sin(a) * 220 + Math.random() * 20, vx: 0, vy: 0, deg: deg.get(p.id) || 0 };
-      });
-    return { nodes, edges };
-  }, [pages, hier, similar, orphans]); // eslint-disable-line react-hooks/exhaustive-deps
+    const base: { id: string; page?: Page; tag?: string; label: string }[] = [
+      ...all.map((p) => ({ id: p.id, page: p, label: (p.icon && !p.icon.startsWith('lucide') && !p.icon.startsWith('data') ? p.icon + ' ' : '') + (p.title || '…') })),
+      ...[...tagNames].map(([id, name]) => ({ id, tag: name, label: '#' + name })),
+    ];
+    const visible = base.filter((b) => (keep ? keep.has(b.id) : orphans || deg.get(b.id) || b.id === selId));
+    const groups = communities(visible.map((v) => v.id), edges);
+    const nodes: N[] = visible.map((b, i) => {
+      const o = prev.get(b.id);
+      const a = (i / Math.max(visible.length, 1)) * Math.PI * 2;
+      return { ...b, x: o?.x ?? Math.cos(a) * 240 + Math.random() * 20, y: o?.y ?? Math.sin(a) * 240 + Math.random() * 20, vx: 0, vy: 0, deg: deg.get(b.id) || 0, group: groups.get(b.id) ?? -1 };
+    });
+    const stats = { nodes: nodes.length, links: edges.filter((e) => e.kind === 'link' || e.kind === 'board').length, suggestions: edges.filter((e) => e.kind === 'mention').length, groups: new Set([...groups.values()].filter((g) => g >= 0)).size };
+    return { nodes, edges, stats };
+  }, [pages, hier, similar, orphans, mentions, tags, focus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     state.current.nodes = nodes;
     state.current.edges = edges;
     state.current.alpha = 1;
   }, [nodes, edges]);
+  useEffect(() => void (state.current.sel = selId), [selId]);
 
   useEffect(() => {
     const cv = canvas.current!;
@@ -65,6 +141,7 @@ export function Graph() {
     const text = css.getPropertyValue('--text').trim() || '#fff';
     const muted = css.getPropertyValue('--muted').trim() || '#999';
     const accent = css.getPropertyValue('--accent').trim() || '#8b5cf6';
+    const bg = css.getPropertyValue('--bg').trim() || '#000';
     const resize = () => {
       const r = cv.parentElement!.getBoundingClientRect();
       cv.width = r.width * devicePixelRatio;
@@ -75,6 +152,7 @@ export function Graph() {
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(cv.parentElement!);
+    const colorOf = (n: N) => (colorBy === 'group' ? (n.group >= 0 ? GROUP_COLORS[n.group % GROUP_COLORS.length] : '#94a3b8') : n.tag ? TYPE_COLORS.tag : TYPE_COLORS[n.page?.type || 'page'] || accent);
 
     const tick = () => {
       const s = state.current;
@@ -100,8 +178,9 @@ export function Graph() {
           if (!a || !b) continue;
           const dx = b.x - a.x, dy = b.y - a.y;
           const d = Math.sqrt(dx * dx + dy * dy) || 1;
-          const target = e.kind === 'child' ? 90 : 120;
-          const f = ((d - target) / d) * 0.04 * s.alpha;
+          const target = e.kind === 'child' || e.kind === 'tag' ? 90 : e.kind === 'related' || e.kind === 'mention' ? 160 : 120;
+          const strength = e.kind === 'related' || e.kind === 'mention' ? 0.015 : 0.04;
+          const f = ((d - target) / d) * strength * s.alpha;
           a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
         }
         for (const n of nodes) {
@@ -112,47 +191,79 @@ export function Graph() {
         }
         s.alpha *= 0.992;
       }
-      // desenho
       const W = cv.width, H = cv.height, dpr = devicePixelRatio;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.setTransform(s.view.k * dpr, 0, 0, s.view.k * dpr, W / 2 + s.view.x * dpr, H / 2 + s.view.y * dpr);
       const qn = normalize(q);
-      const focus = s.hover;
+      const hot = s.hover || (s.sel ? byId.get(s.sel) || null : null);
       const neighbors = new Set<string>();
-      if (focus) edges.forEach((e) => (e.a === focus.id ? neighbors.add(e.b) : e.b === focus.id ? neighbors.add(e.a) : 0));
+      if (hot) edges.forEach((e) => (e.a === hot.id ? neighbors.add(e.b) : e.b === hot.id ? neighbors.add(e.a) : 0));
+      const k = s.view.k;
       for (const e of edges) {
         const a = byId.get(e.a), b = byId.get(e.b);
         if (!a || !b) continue;
-        const hot = focus && (e.a === focus.id || e.b === focus.id);
-        ctx.strokeStyle = hot ? accent : dark ? 'rgba(160,165,220,0.22)' : 'rgba(60,60,110,0.18)';
-        ctx.lineWidth = (hot ? 2 : 1) / s.view.k;
-        ctx.setLineDash(e.kind === 'child' ? [4 / s.view.k, 4 / s.view.k] : e.kind === 'related' ? [1 / s.view.k, 3 / s.view.k] : []);
+        const on = hot && (e.a === hot.id || e.b === hot.id);
+        const sug = e.kind === 'mention' || e.kind === 'related';
+        ctx.strokeStyle = on ? (sug ? '#f59e0b' : accent) : e.kind === 'board' ? (dark ? 'rgba(96,165,250,.45)' : 'rgba(37,99,235,.35)') : sug ? (dark ? 'rgba(245,158,11,.28)' : 'rgba(217,119,6,.3)') : dark ? 'rgba(160,165,220,0.24)' : 'rgba(60,60,110,0.2)';
+        ctx.lineWidth = ((on ? 2.2 : 1.1) * (e.kind === 'link' || e.kind === 'board' ? 1.15 : 1)) / k;
+        ctx.setLineDash(e.kind === 'child' ? [4 / k, 4 / k] : sug ? [2 / k, 4 / k] : e.kind === 'tag' ? [1 / k, 3 / k] : []);
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
+        // seta de direção nos links
+        if ((e.kind === 'link' || e.kind === 'board' || e.kind === 'data') && k > 0.45) {
+          const ang = Math.atan2(b.y - a.y, b.x - a.x);
+          const rb = 6 + Math.min(b.deg, 12) * 1.2 + 3;
+          const tx = b.x - Math.cos(ang) * rb, ty = b.y - Math.sin(ang) * rb;
+          const sz = 6 / k;
+          ctx.setLineDash([]);
+          ctx.fillStyle = ctx.strokeStyle as string;
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(tx - Math.cos(ang - 0.45) * sz, ty - Math.sin(ang - 0.45) * sz);
+          ctx.lineTo(tx - Math.cos(ang + 0.45) * sz, ty - Math.sin(ang + 0.45) * sz);
+          ctx.closePath();
+          ctx.fill();
+          if (e.both) {
+            const sx2 = a.x + Math.cos(ang) * (6 + Math.min(a.deg, 12) * 1.2 + 3), sy2 = a.y + Math.sin(ang) * (6 + Math.min(a.deg, 12) * 1.2 + 3);
+            ctx.beginPath();
+            ctx.moveTo(sx2, sy2);
+            ctx.lineTo(sx2 + Math.cos(ang - 0.45) * sz, sy2 + Math.sin(ang - 0.45) * sz);
+            ctx.lineTo(sx2 + Math.cos(ang + 0.45) * sz, sy2 + Math.sin(ang + 0.45) * sz);
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
       }
       ctx.setLineDash([]);
       for (const n of nodes) {
-        const r = 5 + Math.min(n.deg, 12) * 1.2;
-        const match = qn && normalize(n.page.title || '').includes(qn);
-        const dim = (focus && n !== focus && !neighbors.has(n.id)) || (qn && !match);
-        ctx.globalAlpha = dim ? 0.25 : 1;
-        ctx.fillStyle = TYPE_COLORS[n.page.type] || accent;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fill();
-        if (match || n === focus) {
-          ctx.strokeStyle = text;
-          ctx.lineWidth = 2 / s.view.k;
-          ctx.stroke();
+        const r = n.tag ? 4 + Math.min(n.deg, 10) * 0.8 : 5 + Math.min(n.deg, 12) * 1.2;
+        const match = qn && normalize(n.label).includes(qn);
+        const dim = (hot && n !== hot && !neighbors.has(n.id)) || (qn && !match);
+        ctx.globalAlpha = dim ? 0.2 : 1;
+        const c = colorOf(n);
+        if (n.id === s.sel) {
+          ctx.fillStyle = c + '33';
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, r + 9 / k, 0, Math.PI * 2);
+          ctx.fill();
         }
-        if (s.view.k > 0.6 || n === focus || n.deg > 3 || match) {
-          ctx.fillStyle = n === focus ? text : muted;
-          ctx.font = `${12 / Math.max(s.view.k, 0.8)}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        if (n.tag) {
+          ctx.moveTo(n.x, n.y - r); ctx.lineTo(n.x + r, n.y); ctx.lineTo(n.x, n.y + r); ctx.lineTo(n.x - r, n.y); ctx.closePath();
+        } else ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = match || n === hot ? text : bg;
+        ctx.lineWidth = (match || n === hot ? 2 : 1.5) / k;
+        ctx.stroke();
+        if (k > 0.6 || n === hot || n.deg > 3 || match || neighbors.has(n.id)) {
+          ctx.fillStyle = n === hot ? text : muted;
+          ctx.font = `${n === hot ? 600 : 400} ${12 / Math.max(k, 0.8)}px Inter, system-ui, sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText((n.page.icon && !n.page.icon.startsWith('lucide') && !n.page.icon.startsWith('data') ? n.page.icon + ' ' : '') + (n.page.title || '…').slice(0, 32), n.x, n.y + r + 13 / s.view.k);
+          ctx.fillText(n.label.slice(0, 34), n.x, n.y + r + 13 / k);
         }
         ctx.globalAlpha = 1;
       }
@@ -160,7 +271,7 @@ export function Graph() {
     };
     raf = requestAnimationFrame(tick);
     return () => (cancelAnimationFrame(raf), ro.disconnect());
-  }, [theme, q]);
+  }, [theme, q, colorBy]);
 
   const toWorld = (cx: number, cy: number) => {
     const r = canvas.current!.getBoundingClientRect();
@@ -169,7 +280,47 @@ export function Graph() {
   };
   const hit = (cx: number, cy: number) => {
     const p = toWorld(cx, cy);
-    return state.current.nodes.find((n) => (n.x - p.x) ** 2 + (n.y - p.y) ** 2 < (9 + Math.min(n.deg, 12) * 1.2) ** 2);
+    const extra = 6 / state.current.view.k;
+    return state.current.nodes.find((n) => (n.x - p.x) ** 2 + (n.y - p.y) ** 2 < (9 + Math.min(n.deg, 12) * 1.2 + extra) ** 2);
+  };
+  const zoomAt = (factor: number, cx?: number, cy?: number) => {
+    const s = state.current;
+    const r = canvas.current!.getBoundingClientRect();
+    const px = (cx ?? r.left + r.width / 2) - r.left - r.width / 2, py = (cy ?? r.top + r.height / 2) - r.top - r.height / 2;
+    const k = Math.min(4, Math.max(0.12, s.view.k * factor));
+    s.view = { k, x: px - ((px - s.view.x) / s.view.k) * k, y: py - ((py - s.view.y) / s.view.k) * k };
+  };
+  const fit = () => {
+    const s = state.current;
+    if (!s.nodes.length) return void (s.view = { x: 0, y: 0, k: 1 });
+    const r = canvas.current!.getBoundingClientRect();
+    const xs = s.nodes.map((n) => n.x), ys = s.nodes.map((n) => n.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const k = Math.min(2, Math.max(0.12, Math.min((r.width - 120) / (maxX - minX || 1), (r.height - 120) / (maxY - minY || 1))));
+    s.view = { k, x: -((minX + maxX) / 2) * k, y: -((minY + maxY) / 2) * k };
+  };
+
+  // Painel do nó selecionado
+  const selPage = selId && !selId.startsWith('tag:') ? pages[selId] : null;
+  const info = useMemo(() => {
+    if (!selPage) return null;
+    const out = edges.filter((e) => e.a === selPage.id && (e.kind === 'link' || e.kind === 'board' || e.kind === 'data')).map((e) => pages[e.b]).filter(Boolean);
+    const inc = edges.filter((e) => e.b === selPage.id && (e.kind === 'link' || e.kind === 'board' || e.kind === 'data')).map((e) => pages[e.a]).filter(Boolean);
+    const linkedIds = new Set([...out, ...inc].map((p) => p.id));
+    const sugg = [
+      ...unlinkedMentions(all, selPage).map((p) => ({ page: p, why: 'mention' as const })),
+      ...relatedPages(all, selPage, 5).filter((r) => r.score > 0.1).map((r) => ({ page: r.page, why: 'related' as const })),
+    ].filter((x, i, arr) => !linkedIds.has(x.page.id) && arr.findIndex((y) => y.page.id === x.page.id) === i).slice(0, 6);
+    return { out, inc, sugg };
+  }, [selPage, edges, pages]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Cria o link de verdade: acrescenta [[destino]] ao fim da página de origem. */
+  const connect = (from: Page, to: Page) => {
+    if (from.type !== 'page') return toast(t('graph.connectOnlyPages'), 'info');
+    const content = from.content?.type === 'doc' ? from.content : { type: 'doc', content: [] };
+    const para = { type: 'paragraph', content: [{ type: 'text', text: '→ ' }, { type: 'pageLink', attrs: { id: to.id, label: to.title || '' } }] };
+    updatePage(from.id, { content: { ...content, content: [...(content.content || []), para] } });
+    toast(t('graph.connected', { a: from.title || '…', b: to.title || '…' }), 'success');
   };
 
   return (
@@ -178,12 +329,16 @@ export function Graph() {
         <div className="eyebrow"><Network size={13} /> {t('nav.graph')}</div>
         <div className="db-search"><Search size={15} /><input placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <Switch checked={hier} onChange={setHier} label={t('graph.hierarchy')} />
+        <Switch checked={mentions} onChange={setMentions} label={<><Link2 size={13} /> {t('graph.mentions')}</>} />
         <Switch checked={similar} onChange={setSimilar} label={<><Sparkles size={13} /> {t('graph.similar')}</>} />
+        <Switch checked={tags} onChange={setTags} label={<><Tags size={13} /> {t('graph.tags')}</>} />
         <Switch checked={orphans} onChange={setOrphans} label={t('graph.orphans')} />
-        <div className="grow" />
-        <div className="legend">
-          {Object.entries(TYPE_COLORS).map(([k, c]) => <span key={k}><i style={{ background: c }} />{t(`new.${k === 'page' ? 'page' : k}` as any)}</span>)}
+        <div className="seg sm">
+          <button className={colorBy === 'type' ? 'on' : ''} onClick={() => setColorBy('type')}><Palette size={13} /> {t('graph.byType')}</button>
+          <button className={colorBy === 'group' ? 'on' : ''} onClick={() => setColorBy('group')}>{t('graph.byGroup')}</button>
         </div>
+        <div className="grow" />
+        <div className="graph-stats muted small">{t('graph.stats', { n: stats.nodes, l: stats.links, s: stats.suggestions, g: stats.groups })}</div>
       </div>
       <div className="graph-area">
         <canvas
@@ -204,29 +359,85 @@ export function Graph() {
             const up = () => {
               window.removeEventListener('pointermove', move);
               window.removeEventListener('pointerup', up);
-              if (n && !moved) go({ name: 'page', id: n.id });
+              if (!moved) setSelId(n ? n.id : null);
               s.drag = null;
             };
             window.addEventListener('pointermove', move);
             window.addEventListener('pointerup', up);
           }}
+          onDoubleClick={(e) => {
+            const n = hit(e.clientX, e.clientY);
+            if (n?.page) go({ name: 'page', id: n.page.id });
+            else if (n?.tag) setQ(n.tag);
+          }}
           onPointerMove={(e) => {
+            if (e.pointerType === 'touch') return;
             const n = hit(e.clientX, e.clientY) || null;
             state.current.hover = n;
             (e.target as HTMLElement).style.cursor = n ? 'pointer' : 'grab';
           }}
-          onWheel={(e) => {
-            const v = state.current.view;
-            const k = Math.min(4, Math.max(0.15, v.k * (e.deltaY < 0 ? 1.1 : 0.9)));
-            state.current.view = { ...v, k };
-          }}
+          onPointerLeave={() => (state.current.hover = null)}
+          onWheel={(e) => zoomAt(e.deltaY < 0 ? 1.12 : 0.89, e.clientX, e.clientY)}
         />
         {!nodes.length && <div className="canvas-hint">{t('graph.empty')}</div>}
         <div className="graph-help muted small">{t('graph.help')}</div>
+        <div className="graph-legend">
+          <span><i className="lg-line" /> {t('graph.kind.link')}</span>
+          <span><i className="lg-line board" /> {t('graph.kind.board')}</span>
+          <span><i className="lg-line dash" /> {t('graph.kind.child')}</span>
+          <span><i className="lg-line dot" /> {t('graph.kind.suggestion')}</span>
+        </div>
+        {focus && (
+          <div className="graph-focus">
+            <Crosshair size={14} /> {t('graph.focusOn', { t: pages[focus.id]?.title || '…' })}
+            <div className="seg sm">
+              {[1, 2, 3].map((d) => <button key={d} className={focus.depth === d ? 'on' : ''} onClick={() => setFocus({ ...focus, depth: d })}>{d}</button>)}
+            </div>
+            <button className="icon-btn xs" onClick={() => setFocus(null)}><X size={13} /></button>
+          </div>
+        )}
+        {selPage && info && (
+          <div className="graph-panel">
+            <div className="graph-panel-head">
+              <PageIcon icon={selPage.icon} size={20} />
+              <b className="grow ellipsis">{selPage.title || t('page.untitled')}</b>
+              <button className="icon-btn xs" onClick={() => setSelId(null)}><X size={14} /></button>
+            </div>
+            <div className="row">
+              <button className="btn primary sm" onClick={() => go({ name: 'page', id: selPage.id })}><ArrowUpRight size={14} /> {t('db.open')}</button>
+              <button className="btn ghost sm" onClick={() => setFocus({ id: selPage.id, depth: 1 })}><Crosshair size={14} /> {t('graph.focus')}</button>
+            </div>
+            <div className="graph-panel-stats">
+              <span><b>{info.out.length}</b> {t('graph.outgoing')}</span>
+              <span><b>{info.inc.length}</b> {t('graph.incoming')}</span>
+            </div>
+            {[...info.out, ...info.inc].length > 0 && (
+              <div className="graph-panel-list">
+                {[...new Map([...info.out, ...info.inc].map((p) => [p.id, p])).values()].slice(0, 12).map((p) => (
+                  <button key={p.id} className="menu-item" onClick={() => setSelId(p.id)}><PageIcon icon={p.icon} size={14} /> <span className="ellipsis">{p.title || t('page.untitled')}</span></button>
+                ))}
+              </div>
+            )}
+            {info.sugg.length > 0 && (
+              <>
+                <div className="section-label"><Sparkles size={11} /> {t('graph.suggestions')}</div>
+                <div className="graph-panel-list">
+                  {info.sugg.map(({ page: p, why }) => (
+                    <div key={p.id} className="graph-sugg">
+                      <button className="grow ellipsis" onClick={() => setSelId(p.id)}><PageIcon icon={p.icon} size={14} /> {p.title || t('page.untitled')}</button>
+                      <small className="muted">{t(`graph.why.${why}` as TKey)}</small>
+                      <button className="btn ghost xs" onClick={() => (why === 'mention' ? connect(p, selPage) : connect(selPage, p))}><Link2 size={12} /> {t('graph.connect')}</button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <div className="canvas-zoom graph-zoom">
-          <button className="tb" onClick={() => (state.current.view = { x: 0, y: 0, k: 1 })}><Maximize size={16} /></button>
-          <button className="tb" onClick={() => (state.current.view = { ...state.current.view, k: Math.max(0.15, state.current.view.k * 0.8) })}><Minus size={16} /></button>
-          <button className="tb" onClick={() => (state.current.view = { ...state.current.view, k: Math.min(4, state.current.view.k * 1.25) })}><Plus size={16} /></button>
+          <button className="tb" onClick={fit} title={t('canvas.fit')}><Maximize size={16} /></button>
+          <button className="tb" onClick={() => zoomAt(0.8)}><Minus size={16} /></button>
+          <button className="tb" onClick={() => zoomAt(1.25)}><Plus size={16} /></button>
         </div>
       </div>
     </div>

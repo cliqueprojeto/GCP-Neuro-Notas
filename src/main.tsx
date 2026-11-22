@@ -11,6 +11,7 @@ import '@fontsource/lora/600.css';
 import '@fontsource/jetbrains-mono/400.css';
 import './styles/app.css';
 import './styles/editor.css';
+import './styles/features.css';
 import './styles/mobile.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

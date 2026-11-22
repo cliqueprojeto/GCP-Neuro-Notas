@@ -48,6 +48,15 @@ function theme(
 }
 
 export const THEMES: Theme[] = [
+  // Tema da marca GCP-Neuro Notas: violeta profundo, sinapses ciano e centelha dourada.
+  theme('neuro', 'Neuro', true, {
+    bg: '#0b0a24', side: '#080719', panel: '#13113a', panel2: '#1b1848', border: '#2a2663',
+    text: '#efedff', muted: '#9a95d1', accent: '#8b5cf6', accent2: '#22d3ee',
+  }),
+  theme('neuro-light', 'Neuro Light', false, {
+    bg: '#f7f6ff', side: '#efedfd', panel: '#ffffff', panel2: '#f2f0ff', border: '#e1ddf7',
+    text: '#1c1840', muted: '#6b6596', accent: '#7c3aed', accent2: '#0891b2',
+  }),
   theme('midnight', 'Midnight', true, {
     bg: '#0d0f1f', side: '#0a0c1a', panel: '#141733', panel2: '#1b1f42', border: '#272b55',
     text: '#eceefd', muted: '#9298c4', accent: '#8b5cf6', accent2: '#38bdf8',
@@ -112,6 +121,7 @@ export function applyTheme(id: string) {
   Object.entries(t.vars).forEach(([k, v]) => root.style.setProperty(k, v));
   root.dataset.theme = t.dark ? 'dark' : 'light';
   root.style.colorScheme = t.dark ? 'dark' : 'light';
+  (window as any).GcpNative?.setLightBars?.(!t.dark); // ícones da barra de status no Android
 }
 
 export const COVER_GRADIENTS = [

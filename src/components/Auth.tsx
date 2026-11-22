@@ -90,7 +90,7 @@ export function LoginScreen() {
       <div className="auth-top"><LangPicker /></div>
       <div className="auth-card">
         <img src="/logo.svg" className="auth-logo" alt="" />
-        <h1>GCP Notas</h1>
+        <h1>GCP-Neuro Notas</h1>
         {mode === 'login' ? (
           <>
             <p className="muted">{t('login.subtitle')}</p>
@@ -242,7 +242,7 @@ export function Wizard() {
               <div className="recovery-code">{recovery}</div>
               <div className="row">
                 <button className="btn ghost" onClick={() => copyText(recovery).then(() => toast(t('common.copied'), 'success'))}><Copy size={15} /> {t('common.copy')}</button>
-                <button className="btn ghost" onClick={() => saveTextFile('GCP-Notas-chave-de-recuperacao.txt', `GCP Notas\n\n${t('wizard.recTitle')}:\n${recovery}\n`, [{ name: 'TXT', extensions: ['txt'] }])}><Download size={15} /> {t('common.download')}</button>
+                <button className="btn ghost" onClick={() => saveTextFile('GCP-Notas-chave-de-recuperacao.txt', `GCP-Neuro Notas\n\n${t('wizard.recTitle')}:\n${recovery}\n`, [{ name: 'TXT', extensions: ['txt'] }])}><Download size={15} /> {t('common.download')}</button>
               </div>
               <label className="check big"><input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /> {t('wizard.recSaved')}</label>
             </div>

@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 import { editorExtensions } from './extensions';
 import { suggestRender, type SuggestItem } from './suggest';
+import { BlockHandle } from './BlockHandle';
+import { TEMPLATES, instantiate } from '../templates/templates';
+import { instantiateUser, UserTemplateBadge } from '../templates/user';
+import { usePrefs, detectLang } from '../store/prefs';
 import { useT, useLang, LOCALES } from '../i18n';
 import { useVault, livePages } from '../store/vault';
 import { useUi, toast } from '../store/ui';
@@ -197,6 +201,7 @@ export function Editor({ page, editable = true }: Props) {
           <Bubble editor={editor} onAi={ai} busy={busy} />
         </BubbleMenu>
       )}
+      {editable && <BlockHandle editor={editor} />}
       <EditorContent editor={editor} />
       <div className="editor-foot muted small">
         {t('editor.words', { n: editor.storage.characterCount?.words?.() ?? 0 })} · {t('editor.chars', { n: editor.storage.characterCount?.characters?.() ?? 0 })} ·{' '}
@@ -244,47 +249,87 @@ function buildSlash() {
       setTimeout(() => useUi.getState().go({ name: 'page', id: np.id }), 50);
     };
     return [
-      { id: 'ai', group: g.ai, title: t('slash.ai'), subtitle: t('slash.ai.sub'), icon: <Sparkles size={18} />, run: () => ctx.ai() },
-      { id: 'text', group: g.basic, title: t('slash.text'), icon: <Text size={18} />, run: ({ editor }) => editor.chain().focus().setParagraph().run() },
-      { id: 'h1', group: g.basic, title: t('slash.h1'), icon: <Heading1 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 1 }).run() },
-      { id: 'h2', group: g.basic, title: t('slash.h2'), icon: <Heading2 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 2 }).run() },
-      { id: 'h3', group: g.basic, title: t('slash.h3'), icon: <Heading3 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 3 }).run() },
-      { id: 'todo', group: g.basic, title: t('slash.todo'), icon: <CheckSquare size={18} />, run: ({ editor }) => editor.chain().focus().toggleTaskList().run() },
-      { id: 'bullet', group: g.basic, title: t('slash.bullet'), icon: <List size={18} />, run: ({ editor }) => editor.chain().focus().toggleBulletList().run() },
-      { id: 'numbered', group: g.basic, title: t('slash.numbered'), icon: <ListOrdered size={18} />, run: ({ editor }) => editor.chain().focus().toggleOrderedList().run() },
-      { id: 'toggle', group: g.basic, title: t('slash.toggle'), icon: <ListTree size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'toggle', attrs: { summary: '' }, content: [{ type: 'paragraph' }] }).run() },
-      { id: 'quote', group: g.basic, title: t('slash.quote'), icon: <Quote size={18} />, run: ({ editor }) => editor.chain().focus().toggleBlockquote().run() },
-      { id: 'callout', group: g.basic, title: t('slash.callout'), icon: <Lightbulb size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'callout', attrs: { emoji: '💡', tone: 'info' } }).run() },
-      { id: 'divider', group: g.basic, title: t('slash.divider'), icon: <Minus size={18} />, run: ({ editor }) => editor.chain().focus().setHorizontalRule().run() },
-      { id: 'code', group: g.basic, title: t('slash.code'), icon: <Code2 size={18} />, run: ({ editor }) => editor.chain().focus().toggleCodeBlock().run() },
-      { id: 'table', group: g.basic, title: t('slash.table'), icon: <Table2 size={18} />, run: ({ editor }) => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-      { id: 'date', group: g.basic, title: t('slash.date'), icon: <CalendarDays size={18} />, run: ({ editor }) => editor.chain().focus().insertContent(new Date().toLocaleDateString()).run() },
+      { id: 'ai', tone: 'pink', group: g.ai, title: t('slash.ai'), subtitle: t('slash.ai.sub'), icon: <Sparkles size={18} />, run: () => ctx.ai() },
+      { id: 'text', tone: 'gray', group: g.basic, title: t('slash.text'), icon: <Text size={18} />, run: ({ editor }) => editor.chain().focus().setParagraph().run() },
+      { id: 'h1', tone: 'violet', group: g.basic, title: t('slash.h1'), icon: <Heading1 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 1 }).run() },
+      { id: 'h2', tone: 'violet', group: g.basic, title: t('slash.h2'), icon: <Heading2 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 2 }).run() },
+      { id: 'h3', tone: 'violet', group: g.basic, title: t('slash.h3'), icon: <Heading3 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 3 }).run() },
+      { id: 'todo', tone: 'green', group: g.basic, title: t('slash.todo'), icon: <CheckSquare size={18} />, run: ({ editor }) => editor.chain().focus().toggleTaskList().run() },
+      { id: 'bullet', tone: 'blue', group: g.basic, title: t('slash.bullet'), icon: <List size={18} />, run: ({ editor }) => editor.chain().focus().toggleBulletList().run() },
+      { id: 'numbered', tone: 'blue', group: g.basic, title: t('slash.numbered'), icon: <ListOrdered size={18} />, run: ({ editor }) => editor.chain().focus().toggleOrderedList().run() },
+      { id: 'toggle', tone: 'teal', group: g.basic, title: t('slash.toggle'), icon: <ListTree size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'toggle', attrs: { summary: '' }, content: [{ type: 'paragraph' }] }).run() },
+      { id: 'quote', tone: 'gray', group: g.basic, title: t('slash.quote'), icon: <Quote size={18} />, run: ({ editor }) => editor.chain().focus().toggleBlockquote().run() },
+      { id: 'callout', tone: 'amber', group: g.basic, title: t('slash.callout'), icon: <Lightbulb size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'callout', attrs: { emoji: '💡', tone: 'info' } }).run() },
+      { id: 'divider', tone: 'gray', group: g.basic, title: t('slash.divider'), icon: <Minus size={18} />, run: ({ editor }) => editor.chain().focus().setHorizontalRule().run() },
+      { id: 'code', tone: 'gray', group: g.basic, title: t('slash.code'), icon: <Code2 size={18} />, run: ({ editor }) => editor.chain().focus().toggleCodeBlock().run() },
+      { id: 'table', tone: 'green', group: g.basic, title: t('slash.table'), icon: <Table2 size={18} />, run: ({ editor }) => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+      { id: 'date', tone: 'orange', group: g.basic, title: t('slash.date'), icon: <CalendarDays size={18} />, run: ({ editor }) => editor.chain().focus().insertContent(new Date().toLocaleDateString()).run() },
       {
-        id: 'image', group: g.media, title: t('slash.image'), icon: <ImageIcon size={18} />,
+        id: 'image', tone: 'pink', group: g.media, title: t('slash.image'), icon: <ImageIcon size={18} />,
         run: async ({ editor }) => {
           const imgs = await pickImages(false);
           if (imgs[0]) editor.chain().focus().setImage({ src: imgs[0] }).run();
         },
       },
-      { id: 'gallery', group: g.media, title: t('slash.gallery'), icon: <Images size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'gallery' }).run() },
+      { id: 'gallery', tone: 'pink', group: g.media, title: t('slash.gallery'), icon: <Images size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'gallery' }).run() },
       {
-        id: 'youtube', group: g.media, title: 'YouTube', icon: <Play size={18} />,
+        id: 'youtube', tone: 'red', group: g.media, title: 'YouTube', icon: <Play size={18} />,
         run: ({ editor }) => {
           const url = window.prompt('URL');
           if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run();
         },
       },
-      { id: 'emoji', group: g.media, title: t('slash.emoji'), icon: <SmilePlus size={18} />, run: () => ctx.emoji() },
-      { id: 'sticker', group: g.media, title: t('slash.sticker'), icon: <Sticker size={18} />, run: () => ctx.sticker() },
-      { id: 'poll', group: g.adv, title: t('slash.poll'), subtitle: t('slash.poll.sub'), icon: <BarChart3 size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'poll', attrs: { options: [{ id: 'a', label: '', votes: 0 }, { id: 'b', label: '', votes: 0 }] } }).run() },
-      { id: 'raffle', group: g.adv, title: t('slash.raffle'), subtitle: t('slash.raffle.sub'), icon: <Dices size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'raffle' }).run() },
-      { id: 'form', group: g.adv, title: t('slash.form'), subtitle: t('slash.form.sub'), icon: <FileSpreadsheet size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'form' }).run() },
-      { id: 'link', group: g.pages, title: t('slash.pageLink'), subtitle: '[[ ]]', icon: <LinkIcon size={18} />, run: ({ editor }) => editor.chain().focus().insertContent('[[').run() },
-      { id: 'subpage', group: g.pages, title: t('slash.subpage'), icon: <FileText size={18} />, run: ({ editor }) => childPage('page', editor) },
-      { id: 'database', group: g.pages, title: t('slash.database'), icon: <Database size={18} />, run: ({ editor }) => childPage('database', editor) },
-      { id: 'report', group: g.pages, title: t('slash.report'), icon: <PieChart size={18} />, run: ({ editor }) => childPage('report', editor) },
+      { id: 'emoji', tone: 'amber', group: g.media, title: t('slash.emoji'), icon: <SmilePlus size={18} />, run: () => ctx.emoji() },
+      { id: 'sticker', tone: 'amber', group: g.media, title: t('slash.sticker'), icon: <Sticker size={18} />, run: () => ctx.sticker() },
+      { id: 'poll', tone: 'violet', group: g.adv, title: t('slash.poll'), subtitle: t('slash.poll.sub'), icon: <BarChart3 size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'poll', attrs: { options: [{ id: 'a', label: '', votes: 0 }, { id: 'b', label: '', votes: 0 }] } }).run() },
+      { id: 'raffle', tone: 'orange', group: g.adv, title: t('slash.raffle'), subtitle: t('slash.raffle.sub'), icon: <Dices size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'raffle' }).run() },
+      { id: 'form', tone: 'teal', group: g.adv, title: t('slash.form'), subtitle: t('slash.form.sub'), icon: <FileSpreadsheet size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'form' }).run() },
+      { id: 'link', tone: 'blue', group: g.pages, title: t('slash.pageLink'), subtitle: '[[ ]]', icon: <LinkIcon size={18} />, run: ({ editor }) => editor.chain().focus().insertContent('[[').run() },
+      { id: 'subpage', tone: 'violet', group: g.pages, title: t('slash.subpage'), icon: <FileText size={18} />, run: ({ editor }) => childPage('page', editor) },
+      { id: 'database', tone: 'teal', group: g.pages, title: t('slash.database'), icon: <Database size={18} />, run: ({ editor }) => childPage('database', editor) },
+      { id: 'report', tone: 'pink', group: g.pages, title: t('slash.report'), icon: <PieChart size={18} />, run: ({ editor }) => childPage('report', editor) },
+      ...templateItems(t, ctx.page),
     ];
   };
+}
+
+/** Modelos do usuário e templates prontos dentro do comando "/". */
+function templateItems(t: (k: TKey, v?: any) => string, page: Page): SuggestItem[] {
+  const lp = usePrefs.getState().lang;
+  const lang = lp === 'auto' ? detectLang() : lp;
+  const link = (editor: TEditor, id: string, label: string) =>
+    editor.chain().focus().insertContent([{ type: 'pageLink', attrs: { id, label } }, { type: 'text', text: ' ' }]).run();
+  const mine = useVault.getState().settings.templates || [];
+  return [
+    ...mine.map((tpl): SuggestItem => ({
+      id: 'ut-' + tpl.id,
+      group: t('utpl.mine'),
+      title: tpl.name,
+      subtitle: tpl.description || t(`new.${tpl.kind === 'page' ? 'page' : tpl.kind}` as TKey),
+      icon: <UserTemplateBadge tpl={tpl} size={16} />,
+      run: ({ editor }) => {
+        if (tpl.kind === 'page' && tpl.page.content?.content?.length) {
+          editor.chain().focus().insertContent(tpl.page.content.content).run();
+          return;
+        }
+        const np = instantiateUser(tpl, page.id);
+        link(editor, np.id, np.title || tpl.name);
+        toast(t('tpl.created'), 'success');
+      },
+    })),
+    ...TEMPLATES.map((tpl): SuggestItem => ({
+      id: 'tpl-' + tpl.id,
+      group: t('nav.templates'),
+      title: tpl.title[lang],
+      subtitle: tpl.description[lang],
+      icon: <span className="slash-emoji">{tpl.icon}</span>,
+      run: ({ editor }) => {
+        const root = instantiate(tpl, lang, page.id, useVault.getState().createPage);
+        link(editor, root.id, root.title);
+        toast(t('tpl.created'), 'success');
+      },
+    })),
+  ];
 }
 
 // --------------------------------------------------------------- toolbar

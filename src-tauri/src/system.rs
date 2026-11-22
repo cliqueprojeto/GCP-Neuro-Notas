@@ -95,10 +95,10 @@ fn linux_package_kind() -> String {
 #[derive(Default)]
 pub struct OAuthState(pub Arc<Mutex<HashMap<u16, Option<String>>>>);
 
-const OAUTH_PAGE: &str = "<!doctype html><html><head><meta charset='utf-8'><title>GCP Notas</title>\
+const OAUTH_PAGE: &str = "<!doctype html><html><head><meta charset='utf-8'><title>GCP-Neuro Notas</title>\
 <style>body{font-family:system-ui,sans-serif;background:#0f1020;color:#e8e8f5;display:grid;place-items:center;height:100vh;margin:0}\
 .c{text-align:center;padding:40px;border-radius:20px;background:#1a1b33;border:1px solid #2c2e52}h1{font-size:22px}</style></head>\
-<body><div class='c'><h1>&#10003; GCP Notas</h1><p>Conta conectada. Você já pode fechar esta janela.</p>\
+<body><div class='c'><h1>&#10003; GCP-Neuro Notas</h1><p>Conta conectada. Você já pode fechar esta janela.</p>\
 <p style='opacity:.7'>Account connected. You can close this window. · Cuenta conectada. Ya puede cerrar esta ventana.</p></div></body></html>";
 
 /// Abre um servidor local temporário e devolve a porta para o redirect do OAuth.

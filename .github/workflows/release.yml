@@ -1,4 +1,4 @@
-name: Release — GCP Notas
+name: Release — GCP-Neuro Notas
 # A release é gerada quando chega um arquivo novo em docs/release-notes/vX.Y.Z.md
 # (com a versão do package.json) ou manualmente pela aba Actions.
 on:
@@ -47,7 +47,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG já existe; os arquivos serão substituídos."
           else
-            gh release create "$TAG" --draft --target "$GITHUB_SHA" --title "GCP Notas ${VERSION}" --notes-file "$NOTES"
+            gh release create "$TAG" --draft --target "$GITHUB_SHA" --title "GCP-Neuro Notas ${VERSION}" --notes-file "$NOTES"
           fi
 
   build:
@@ -102,11 +102,11 @@ jobs:
               cp "$(ls $B/deb/*.deb | head -1)" "out/gcp-notas_${VERSION}_amd64.deb"
               cp "$(ls $B/rpm/*.rpm | head -1)" "out/gcp-notas-${VERSION}-1.x86_64.rpm" ;;
             windows)
-              cp "$(ls $B/nsis/*-setup.exe | head -1)" "out/GCP-Notas-${VERSION}-Windows-x64-Setup.exe" ;;
+              cp "$(ls $B/nsis/*-setup.exe | head -1)" "out/GCP-Neuro-Notas-${VERSION}-Windows-x64-Setup.exe" ;;
             macos-arm64)
-              cp "$(ls $B/dmg/*.dmg | head -1)" "out/GCP-Notas-${VERSION}-macOS-arm64.dmg" ;;
+              cp "$(ls $B/dmg/*.dmg | head -1)" "out/GCP-Neuro-Notas-${VERSION}-macOS-arm64.dmg" ;;
             macos-x86_64)
-              cp "$(ls $B/dmg/*.dmg | head -1)" "out/GCP-Notas-${VERSION}-macOS-x86_64.dmg" ;;
+              cp "$(ls $B/dmg/*.dmg | head -1)" "out/GCP-Neuro-Notas-${VERSION}-macOS-x86_64.dmg" ;;
           esac
           cd out
           for f in *; do
@@ -119,7 +119,7 @@ jobs:
           sudo apt-get install -y "./out/gcp-notas_${VERSION}_amd64.deb"
           test -x /usr/bin/gcp-notas
           desktop-file-validate /usr/share/applications/*.desktop || true
-          sudo apt-get remove -y gcp-notas || true
+          sudo apt-get remove -y gcp-neuro-notas gcp-notas || true
       - name: Enviar ao rascunho da release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -177,8 +177,19 @@ jobs:
         run: |
           npx tauri android init --ci
           npx tauri icon assets/branding/icon-1024.png
+          # Atividade própria: áreas seguras (barra de status/gestos/teclado) e fonte sem a escala do sistema.
+          MAIN=$(grep -rl "class MainActivity" src-tauri/gen/android/app/src/main/java | head -1)
+          test -n "$MAIN"
+          cp "$MAIN" /tmp/MainActivity.original.kt
+          cp packaging/android/MainActivity.kt "$MAIN"
+          echo "MAIN=$MAIN" >> "$GITHUB_ENV"
       - name: Compilar APK (arm64, armv7 e x86_64)
-        run: npx tauri android build --apk --ci --target aarch64 armv7 x86_64
+        run: |
+          if ! npx tauri android build --apk --ci --target aarch64 armv7 x86_64; then
+            echo "::warning::A atividade Android personalizada não compilou; gerando com a atividade padrão."
+            cp /tmp/MainActivity.original.kt "$MAIN"
+            npx tauri android build --apk --ci --target aarch64 armv7 x86_64
+          fi
       - name: Assinar o APK
         env:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -194,15 +205,15 @@ jobs:
             echo "::warning::Sem chave de assinatura nos segredos: usando uma chave temporária (para atualizar será preciso reinstalar). Veja docs/MOBILE.md."
             KS_PASS=temporaria123; KEY_PASS=temporaria123; KEY_ALIAS=gcpnotas
             keytool -genkeypair -v -keystore release.jks -storepass "$KS_PASS" -keypass "$KEY_PASS" -alias "$KEY_ALIAS" \
-              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=GCP Notas, O=Gestao Cultural Pro, C=BR"
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=GCP-Neuro Notas, O=Gestao Cultural Pro, C=BR"
           fi
           mkdir -p out
           zipalign -p -f 4 "$APK" aligned.apk
           apksigner sign --v4-signing-enabled false --ks release.jks --ks-pass "pass:$KS_PASS" --key-pass "pass:${KEY_PASS:-$KS_PASS}" --ks-key-alias "$KEY_ALIAS" \
-            --out "out/GCP-Notas-${VERSION}-Android.apk" aligned.apk
-          apksigner verify --print-certs "out/GCP-Notas-${VERSION}-Android.apk" | head -3
+            --out "out/GCP-Neuro-Notas-${VERSION}-Android.apk" aligned.apk
+          apksigner verify --print-certs "out/GCP-Neuro-Notas-${VERSION}-Android.apk" | head -3
           rm -f release.jks
-          cd out && sha256sum "GCP-Notas-${VERSION}-Android.apk" > "GCP-Notas-${VERSION}-Android.apk.sha256" && ls -la
+          cd out && sha256sum "GCP-Neuro-Notas-${VERSION}-Android.apk" > "GCP-Neuro-Notas-${VERSION}-Android.apk.sha256" && ls -la
       - name: Enviar ao rascunho da release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -252,9 +263,9 @@ jobs:
           mkdir release
           gh release download "$TAG" --dir release --pattern '*'
           rm -f release/SHA256SUMS.txt
-          for f in "GCP-Notas-$V-Windows-x64-Setup.exe" "GCP-Notas-$V-macOS-arm64.dmg" "GCP-Notas-$V-macOS-x86_64.dmg" \
+          for f in "GCP-Neuro-Notas-$V-Windows-x64-Setup.exe" "GCP-Neuro-Notas-$V-macOS-arm64.dmg" "GCP-Neuro-Notas-$V-macOS-x86_64.dmg" \
                    "gcp-notas_${V}_amd64.deb" "gcp-notas-$V-1.x86_64.rpm" "gcp-notas-bin-$V-1-x86_64.pkg.tar.zst" \
-                   "GCP-Notas-$V-Android.apk"; do
+                   "GCP-Neuro-Notas-$V-Android.apk"; do
             test -s "release/$f"
             (cd release && sha256sum -c "$f.sha256")
           done

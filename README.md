@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/branding/icon-256.png" width="128" alt="GCP Notas" />
+<img src="assets/branding/icon-256.png" width="128" alt="GCP-Neuro Notas" />
 
-# GCP Notas
+# GCP-Neuro Notas
 
 **Notas, bases de dados, relatórios BI, quadro infinito e segundo cérebro com IA — offline, criptografado e nativo.**
 
@@ -17,7 +17,7 @@ Livre · Gratuito · Sem cadastro · Android, Linux, Windows e macOS (Intel e Ap
 
 🇧🇷 Português · [🇺🇸 English](#-english) · [🇪🇸 Español](#-español)
 
-<img src="docs/screenshots/01-inicio.png" width="900" alt="Tela inicial do GCP Notas" />
+<img src="docs/screenshots/01-inicio.png" width="900" alt="Tela inicial do GCP-Neuro Notas" />
 
 </div>
 
@@ -25,7 +25,7 @@ Livre · Gratuito · Sem cadastro · Android, Linux, Windows e macOS (Intel e Ap
 
 ## Sobre
 
-O **GCP Notas** faz parte da série de aplicativos **GCP** da [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). Ele reúne em um único aplicativo nativo o melhor de três mundos:
+O **GCP-Neuro Notas** faz parte da série de aplicativos **GCP** da [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). Ele reúne em um único aplicativo nativo o melhor de três mundos:
 
 - **Editor de blocos e bases de dados** (no estilo de Notion): páginas aninhadas, comando `/`, tabelas, Kanban, galerias, calendários e formulários.
 - **Segundo cérebro conectado** (no estilo de Obsidian): links `[[entre páginas]]`, backlinks, menções sem link, notas relacionadas e grafo interativo.
@@ -34,6 +34,25 @@ O **GCP Notas** faz parte da série de aplicativos **GCP** da [Gestão Cultural 
 Tudo fica **no seu computador**, em um banco de dados interno (SQLite embutido), **criptografado com a sua senha**. Não há servidor, conta, rastreamento ou anúncios. A IA é opcional: você usa a sua própria chave.
 
 ## ✨ Recursos
+
+### 🆕 Novidades da 1.2
+
+| | Recurso | Detalhes |
+|---|---|---|
+| 🧮 | **Bases estilo planilha** | Filtro por valores como no Excel (buscar, selecionar tudo, *em branco*), ordenar e filtrar em cada coluna, arrastar colunas e linhas, totais (soma/média) no rodapé |
+| 🖱️ | **Botão direito / toque longo** | Inserir linha acima/abaixo, duplicar, mover, excluir; no celular, toque longo ou toque no número da linha |
+| 🧾 | **Novos campos** | **Fórmula** entre campos (`{Quant.} * {Valor}`, `SE`, `SOMA`, `DIAS`…), **fórmula condicional** com faixas (*entre 7 e 10 → Aprovado*) e cores, **moeda** com país detectado e máscara ao digitar, **CPF**, **CNPJ** (com validação), **telefone** e **CEP** com máscara |
+| 📥 | **Importar e exportar tabelas** | Importar do Excel/CSV (tipos detectados), imprimir só a tabela, PDF vetorial e Excel com formatos |
+| ⭐ | **Meus modelos** | Salve uma tabela ou documento como modelo com nome, descrição, ícone e cor; aparece em Templates e no comando `/` |
+| ↕️ | **Blocos móveis** | Alça ao lado de cada bloco para mover para cima/baixo (Alt+Shift+↑/↓), arrastar, duplicar, transformar ou excluir — inclusive enquetes, formulários e galerias |
+| 🎨 | **Comando `/` colorido** | Ícones coloridos por categoria, templates prontos e modelos próprios direto no `/` |
+| 🔌 | **Conectores magnéticos** | Pontos nos 4 lados de cada elemento, encaixe por proximidade, clique no conector para trocar estilo, setas, rótulo, cor e arrastar as pontas para religar |
+| 🖥️ | **Apresentar** | Cada moldura do quadro vira um slide, em tela cheia, com transições, teclado e toque |
+| 🗺️ | **Quadros e Calendário fixos** | Página "Quadros" com miniaturas; calendário compacto acima do Diário e agenda em mês, semana e dia com detalhes de cada registro |
+| 🧠 | **Grafo inteligente** | Ligações do quadro e das conversas com IA, sugestões de conexão com um clique, grupos por cor, foco local e painel do nó |
+| 💬 | **Conversas com IA salvas** | Histórico, retomar conversas, ligadas no Grafo às notas citadas; selecione um trecho para reescrever, resumir, traduzir ou explicar |
+| 🔎 | **Busca com filtros** | Filtre por tipo e por tags (chips ou `#tag` na busca) |
+| ☁️ | **Nuvem sem complicação** | Logos oficiais, passo a passo ilustrado para criar o cadastro OAuth e importar o JSON do Google; **sincronização com o Notion** (importar, sincronizar e enviar páginas) |
 
 ### ✍️ Editor completo
 
@@ -51,7 +70,7 @@ Tudo fica **no seu computador**, em um banco de dados interno (SQLite embutido),
 
 ### 🗂️ Bases de dados
 
-- Propriedades: texto, número (moeda e porcentagem), seleção, multisseleção, **status**, data, caixa de seleção, link, e-mail, telefone, **senha** (oculta, copiar, gerador de senhas fortes), avaliação ⭐, progresso e data de criação.
+- Propriedades: texto, número, **moeda** (com máscara), **fórmula**, **fórmula condicional**, **CPF**, **CNPJ**, **CEP**, seleção, multisseleção, **status**, data, caixa de seleção, link, e-mail, telefone, **senha** (oculta, copiar, gerador de senhas fortes), avaliação ⭐, progresso e data de criação.
 - Visualizações: **Tabela**, **Quadro Kanban** (arrastar e soltar), **Galeria**, **Calendário** e **Lista** — várias por base.
 - **Filtros** combinados, **ordenação**, busca, colunas ocultas, registro aberto em janela com anotações, exportação CSV.
 
@@ -83,7 +102,7 @@ Páginas aninhadas com arrastar e soltar, favoritos, lixeira com restauração, 
 
 - **Imprimir**, **PDF**, **Word (.docx)**, **PowerPoint (.pptx)** com gráficos nativos editáveis, **Excel (.xlsx)**, **Markdown** e **HTML**.
 - Importação de **Markdown/TXT/HTML** (inclusive um cofre do Obsidian, com os `[[links]]` religados).
-- **Compartilhar com outras pessoas**: gere um arquivo `.gcpshare` com a página, subpáginas e bases usadas, **protegido por senha**, que a outra pessoa importa no próprio GCP Notas.
+- **Compartilhar com outras pessoas**: gere um arquivo `.gcpshare` com a página, subpáginas e bases usadas, **protegido por senha**, que a outra pessoa importa no próprio GCP-Neuro Notas.
 
 ### ☁️ Backup e sincronização
 
@@ -93,7 +112,7 @@ Páginas aninhadas com arrastar e soltar, favoritos, lixeira com restauração, 
 
 ### 🎨 Interface premium
 
-- **12 temas** (6 escuros e 6 claros) + seguir o sistema, com troca instantânea no topo.
+- **14 temas** (incluindo o novo **Neuro** escuro e claro) + seguir o sistema, com troca instantânea no topo.
 - **Português, inglês e espanhol**, detectados pelo sistema, com troca rápida PT · EN · ES (a escolha fica salva).
 - **Assistente inicial** em 5 passos: idioma, tema, senha mestra, chave de recuperação e conteúdo inicial.
 - Layout responsivo, pronto para telas de celular e tablet.
@@ -112,10 +131,10 @@ Baixe o arquivo do seu sistema na [página da última versão](https://github.co
 
 | Sistema | Arquivo | Como instalar |
 |---|---|---|
-| **Android 7.0+ (celular e tablet)** | `GCP-Notas-x.y.z-Android.apk` | Baixe pelo celular, toque no arquivo, permita *Instalar apps desconhecidos* e confirme. |
-| **Windows 10/11** | `GCP-Notas-x.y.z-Windows-x64-Setup.exe` | Dê dois cliques e avance. Não precisa de administrador; o app abre ao final. |
-| **macOS Apple Silicon (M1, M2, M3, M4…)** | `GCP-Notas-x.y.z-macOS-arm64.dmg` | Abra o `.dmg` e arraste o GCP Notas para **Aplicativos**. |
-| **macOS Intel** | `GCP-Notas-x.y.z-macOS-x86_64.dmg` | Abra o `.dmg` e arraste o GCP Notas para **Aplicativos**. |
+| **Android 7.0+ (celular e tablet)** | `GCP-Neuro-Notas-x.y.z-Android.apk` | Baixe pelo celular, toque no arquivo, permita *Instalar apps desconhecidos* e confirme. |
+| **Windows 10/11** | `GCP-Neuro-Notas-x.y.z-Windows-x64-Setup.exe` | Dê dois cliques e avance. Não precisa de administrador; o app abre ao final. |
+| **macOS Apple Silicon (M1, M2, M3, M4…)** | `GCP-Neuro-Notas-x.y.z-macOS-arm64.dmg` | Abra o `.dmg` e arraste o GCP-Neuro Notas para **Aplicativos**. |
+| **macOS Intel** | `GCP-Neuro-Notas-x.y.z-macOS-x86_64.dmg` | Abra o `.dmg` e arraste o GCP-Neuro Notas para **Aplicativos**. |
 | **Debian, Ubuntu, Mint, Pop!_OS, Zorin** | `gcp-notas_x.y.z_amd64.deb` | Dê dois cliques e escolha **Instalar**. |
 | **Fedora, openSUSE, RHEL** | `gcp-notas-x.y.z-1.x86_64.rpm` | Dê dois cliques e escolha **Instalar**. |
 | **Arch, BigLinux, Manjaro, EndeavourOS** | `gcp-notas-bin-x.y.z-1-x86_64.pkg.tar.zst` | Dê dois cliques (abre no gerenciador de pacotes) e confirme. |
@@ -140,12 +159,12 @@ Depois, abra pelo menu de aplicativos ou rode `gcp-notas`.
 <details>
 <summary><b>Avisos de segurança no primeiro uso (Windows e macOS)</b></summary>
 
-O GCP Notas ainda não usa certificados pagos de assinatura de código, por isso o sistema pode exibir um aviso na primeira vez:
+O GCP-Neuro Notas ainda não usa certificados pagos de assinatura de código, por isso o sistema pode exibir um aviso na primeira vez:
 
 - **Windows (SmartScreen):** clique em **Mais informações → Executar assim mesmo**.
 - **macOS:** clique com o botão direito no app em Aplicativos → **Abrir** → **Abrir** (ou **Ajustes do Sistema → Privacidade e Segurança → Abrir mesmo assim**). Se aparecer "está danificado", rode no Terminal:
   ```bash
-  xattr -cr "/Applications/GCP Notas.app"
+  xattr -cr "/Applications/GCP-Neuro Notas.app"
   ```
 </details>
 
@@ -164,6 +183,24 @@ sha256sum -c gcp-notas_*_amd64.deb.sha256
 O instalador já traz o núcleo nativo (Rust), o banco de dados SQLite, as fontes e todas as bibliotecas. No Windows, o WebView2 (já presente no Windows 10/11 atualizados) é instalado automaticamente se faltar; no Linux, o gerenciador de pacotes resolve as dependências do sistema sozinho.
 
 ## 🖼️ Telas
+
+### Novidades da 1.2
+
+| | |
+|---|---|
+| <img src="docs/screenshots/v1.2/03-filtro-excel.png" alt="Filtro estilo Excel" /> | <img src="docs/screenshots/v1.2/05-menu-contexto.png" alt="Menu do botão direito" /> |
+| <img src="docs/screenshots/v1.2/06-tipos-de-campo.png" alt="Tipos de campo" /> | <img src="docs/screenshots/v1.2/07-formula.png" alt="Fórmulas" /> |
+| <img src="docs/screenshots/v1.2/12-menu-bloco.png" alt="Mover e excluir blocos" /> | <img src="docs/screenshots/v1.2/13-comando-barra.png" alt="Comando / colorido" /> |
+| <img src="docs/screenshots/v1.2/16-conector-selecionado.png" alt="Conectores magnéticos" /> | <img src="docs/screenshots/v1.2/17-apresentacao.png" alt="Apresentação" /> |
+| <img src="docs/screenshots/v1.2/20-calendario-mes.png" alt="Calendário" /> | <img src="docs/screenshots/v1.2/22-calendario-dia.png" alt="Agenda do dia" /> |
+| <img src="docs/screenshots/v1.2/19-grafo.png" alt="Grafo inteligente" /> | <img src="docs/screenshots/v1.2/18-quadros.png" alt="Quadros" /> |
+| <img src="docs/screenshots/v1.2/24-guia-google.png" alt="Passo a passo do Google" /> | <img src="docs/screenshots/v1.2/25-notion.png" alt="Notion" /> |
+
+| Celular | | | |
+|---|---|---|---|
+| <img src="docs/screenshots/v1.2/android/02-tarefas.png" width="200" alt="Tabela" /> | <img src="docs/screenshots/v1.2/android/05-menu-contexto.png" width="200" alt="Menu" /> | <img src="docs/screenshots/v1.2/android/20-calendario-mes.png" width="200" alt="Calendário" /> | <img src="docs/screenshots/v1.2/android/01-sidebar-minical.png" width="200" alt="Menu lateral" /> |
+
+### Versão 1.0
 
 | Editor de blocos | Comando `/` |
 |---|---|
@@ -242,7 +279,7 @@ Requisitos: Node 22, Rust estável e, no Linux, `libwebkit2gtk-4.1-dev libgtk-3-
 
 ## ❤️ Apoie o projeto
 
-O GCP Notas é gratuito e sem anúncios. Se ele ajuda no seu trabalho, considere apoiar o desenvolvimento:
+O GCP-Neuro Notas é gratuito e sem anúncios. Se ele ajuda no seu trabalho, considere apoiar o desenvolvimento:
 
 | PIX (Brasil) | Stripe (internacional) |
 |---|---|
@@ -259,7 +296,7 @@ O apoio é voluntário: todas as funções estão disponíveis sem contribuiçã
 
 ## 🇺🇸 English
 
-**GCP Notas** brings together a block editor with databases, a connected second brain with `[[links]]`, backlinks and an interactive graph, and an infinite **whiteboard** to draw and connect ideas — in a native, offline, **encrypted** app for Android, Linux, Windows and macOS (Intel and Apple Silicon).
+**GCP-Neuro Notas** brings together a block editor with databases, a connected second brain with `[[links]]`, backlinks and an interactive graph, and an infinite **whiteboard** to draw and connect ideas — in a native, offline, **encrypted** app for Android, Linux, Windows and macOS (Intel and Apple Silicon).
 
 - **Editor:** `/` commands, tables, media, galleries, emojis, stickers, **polls**, **raffles**, **forms**, version history.
 - **Databases:** table, Kanban, gallery, calendar and list views, filters, sorting, password fields with generator.
@@ -275,7 +312,7 @@ Download the installer for your system from the [latest release](https://github.
 
 ## 🇪🇸 Español
 
-**GCP Notas** reúne un editor de bloques con bases de datos, un segundo cerebro conectado con `[[enlaces]]`, retroenlaces y grafo interactivo, y una **pizarra** infinita para dibujar y conectar ideas — en una app nativa, sin conexión y **cifrada** para Android, Linux, Windows y macOS (Intel y Apple Silicon).
+**GCP-Neuro Notas** reúne un editor de bloques con bases de datos, un segundo cerebro conectado con `[[enlaces]]`, retroenlaces y grafo interactivo, y una **pizarra** infinita para dibujar y conectar ideas — en una app nativa, sin conexión y **cifrada** para Android, Linux, Windows y macOS (Intel y Apple Silicon).
 
 - **Editor:** comandos `/`, tablas, medios, galerías, emojis, stickers, **encuestas**, **sorteos**, **formularios**, historial de versiones.
 - **Bases de datos:** vistas de tabla, Kanban, galería, calendario y lista, filtros, orden y contraseñas con generador.

@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight, Clock, Copy, Download, FileText, History, ImagePlus, Link2, Maximize2, Minimize2, MoreHorizontal, PenTool, Printer, Share2,
-  Smile, Sparkles, Star, Tag, Trash2, X, FileType, Presentation, Sheet, FileDown, Network, Type,
+  Smile, Sparkles, Star, Tag, Trash2, X, FileType, Presentation, Sheet, FileDown, Network, Type, BookmarkPlus,
 } from 'lucide-react';
+import { SaveTemplateModal } from '../templates/user';
+import { NotionSendModal } from './settings/NotionCard';
+import { NotionIcon } from './settings/BrandIcons';
 import { useT, useLang, LOCALES } from '../i18n';
 import { useVault, livePages } from '../store/vault';
 import { useUi, toast } from '../store/ui';
@@ -42,6 +45,8 @@ function PageInner({ page }: { page: Page }) {
   const [menu, setMenu] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [share, setShare] = useState(false);
+  const [tplOpen, setTplOpen] = useState(false);
+  const [notionOpen, setNotionOpen] = useState(false);
   const [history, setHistory] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
@@ -145,6 +150,7 @@ function PageInner({ page }: { page: Page }) {
               <div className="menu-sep" />
               <button className="menu-item" onClick={() => doExport('md')}><FileText size={15} /> Markdown (.md)</button>
               <button className="menu-item" onClick={() => doExport('html')}><FileText size={15} /> HTML</button>
+              <button className="menu-item" onClick={() => (setExportOpen(false), setNotionOpen(true))}><NotionIcon size={15} /> {t('notion.send')}</button>
             </>
           )}
         </div>
@@ -163,6 +169,7 @@ function PageInner({ page }: { page: Page }) {
               <div className="menu-sep" />
             </>
           )}
+          <button className="menu-item" onClick={() => (setTplOpen(true), setMenu(false))}><BookmarkPlus size={15} /> {page.type === 'database' ? t('utpl.titleDb') : t('utpl.titlePage')}</button>
           <button className="menu-item" onClick={() => (setHistory(true), setMenu(false))}><History size={15} /> {t('page.history')}</button>
           <button className="menu-item" onClick={() => { const c = v.duplicatePage(page.id); setMenu(false); if (c) go({ name: 'page', id: c.id }); }}><Copy size={15} /> {t('common.duplicate')}</button>
           <button className="menu-item" onClick={() => (navigator.clipboard?.writeText(`[[${page.title}]]`), toast(t('common.copied'), 'success'), setMenu(false))}><Link2 size={15} /> {t('page.copyLink')}</button>
@@ -282,6 +289,8 @@ function PageInner({ page }: { page: Page }) {
         </button>
       </Modal>
       <ShareModal page={page} open={share} onClose={() => setShare(false)} />
+      {tplOpen && <SaveTemplateModal page={page} open onClose={() => setTplOpen(false)} />}
+      {notionOpen && <NotionSendModal page={page} onClose={() => setNotionOpen(false)} />}
       {history && <HistoryModal page={page} onClose={() => setHistory(false)} />}
     </div>
   );

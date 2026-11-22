@@ -1,4 +1,4 @@
-# GCP Notas no celular e tablet
+# GCP-Neuro Notas no celular e tablet
 
 ## Android (disponível a partir da 1.1.0)
 

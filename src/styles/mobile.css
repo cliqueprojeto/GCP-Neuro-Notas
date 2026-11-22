@@ -1,7 +1,7 @@
 /* =====================================================================
    Celular e tablet — Android / iOS (app nativo) e telas estreitas
    ===================================================================== */
-:root { --mnav-h: 64px; --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px); }
+:root { --mnav-h: 64px; --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px); --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px); --kb: 0px; }
 .mnav, .sheet-back, .show-mobile-flex { display: none; }
 .topbar-brand { align-items: center; gap: 8px; font-size: 16px; }
 .topbar-brand img { width: 28px; height: 28px; border-radius: 8px; }
@@ -172,4 +172,49 @@
 @media (max-width: 400px) {
   .tool-grid, .tpl-grid, .db-gallery { grid-template-columns: 1fr; }
   .sheet-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* =====================================================================
+   Áreas seguras em QUALQUER largura (celular deitado, tablets, entalhe):
+   no Android os valores vêm do app nativo (--safe-*), no iOS de env().
+   ===================================================================== */
+@media (min-width: 861px) {
+  .topbar { padding-top: calc(10px + var(--safe-t)); padding-right: calc(18px + var(--safe-r)); min-height: calc(58px + var(--safe-t)); }
+  .content { padding-bottom: var(--safe-b); padding-right: var(--safe-r); }
+  .toasts { bottom: calc(18px + var(--safe-b)); }
+}
+.sidebar { padding-top: var(--safe-t); padding-bottom: var(--safe-b); padding-left: var(--safe-l); }
+.ai-panel { padding-top: var(--safe-t); padding-right: var(--safe-r); }
+.ai-input { padding-bottom: calc(12px + var(--safe-b) + var(--kb)); }
+.modal-back { padding-top: calc(20px + var(--safe-t)); padding-bottom: calc(20px + var(--safe-b) + var(--kb)); }
+.canvas-shell.presenting .presenter-bar { bottom: calc(18px + var(--safe-b)); }
+.dock { margin-bottom: var(--safe-b); }
+html.kb-open .mnav { display: none !important; }
+html.kb-open .content { padding-bottom: calc(var(--kb) + 12px) !important; }
+
+/* Celular deitado / telas baixas (ex.: 900×400): tudo mais compacto */
+@media (max-height: 520px) and (hover: none) {
+  body { font-size: 13.5px; }
+  .topbar { padding-top: calc(4px + var(--safe-t)); padding-bottom: 4px; min-height: calc(46px + var(--safe-t)); }
+  .topbar .lang-seg, .topbar .btn.update span, .topbar .btn.ai span { display: none; }
+  .sidebar { width: min(280px, 46vw); font-size: 13px; }
+  .brand-text small { display: none; }
+  .nav { padding-top: 5px; padding-bottom: 5px; }
+  .mini-cal.open { display: none; }
+  .page-hero h1, .home h1 { font-size: 24px; }
+  .hero-card { padding: 16px; }
+  .hero-illu { display: none; }
+  .page-shell { padding-top: 14px; }
+  .dock { bottom: 8px; }
+  .modal { max-height: calc(100vh - var(--safe-t) - var(--safe-b) - 16px); }
+  .ai-panel { width: min(420px, 60vw) !important; }
+}
+
+/* Textos longos não estouram botões estreitos */
+.btn { max-width: 100%; }
+.btn > span:not(.spinner) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 420px) {
+  .btn { padding-left: 11px; padding-right: 11px; }
+  .page-toolbar .btn span, .topbar .btn span { display: none; }
+  .modal-foot .btn { flex: 1 1 auto; justify-content: center; }
 }

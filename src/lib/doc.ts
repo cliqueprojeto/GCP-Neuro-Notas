@@ -60,6 +60,18 @@ export function outgoingLinks(p: Page): string[] {
   return [...set];
 }
 
+/** Ligações desenhadas no Quadro entre dois cartões de página: [origem, destino]. */
+export function boardLinks(p: Page): [string, string][] {
+  if (!p.canvas) return [];
+  const byNode = new Map(p.canvas.nodes.filter((n) => n.pageId).map((n) => [n.id, n.pageId!]));
+  const out: [string, string][] = [];
+  for (const e of p.canvas.edges) {
+    const a = byNode.get(e.from), b = byNode.get(e.to);
+    if (a && b && a !== b) out.push([a, b]);
+  }
+  return out;
+}
+
 export function backlinks(pages: Page[], id: string): Page[] {
   return pages.filter((p) => p.id !== id && outgoingLinks(p).includes(id));
 }

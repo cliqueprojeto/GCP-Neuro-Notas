@@ -5,6 +5,8 @@ export type Route =
   | { name: 'page'; id: string }
   | { name: 'templates' }
   | { name: 'graph' }
+  | { name: 'calendar'; date?: string; mode?: 'month' | 'week' | 'day' }
+  | { name: 'boards' }
   | { name: 'trash' }
   | { name: 'journal' }
   | { name: 'tasks' }

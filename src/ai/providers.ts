@@ -235,7 +235,7 @@ export async function chat(p: AiProvider, system: string, messages: ChatMessage[
       if (p.apiKey) headers.Authorization = `Bearer ${p.apiKey}`;
       if (p.kind === 'openrouter') {
         headers['HTTP-Referer'] = 'https://github.com/cliqueprojeto/GCP-Notas';
-        headers['X-Title'] = 'GCP Notas';
+        headers['X-Title'] = 'GCP-Neuro Notas';
       }
       const data = await json(
         await netFetch(`${base(p)}/chat/completions`, {

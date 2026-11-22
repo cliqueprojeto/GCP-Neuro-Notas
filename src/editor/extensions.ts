@@ -27,6 +27,7 @@ import Superscript from '@tiptap/extension-superscript';
 import { common, createLowlight } from 'lowlight';
 import { CalloutView, FormView, GalleryView, PollView, RaffleView, ToggleView } from './blocks';
 import type { SuggestItem } from './suggest';
+import { moveCurrentBlock } from './BlockHandle';
 
 export const lowlight = createLowlight(common);
 
@@ -134,7 +135,7 @@ export function slashExtension(suggestion: Partial<SuggestionOptions<SuggestItem
           editor: this.editor,
           char: '/',
           startOfLine: false,
-          allowSpaces: false,
+          allowSpaces: true,
           pluginKey: new PluginKey('slash'),
           command: ({ editor, range, props }) => {
             editor.chain().focus().deleteRange(range).run();
@@ -146,6 +147,17 @@ export function slashExtension(suggestion: Partial<SuggestionOptions<SuggestItem
     },
   });
 }
+
+/** Alt+Shift+↑/↓ move o bloco atual. */
+export const BlockMove = Extension.create({
+  name: 'blockMove',
+  addKeyboardShortcuts() {
+    return {
+      'Alt-Shift-ArrowUp': () => (moveCurrentBlock(this.editor as any, -1), true),
+      'Alt-Shift-ArrowDown': () => (moveCurrentBlock(this.editor as any, 1), true),
+    };
+  },
+});
 
 function base(placeholder?: string): AnyExtension[] {
   return [
@@ -183,7 +195,7 @@ export function editorExtensions(opts: {
   slash: Partial<SuggestionOptions<SuggestItem>>;
   pageLink: Partial<SuggestionOptions<any>>;
 }): AnyExtension[] {
-  return [...base(opts.placeholder), slashExtension(opts.slash), pageLinkExtension(opts.pageLink)];
+  return [...base(opts.placeholder), BlockMove, slashExtension(opts.slash), pageLinkExtension(opts.pageLink)];
 }
 
 let cachedExport: AnyExtension[] | null = null;

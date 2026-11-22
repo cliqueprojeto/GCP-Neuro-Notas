@@ -3,7 +3,8 @@ import { Check, Copy, Eye, EyeOff, ExternalLink, KeyRound, Plus, Star, X } from 
 import type { Property, Row } from '../lib/types';
 import { useT, useLang, LOCALES } from '../i18n';
 import { Popover } from '../components/ui';
-import { cellValue, formatNumber, newOption } from './logic';
+import { cellText, cellValue, conditionalColor, formatNumber, maskFor, newOption } from './logic';
+import { CURRENCIES, currencyDigits, currencyFromTyping, formatCurrency, isComplete, systemCurrency, validCnpj, validCpf } from './masks';
 import { copyText, openUrl } from '../lib/platform';
 import { generatePassword } from '../lib/crypto';
 import { toast } from '../store/ui';
@@ -48,20 +49,62 @@ export function Cell({ prop, row, onChange, onPropChange, readOnly, compact }: C
           ))}
         </div>
       );
-    case 'progress':
+    case 'progress': {
+      const pct = Math.min(100, Math.max(0, Number(v) || 0));
       return (
         <div className="cell-progress">
-          <div className="bar"><span style={{ width: `${Math.min(100, Math.max(0, Number(v) || 0))}%` }} /></div>
-          {!compact && (
-            <input className="cell-input num" type="number" min={0} max={100} value={v ?? ''} readOnly={readOnly} onChange={(e) => onChange(e.target.value === '' ? '' : Math.min(100, +e.target.value))} />
-          )}
+          <div className={'pslider' + (readOnly || compact ? ' ro' : '')} style={{ ['--v' as any]: pct + '%' }}>
+            <div className="pslider-track"><span className={'pslider-fill' + (pct >= 100 ? ' done' : '')} /></div>
+            {!readOnly && !compact && (
+              <input type="range" min={0} max={100} step={5} value={pct} aria-label={prop.name} onChange={(e) => onChange(+e.target.value)} />
+            )}
+          </div>
+          <span className="pslider-val">{pct}%</span>
         </div>
       );
+    }
+    case 'currency':
+      return compact || readOnly ? (
+        <span className="cell-text num">{formatCurrency(v, prop.currency, prop.locale, prop.decimals)}</span>
+      ) : (
+        <CurrencyInput prop={prop} value={v} onChange={onChange} />
+      );
+    case 'formula':
+    case 'conditional': {
+      const txt = cellText(prop, v, LOCALES[lang]);
+      const color = prop.type === 'conditional' ? conditionalColor(prop, row) : undefined;
+      const err = typeof v === 'string' && v.startsWith('#');
+      return (
+        <span className={'cell-text formula-val' + (err ? ' err' : '') + (typeof v === 'number' ? ' num' : '')} title={err ? t('db.formula.error') : prop.formula || ''}>
+          {color ? <OptionPill label={txt} color={color} /> : txt}
+        </span>
+      );
+    }
+    case 'cpf':
+    case 'cnpj':
+    case 'cep': {
+      const bad = !!v && (prop.type === 'cpf' ? isComplete('cpf', v) && !validCpf(v) : prop.type === 'cnpj' ? isComplete('cnpj', v) && !validCnpj(v) : false);
+      return compact || readOnly ? (
+        <span className={'cell-text mono' + (bad ? ' invalid' : '')}>{v}</span>
+      ) : (
+        <div className="cell-link">
+          <input
+            className={'cell-input mono' + (bad ? ' invalid' : '')}
+            inputMode="numeric"
+            value={v || ''}
+            placeholder={prop.type === 'cpf' ? '000.000.000-00' : prop.type === 'cnpj' ? '00.000.000/0000-00' : '00000-000'}
+            title={bad ? t('db.invalidDoc') : ''}
+            onChange={(e) => onChange(maskFor(prop, e.target.value))}
+          />
+          {v && <button className="icon-btn xs" onClick={(e) => (e.stopPropagation(), copyText(v).then(() => toast(t('common.copied'), 'success')))}><Copy size={13} /></button>}
+        </div>
+      );
+    }
     case 'created':
       return <span className="cell-text muted">{formatDate(row.createdAt, LOCALES[lang], { dateStyle: 'short', timeStyle: 'short' })}</span>;
     case 'number':
       return compact || readOnly ? (
-        <span className="cell-text num">{formatNumber(v, prop.format, LOCALES[lang])}</span>
+        <span className="cell-text num">{formatNumber(v, prop.format, LOCALES[lang], prop)}</span>
       ) : (
         <input className="cell-input num" type="number" value={v ?? ''} onChange={(e) => onChange(e.target.value === '' ? '' : +e.target.value)} />
       );
@@ -93,7 +136,14 @@ export function Cell({ prop, row, onChange, onPropChange, readOnly, compact }: C
           {compact || readOnly ? (
             <span className="cell-text link">{v}</span>
           ) : (
-            <input className="cell-input" type={prop.type === 'email' ? 'email' : 'text'} value={v || ''} onChange={(e) => onChange(e.target.value)} />
+            <input
+              className="cell-input"
+              type={prop.type === 'email' ? 'email' : prop.type === 'phone' ? 'tel' : 'text'}
+              inputMode={prop.type === 'phone' ? 'tel' : undefined}
+              placeholder={prop.type === 'phone' ? (prop.phoneFormat === 'intl' ? '+00 000 000 0000' : '(00) 00000-0000') : undefined}
+              value={v || ''}
+              onChange={(e) => onChange(prop.type === 'phone' ? maskFor(prop, e.target.value) : e.target.value)}
+            />
           )}
           {v && prop.type !== 'phone' && (
             <button className="icon-btn xs" onClick={(e) => (e.stopPropagation(), openUrl(href))}><ExternalLink size={13} /></button>
@@ -141,6 +191,31 @@ export function Cell({ prop, row, onChange, onPropChange, readOnly, compact }: C
         <input className={'cell-input' + (prop.type === 'title' ? ' strong' : '')} value={v || ''} onChange={(e) => onChange(e.target.value)} />
       );
   }
+}
+
+/** Campo de moeda com máscara: os dígitos entram pela direita (1 → 0,01 → 0,12 → 1,23). */
+function CurrencyInput({ prop, value, onChange }: { prop: Property; value: any; onChange: (v: any) => void }) {
+  const sys = systemCurrency();
+  const code = prop.currency || sys.code;
+  const loc = prop.locale || (prop.currency ? CURRENCIES.find((c) => c.code === prop.currency)?.locale : sys.locale) || sys.locale;
+  const dec = prop.decimals ?? currencyDigits(code, loc);
+  const shown = value === '' || value == null ? '' : formatCurrency(value, code, loc, dec);
+  return (
+    <input
+      className="cell-input num"
+      inputMode="decimal"
+      value={shown}
+      placeholder={formatCurrency(0, code, loc, dec)}
+      onChange={(e) => {
+        let txt = e.target.value;
+        const dOld = shown.replace(/\D/g, ''), dNew = txt.replace(/\D/g, '');
+        // Apagou só o símbolo (ex.: "1,23 €"): apaga o último dígito.
+        if (txt.length < shown.length && dOld === dNew) txt = dNew.slice(0, -1);
+        onChange(currencyFromTyping(txt, dec));
+      }}
+      onFocus={(e) => requestAnimationFrame(() => e.target.setSelectionRange(e.target.value.length, e.target.value.length))}
+    />
+  );
 }
 
 function OptionEditor({ prop, selected, onToggle, onPropChange }: { prop: Property; selected: string[]; onToggle: (id: string) => void; onPropChange: (p: Property) => void }) {

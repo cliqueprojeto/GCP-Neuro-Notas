@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
-  Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash,
+  Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag,
 } from 'lucide-react';
-import type { CanvasData, CanvasEdge, CanvasNode, Page } from '../lib/types';
+import { Presenter } from './Presenter';
+import type { CanvasData, CanvasEdge, CanvasNode, Page, Side } from '../lib/types';
 import { useT } from '../i18n';
 import { useVault, livePages } from '../store/vault';
 import { useUi } from '../store/ui';
@@ -19,6 +20,52 @@ type ShapeKind = NonNullable<CanvasNode['shape']>;
 const NOTE_COLORS = ['#fde68a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#ddd6fe', '#fed7aa', '#e2e8f0', '#1e293b'];
 const INK = ['#1f2937', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
 const EMPTY: CanvasData = { nodes: [], edges: [], view: { x: 0, y: 0, zoom: 1 } };
+
+type Snap = { id: string; side: Side; x: number; y: number };
+const SIDES: Side[] = ['t', 'r', 'b', 'l'];
+const DIR: Record<Side, { x: number; y: number }> = { t: { x: 0, y: -1 }, r: { x: 1, y: 0 }, b: { x: 0, y: 1 }, l: { x: -1, y: 0 } };
+
+export function sidePoint(n: CanvasNode, s: Side) {
+  if (s === 't') return { x: n.x + n.w / 2, y: n.y };
+  if (s === 'b') return { x: n.x + n.w / 2, y: n.y + n.h };
+  if (s === 'l') return { x: n.x, y: n.y + n.h / 2 };
+  return { x: n.x + n.w, y: n.y + n.h / 2 };
+}
+function nearestSide(n: CanvasNode, p: { x: number; y: number }): Side {
+  let best: Side = 'r', bd = Infinity;
+  for (const s of SIDES) {
+    const q = sidePoint(n, s);
+    const d = Math.hypot(q.x - p.x, q.y - p.y);
+    if (d < bd) (bd = d), (best = s);
+  }
+  return best;
+}
+const oppositeSide = (s: Side): Side => ({ t: 'b', b: 't', l: 'r', r: 'l' } as const)[s];
+/** Lados automáticos para um conector sem lados fixos (o par mais curto). */
+function autoSides(a: CanvasNode, b: CanvasNode): [Side, Side] {
+  const dx = b.x + b.w / 2 - (a.x + a.w / 2), dy = b.y + b.h / 2 - (a.y + a.h / 2);
+  if (Math.abs(dx) * (a.h + b.h) >= Math.abs(dy) * (a.w + b.w)) return dx >= 0 ? ['r', 'l'] : ['l', 'r'];
+  return dy >= 0 ? ['b', 't'] : ['t', 'b'];
+}
+function edgePath(p1: { x: number; y: number }, s1: Side, p2: { x: number; y: number }, s2: Side, style: CanvasEdge['style']) {
+  const d1 = DIR[s1], d2 = DIR[s2];
+  if (style === 'curve') {
+    const k = Math.max(40, Math.hypot(p2.x - p1.x, p2.y - p1.y) * 0.4);
+    return `M${p1.x},${p1.y} C${p1.x + d1.x * k},${p1.y + d1.y * k} ${p2.x + d2.x * k},${p2.y + d2.y * k} ${p2.x},${p2.y}`;
+  }
+  if (style === 'elbow') {
+    const g = 24;
+    const a = { x: p1.x + d1.x * g, y: p1.y + d1.y * g }, b = { x: p2.x + d2.x * g, y: p2.y + d2.y * g };
+    const h1 = d1.x !== 0, h2 = d2.x !== 0;
+    let mid: string;
+    if (h1 && h2) { const mx = (a.x + b.x) / 2; mid = `L${mx},${a.y} L${mx},${b.y}`; }
+    else if (!h1 && !h2) { const my = (a.y + b.y) / 2; mid = `L${a.x},${my} L${b.x},${my}`; }
+    else if (h1) mid = `L${b.x},${a.y}`;
+    else mid = `L${a.x},${b.y}`;
+    return `M${p1.x},${p1.y} L${a.x},${a.y} ${mid} L${b.x},${b.y} L${p2.x},${p2.y}`;
+  }
+  return `M${p1.x},${p1.y} L${p2.x},${p2.y}`;
+}
 
 /**
  * Modo Quadro (estilo "edgeless"): tela infinita com caneta, borracha, molduras,
@@ -44,7 +91,17 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   const [penSize, setPenSize] = useState(3);
   const [sel, setSel] = useState<string | null>(null);
   const [edit, setEdit] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ kind: 'link'; from: string; x: number; y: number } | { kind: 'pen'; pts: number[] } | { kind: 'frame'; x: number; y: number; w: number; h: number } | null>(null);
+  const [draft, setDraft] = useState<
+    | { kind: 'link'; from: string; fromSide?: Side; x: number; y: number; snap?: Snap | null }
+    | { kind: 'relink'; edge: string; end: 'from' | 'to'; x: number; y: number; snap?: Snap | null }
+    | { kind: 'pen'; pts: number[] }
+    | { kind: 'frame'; x: number; y: number; w: number; h: number }
+    | null
+  >(null);
+  const [presenting, setPresenting] = useState(false);
+  const [slide, setSlide] = useState(0);
+  const savedView = useRef<CanvasData['view'] | null>(null);
+  const shell = useRef<HTMLDivElement>(null);
   const [pickOpen, setPickOpen] = useState(false);
   const [q, setQ] = useState('');
   const box = useRef<HTMLDivElement>(null);
@@ -307,18 +364,73 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     );
   };
 
-  const startLink = (e: React.PointerEvent, n: CanvasNode) => {
+  /** Ponto de encaixe mais próximo (magnetismo): lado de um nó perto do ponteiro. */
+  const findSnap = (p: { x: number; y: number }, exclude?: string): Snap | null => {
+    const R = 44 / zoom;
+    let best: Snap | null = null;
+    let bestD = R;
+    for (const n of local.nodes) {
+      if (n.id === exclude || n.kind === 'draw') continue;
+      for (const side of SIDES) {
+        const sp = sidePoint(n, side);
+        const d = Math.hypot(sp.x - p.x, sp.y - p.y);
+        if (d < bestD) (bestD = d), (best = { id: n.id, side, ...sp });
+      }
+    }
+    if (best) return best;
+    // Dentro de um nó: escolhe o lado mais próximo do ponteiro.
+    const m = 16 / zoom; // tolerância em volta do nó
+    const inside = [...local.nodes].reverse().find((n) => n.id !== exclude && n.kind !== 'draw' && n.kind !== 'frame' && p.x >= n.x - m && p.x <= n.x + n.w + m && p.y >= n.y - m && p.y <= n.y + n.h + m)
+      || local.nodes.find((n) => n.id !== exclude && n.kind === 'frame' && p.x >= n.x && p.x <= n.x + n.w && p.y >= n.y && p.y <= n.y + 28);
+    if (!inside) return null;
+    const side = nearestSide(inside, p);
+    return { id: inside.id, side, ...sidePoint(inside, side) };
+  };
+
+  const startLink = (e: React.PointerEvent, n: CanvasNode, fromSide?: Side) => {
     e.stopPropagation();
+    e.preventDefault();
     const p = toWorld(e.clientX, e.clientY);
-    setDraft({ kind: 'link', from: n.id, ...p });
+    setSel(null);
+    setDraft({ kind: 'link', from: n.id, fromSide, ...p, snap: null });
+    let last: Snap | null = null;
     track(
-      (ev) => setDraft((d) => (d && d.kind === 'link' ? { ...d, ...toWorld(ev.clientX, ev.clientY) } : d)),
       (ev) => {
-        const target = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('[data-node]') as HTMLElement | null;
-        const to = target?.dataset.node;
+        const q2 = toWorld(ev.clientX, ev.clientY);
+        last = findSnap(q2, n.id);
+        setDraft((d) => (d && d.kind === 'link' ? { ...d, ...(last ? { x: last.x, y: last.y } : q2), snap: last } : d));
+      },
+      () => {
         setDraft(null);
-        if (!to || to === n.id || local.edges.some((x) => x.from === n.id && x.to === to)) return;
-        commit({ ...local, edges: [...local.edges, { id: uid('e'), from: n.id, to, style: edgeStyle, color: ink === '#ffffff' ? undefined : ink }] }, true);
+        const to = last;
+        if (!to || to.id === n.id) return;
+        if (local.edges.some((x) => x.from === n.id && x.to === to.id && (x.fromSide || '') === (fromSide || '') && (x.toSide || '') === to.side)) return;
+        const edge: CanvasEdge = { id: uid('e'), from: n.id, to: to.id, fromSide, toSide: to.side, style: edgeStyle, arrow: 'end', color: ink === '#ffffff' ? undefined : ink };
+        commit({ ...local, edges: [...local.edges, edge] }, true);
+        setSel(edge.id);
+      },
+    );
+  };
+
+  /** Arrasta uma ponta de um conector existente para outro ponto ou outro nó. */
+  const startRelink = (e: React.PointerEvent, edge: CanvasEdge, end: 'from' | 'to') => {
+    e.stopPropagation();
+    e.preventDefault();
+    const other = end === 'from' ? edge.to : edge.from;
+    let last: Snap | null = null;
+    const p = toWorld(e.clientX, e.clientY);
+    setDraft({ kind: 'relink', edge: edge.id, end, ...p });
+    track(
+      (ev) => {
+        const q2 = toWorld(ev.clientX, ev.clientY);
+        last = findSnap(q2, other);
+        setDraft((d) => (d && d.kind === 'relink' ? { ...d, ...(last ? { x: last.x, y: last.y } : q2), snap: last } : d));
+      },
+      () => {
+        setDraft(null);
+        if (!last) return;
+        const patch: Partial<CanvasEdge> = end === 'from' ? { from: last.id, fromSide: last.side } : { to: last.id, toSide: last.side };
+        commit({ ...local, edges: local.edges.map((x) => (x.id === edge.id ? { ...x, ...patch } : x)) }, true);
       },
     );
   };
@@ -332,24 +444,11 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     commit({ ...local, view: { zoom: z, x: (r.width - (maxX - minX) * z) / 2 - minX * z, y: (r.height - (maxY - minY) * z) / 2 - minY * z - 30 } }, false, false);
   };
 
-  const anchorOf = (n: CanvasNode, toward: { x: number; y: number }) => {
-    const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
-    const dx = toward.x - cx, dy = toward.y - cy;
-    if (!dx && !dy) return { x: cx, y: cy };
-    const s = Math.min(Math.abs(n.w / 2 / (dx || 1e-9)), Math.abs(n.h / 2 / (dy || 1e-9)));
-    return { x: cx + dx * s, y: cy + dy * s };
-  };
-  const edgePath = (p1: { x: number; y: number }, p2: { x: number; y: number }, style: CanvasEdge['style']) => {
-    if (style === 'elbow') {
-      const mx = (p1.x + p2.x) / 2;
-      return `M${p1.x},${p1.y} L${mx},${p1.y} L${mx},${p2.y} L${p2.x},${p2.y}`;
-    }
-    if (style === 'curve') {
-      const dx = Math.abs(p2.x - p1.x) * 0.5 + 30;
-      const sgn = p2.x >= p1.x ? 1 : -1;
-      return `M${p1.x},${p1.y} C${p1.x + dx * sgn},${p1.y} ${p2.x - dx * sgn},${p2.y} ${p2.x},${p2.y}`;
-    }
-    return `M${p1.x},${p1.y} L${p2.x},${p2.y}`;
+  const edgeGeom = (e: CanvasEdge, a: CanvasNode, b: CanvasNode) => {
+    const fs = e.fromSide || autoSides(a, b)[0];
+    const ts = e.toSide || autoSides(a, b)[1];
+    const p1 = sidePoint(a, fs), p2 = sidePoint(b, ts);
+    return { p1, p2, fs, ts, d: edgePath(p1, fs, p2, ts, e.style || 'curve') };
   };
   const strokePath = (pts: number[]) => {
     if (pts.length < 4) return '';
@@ -361,6 +460,58 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     return d + ` L${pts[pts.length - 2]},${pts[pts.length - 1]}`;
   };
 
+  const editLabel = (e: CanvasEdge) => {
+    const label = window.prompt(t('canvas.label'), e.label || '');
+    if (label !== null) commit({ ...local, edges: local.edges.map((x) => (x.id === e.id ? { ...x, label } : x)) }, true);
+  };
+  const bounds = (() => {
+    const pad = 4000;
+    if (!local.nodes.length) return { x: -pad, y: -pad, w: pad * 2, h: pad * 2 };
+    const minX = Math.min(...local.nodes.map((n) => n.x)) - pad, minY = Math.min(...local.nodes.map((n) => n.y)) - pad;
+    const maxX = Math.max(...local.nodes.map((n) => n.x + n.w)) + pad, maxY = Math.max(...local.nodes.map((n) => n.y + n.h)) + pad;
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  })();
+  const frames = local.nodes.filter((n) => n.kind === 'frame');
+
+  const startPresenting = () => {
+    savedView.current = local.view;
+    setSel(null);
+    setEdit(null);
+    setTool('select');
+    setSlide(0);
+    setPresenting(true);
+    shell.current?.requestFullscreen?.().catch(() => undefined);
+  };
+  const stopPresenting = () => {
+    setPresenting(false);
+    if (savedView.current) setLocal((l) => ({ ...l, view: savedView.current! }));
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => undefined);
+  };
+  useEffect(() => {
+    if (!presenting) return;
+    const go = () => {
+      const r = box.current?.getBoundingClientRect();
+      if (!r) return;
+      const target = frames[slide];
+      const nodes = target ? [target] : local.nodes;
+      if (!nodes.length) return;
+      const minX = Math.min(...nodes.map((n) => n.x)), minY = Math.min(...nodes.map((n) => n.y));
+      const maxX = Math.max(...nodes.map((n) => n.x + n.w)), maxY = Math.max(...nodes.map((n) => n.y + n.h));
+      const pad = target ? 24 : 80;
+      const z = Math.min(4, Math.max(0.05, Math.min((r.width - pad * 2) / (maxX - minX), (r.height - pad * 2 - 40) / (maxY - minY))));
+      setLocal((l) => ({ ...l, view: { zoom: z, x: (r.width - (maxX - minX) * z) / 2 - minX * z, y: (r.height - 40 - (maxY - minY) * z) / 2 - minY * z } }));
+    };
+    go();
+    const t2 = setTimeout(go, 250); // após entrar em tela cheia
+    window.addEventListener('resize', go);
+    return () => (clearTimeout(t2), window.removeEventListener('resize', go));
+  }, [presenting, slide, frames.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const f = () => !document.fullscreenElement && presenting && stopPresenting();
+    document.addEventListener('fullscreenchange', f);
+    return () => document.removeEventListener('fullscreenchange', f);
+  });
+
   const selNode = local.nodes.find((n) => n.id === sel);
   const selEdge = local.edges.find((e) => e.id === sel);
   const candidates = livePages(pages).filter((p) => normalize(p.title || '').includes(normalize(q))).slice(0, 12);
@@ -370,7 +521,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   );
 
   return (
-    <div className="canvas-shell">
+    <div ref={shell} className={"canvas-shell" + (presenting ? " presenting" : "")}>
       <div
         ref={box}
         className={`canvas-area tool-${tool}`}
@@ -390,7 +541,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               <div
                 key={n.id}
                 data-node={n.id}
-                className={`cnode k-${n.kind} ${n.shape ? 's-' + n.shape : ''} ${sel === n.id ? 'sel' : ''} ${n.color === '#1e293b' ? 'dark' : ''}`}
+                className={`cnode k-${n.kind} ${n.shape ? 's-' + n.shape : ''} ${sel === n.id ? 'sel' : ''} ${n.color === '#1e293b' ? 'dark' : ''} ${(draft?.kind === 'link' || draft?.kind === 'relink') && draft.snap?.id === n.id ? 'snap' : ''}`}
                 style={{ left: n.x, top: n.y, width: n.w, height: n.h, ['--node' as any]: n.color }}
                 onPointerDown={(e) => dragNode(e, n, 'move')}
                 onDoubleClick={(e) => {
@@ -420,7 +571,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                 )}
                 {(n.kind === 'note' || n.kind === 'shape' || n.kind === 'text') &&
                   (edit === n.id ? (
-                    <textarea autoFocus className="cnode-text" style={n.kind === 'text' ? { fontSize: n.fontSize, color: n.color } : undefined} value={n.text || ''} onChange={(e) => patchNode(n.id, { text: e.target.value })} onBlur={() => setEdit(null)} onPointerDown={(e) => e.stopPropagation()} />
+                    <textarea autoFocus className="cnode-text" style={n.kind === 'text' ? { fontSize: n.fontSize, color: n.color } : undefined} value={n.text || ''} onChange={(e) => patchNode(n.id, { text: e.target.value })} onBlur={() => setEdit(null)} onKeyDown={(e) => e.key === 'Escape' && (e.currentTarget.blur(), setEdit(null))} onPointerDown={(e) => e.stopPropagation()} />
                   ) : (
                     <div className="cnode-text view" style={n.kind === 'text' ? { fontSize: n.fontSize, color: n.color } : undefined}>{n.text || <span className="ph">{t(n.kind === 'text' ? 'canvas.text' : 'canvas.empty')}</span>}</div>
                   ))}
@@ -431,12 +582,19 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                   </div>
                 )}
                 {n.kind === 'image' && n.src && <img src={n.src} alt="" draggable={false} />}
-                {n.kind !== 'draw' && <span className="cnode-link" title={t('canvas.connect')} onPointerDown={(e) => startLink(e, n)} />}
+                {n.kind !== 'draw' && SIDES.map((sd) => (
+                  <span
+                    key={sd}
+                    className={'anchor a-' + sd + ((draft?.kind === 'link' || draft?.kind === 'relink') && draft.snap?.id === n.id && draft.snap.side === sd ? ' hot' : '')}
+                    title={t('canvas.connect')}
+                    onPointerDown={(e) => startLink(e, n, sd)}
+                  />
+                ))}
                 <span className="cnode-resize" onPointerDown={(e) => dragNode(e, n, 'resize')} />
               </div>
             );
           })}
-          <svg className="canvas-edges" width="1" height="1">
+          <svg className="canvas-edges" style={{ left: bounds.x, top: bounds.y }} width={bounds.w} height={bounds.h} viewBox={`${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`}>
             <defs>
               <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                 <path d="M0 0L10 5L0 10z" fill="context-stroke" />
@@ -445,22 +603,37 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
             {local.edges.map((e) => {
               const a = local.nodes.find((n) => n.id === e.from), b = local.nodes.find((n) => n.id === e.to);
               if (!a || !b) return null;
-              const p1 = anchorOf(a, { x: b.x + b.w / 2, y: b.y + b.h / 2 }), p2 = anchorOf(b, { x: a.x + a.w / 2, y: a.y + a.h / 2 });
-              const d = edgePath(p1, p2, e.style || 'straight');
+              const relink = draft?.kind === 'relink' && draft.edge === e.id ? draft : null;
+              let { p1, p2, d } = edgeGeom(e, a, b);
+              if (relink) {
+                const fs = e.fromSide || autoSides(a, b)[0], ts = e.toSide || autoSides(a, b)[1];
+                if (relink.end === 'from') (p1 = { x: relink.x, y: relink.y }), (d = edgePath(p1, relink.snap?.side || fs, p2, ts, e.style || 'curve'));
+                else (p2 = { x: relink.x, y: relink.y }), (d = edgePath(p1, fs, p2, relink.snap?.side || ts, e.style || 'curve'));
+              }
+              const arrow = e.arrow || 'end';
+              const on = sel === e.id;
               return (
-                <g key={e.id} className={'edge' + (sel === e.id ? ' on' : '')} style={{ ['--edge' as any]: e.color || 'var(--muted)' }}
-                  onPointerDown={(ev) => (ev.stopPropagation(), setSel(e.id))}
-                  onDoubleClick={(ev) => { ev.stopPropagation(); const label = window.prompt(t('canvas.label'), e.label || ''); if (label !== null) commit({ ...local, edges: local.edges.map((x) => (x.id === e.id ? { ...x, label } : x)) }, true); }}>
+                <g key={e.id} className={'edge' + (on ? ' on' : '')} style={{ ['--edge' as any]: e.color || 'var(--muted)' }}
+                  onPointerDown={(ev) => (ev.stopPropagation(), setSel(e.id), setEdit(null))}
+                  onDoubleClick={(ev) => { ev.stopPropagation(); editLabel(e); }}>
                   <path d={d} className="edge-hit" />
-                  <path d={d} className="edge-line" markerEnd="url(#arrow)" />
+                  <path d={d} className="edge-line" markerEnd={arrow !== 'none' ? 'url(#arrow)' : undefined} markerStart={arrow === 'both' ? 'url(#arrow)' : undefined} />
                   {e.label && <text x={(p1.x + p2.x) / 2} y={(p1.y + p2.y) / 2 - 8} textAnchor="middle">{e.label}</text>}
+                  {on && (
+                    <>
+                      <circle className="edge-end" cx={p1.x} cy={p1.y} r={7 / zoom} onPointerDown={(ev) => startRelink(ev, e, 'from')} />
+                      <circle className="edge-end" cx={p2.x} cy={p2.y} r={7 / zoom} onPointerDown={(ev) => startRelink(ev, e, 'to')} />
+                    </>
+                  )}
                 </g>
               );
             })}
             {draft?.kind === 'link' && (() => {
               const a = local.nodes.find((n) => n.id === draft.from);
               if (!a) return null;
-              return <path d={edgePath(anchorOf(a, draft), draft, edgeStyle)} className="edge-draft" markerEnd="url(#arrow)" />;
+              const fs = draft.fromSide || nearestSide(a, draft);
+              const ts = draft.snap?.side || oppositeSide(fs);
+              return <path d={edgePath(sidePoint(a, fs), fs, draft, ts, edgeStyle)} className="edge-draft" markerEnd="url(#arrow)" />;
             })()}
             {draft?.kind === 'pen' && <path d={strokePath(draft.pts)} stroke={ink} strokeWidth={penSize} fill="none" strokeLinecap="round" strokeLinejoin="round" />}
             {draft?.kind === 'frame' && <rect x={draft.x} y={draft.y} width={draft.w} height={draft.h} className="frame-draft" />}
@@ -486,7 +659,15 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                     {s === 'straight' ? <Slash size={15} /> : s === 'elbow' ? <CornerDownRight size={15} /> : <Spline size={15} />}
                   </button>
                 ))}
-                {INK.slice(0, 8).map((c) => <button key={c} className="color-dot sm" style={{ background: c }} onClick={() => commit({ ...local, edges: local.edges.map((x) => (x.id === selEdge.id ? { ...x, color: c } : x)) }, true)} />)}
+                <span className="tb-sep" />
+                {(['none', 'end', 'both'] as const).map((a) => (
+                  <button key={a} className={'tb' + ((selEdge.arrow || 'end') === a ? ' on' : '')} title={t(`canvas.arrow.${a}` as any)} onClick={() => commit({ ...local, edges: local.edges.map((x) => (x.id === selEdge.id ? { ...x, arrow: a } : x)) }, true)}>
+                    {a === 'none' ? <LineIcon size={15} /> : a === 'end' ? <MoveRight size={15} /> : <MoveHorizontal size={15} />}
+                  </button>
+                ))}
+                <button className="tb" title={t('canvas.label')} onClick={() => editLabel(selEdge)}><Tag size={15} /></button>
+                <span className="tb-sep" />
+                {INK.slice(0, 8).map((c) => <button key={c} className={'color-dot sm' + (selEdge.color === c ? ' on' : '')} style={{ background: c }} onClick={() => commit({ ...local, edges: local.edges.map((x) => (x.id === selEdge.id ? { ...x, color: c } : x)) }, true)} />)}
               </>
             )}
             <button className="tb" onClick={() => (remove(sel!), setSel(null))} title={t('common.delete')}><Trash2 size={16} /></button>
@@ -500,6 +681,9 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           <button className="tb" onClick={() => commit({ ...local, view: { ...local.view, zoom: Math.min(3, zoom * 1.15) } }, false, false)}><Plus size={16} /></button>
           <button className="tb" onClick={undo} title={t('tb.undo')} disabled={!history.current.length}><Undo2 size={16} /></button>
         </div>
+        <button className="canvas-present btn primary sm" onPointerDown={(e) => e.stopPropagation()} onClick={startPresenting} title={t('present.start')}>
+          <Presentation size={15} /> <span className="hide-xs">{t('present.start')}</span>{frames.length ? ` · ${frames.length}` : ''}
+        </button>
 
         <div className="dock" onPointerDown={(e) => e.stopPropagation()}>
           <T id="select" icon={<MousePointer2 size={19} />} label={`${t('canvas.select')} (V)`} />
@@ -534,6 +718,20 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           )}
         </div>
       </div>
+      {presenting && (
+        <Presenter
+          frames={frames}
+          index={slide}
+          setIndex={setSlide}
+          onClose={stopPresenting}
+          onReorder={(ids) => {
+            const order = new Map(ids.map((id, i) => [id, i]));
+            const fr = local.nodes.filter((n) => n.kind === 'frame').sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+            let k = 0;
+            commit({ ...local, nodes: local.nodes.map((n) => (n.kind === 'frame' ? fr[k++] : n)) }, true);
+          }}
+        />
+      )}
       <Popover anchor={pickRef.current} open={pickOpen} onClose={() => setPickOpen(false)}>
         <div className="stack pad" style={{ width: 300 }}>
           <input className="input" autoFocus placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />

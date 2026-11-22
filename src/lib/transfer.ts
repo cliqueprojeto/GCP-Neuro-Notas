@@ -13,11 +13,11 @@ export async function exportBackup(password: string): Promise<string | null> {
   const payload = useVault.getState().exportPlain();
   const file = await encryptBackup(payload, password, APP_VERSION);
   const d = new Date().toISOString().slice(0, 10);
-  return saveTextFile(`GCP-Notas-backup-${d}.gcpnotes`, JSON.stringify(file), [{ name: 'GCP Notas backup', extensions: ['gcpnotes'] }]);
+  return saveTextFile(`GCP-Notas-backup-${d}.gcpnotes`, JSON.stringify(file), [{ name: 'GCP-Neuro Notas backup', extensions: ['gcpnotes'] }]);
 }
 
 export async function pickBackupFile(): Promise<BackupFile | null> {
-  const files = await pickTextFiles([{ name: 'GCP Notas backup', extensions: ['gcpnotes', 'json'] }]);
+  const files = await pickTextFiles([{ name: 'GCP-Neuro Notas backup', extensions: ['gcpnotes', 'json'] }]);
   if (!files.length) return null;
   const data = JSON.parse(files[0].text);
   if (data.format !== 'gcp-notas-backup') throw new Error('invalid-format');
@@ -151,7 +151,7 @@ export async function exportAiContext(selection?: string[]) {
   const pages = useVault.getState().pages;
   const list = livePages(pages).filter((p) => !selection || selection.includes(p.id));
   const date = new Date().toISOString().slice(0, 10);
-  let out = `# GCP Notas — base de conhecimento (${date})\n\n`;
+  let out = `# GCP-Neuro Notas — base de conhecimento (${date})\n\n`;
   out += `> ${list.length} notas. Links entre notas aparecem como [[Título]].\n\n## Índice\n\n`;
   out += list.map((p) => `- [[${p.title || 'Sem título'}]]${p.tags?.length ? ' — ' + p.tags.map((t) => '#' + t).join(' ') : ''}`).join('\n');
   for (const p of list) {

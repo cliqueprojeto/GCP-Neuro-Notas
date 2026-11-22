@@ -99,7 +99,7 @@ export async function askBrain(
   }
   const context = found.map((c) => `### [[${c.page.title || 'Sem título'}]]\n${c.text}`).join('\n\n');
   const system =
-    `You are the assistant built into GCP Notas, acting as the user's second brain. ` +
+    `You are the assistant built into GCP-Neuro Notas, acting as the user's second brain. ` +
     `Answer in ${langName}. Use the user's notes below as your primary source. ` +
     `When you use information from a note, cite it inline as [[Note title]] exactly as written. ` +
     `If the notes do not contain the answer, say so briefly and then answer from general knowledge, making the distinction clear. ` +

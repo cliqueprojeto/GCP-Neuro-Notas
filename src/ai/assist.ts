@@ -35,7 +35,7 @@ export async function runAction(action: AiAction, text: string, target = ''): Pr
   if (!p) throw new Error('no-provider');
   const lang = LANG_NAMES[resolvedLang()];
   const system =
-    `You are a writing assistant inside the GCP Notas app. ${INSTRUCTIONS[action].replace('{target}', target)} ` +
+    `You are a writing assistant inside the GCP-Neuro Notas app. ${INSTRUCTIONS[action].replace('{target}', target)} ` +
     `Use Markdown formatting when it helps. Do not add preambles like "Here is". If you need to choose a language and the text has none, use ${lang}.`;
   return chat(p, system, [{ role: 'user', content: text || '(empty)' }]);
 }
@@ -45,7 +45,7 @@ export async function generate(prompt: string, context = ''): Promise<string> {
   if (!p) throw new Error('no-provider');
   const lang = LANG_NAMES[resolvedLang()];
   const system =
-    `You are a writing assistant inside the GCP Notas app. Write what the user asks, in ${lang} unless they ask otherwise. ` +
+    `You are a writing assistant inside the GCP-Neuro Notas app. Write what the user asks, in ${lang} unless they ask otherwise. ` +
     `Use Markdown: headings, lists, tables and task lists ("- [ ]") when useful. No preambles.` +
     (context ? `\n\nCurrent note for context:\n<note>\n${context.slice(0, 12000)}\n</note>` : '');
   return chat(p, system, [{ role: 'user', content: prompt }]);

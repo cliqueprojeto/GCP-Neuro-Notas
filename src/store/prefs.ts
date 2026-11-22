@@ -11,6 +11,7 @@ interface Prefs {
   skippedVersion: string;
   sidebarCollapsed: boolean;
   sidebarWidth: number;
+  miniCalendar: boolean;
   set: (p: Partial<Omit<Prefs, 'set'>>) => void;
 }
 
@@ -26,12 +27,13 @@ function load(): Partial<Prefs> {
 
 export const usePrefs = create<Prefs>((set, get) => ({
   lang: 'auto',
-  theme: 'midnight',
+  theme: 'neuro',
   updateFrequency: 'startup',
   lastUpdateCheck: 0,
   skippedVersion: '',
   sidebarCollapsed: false,
   sidebarWidth: 264,
+  miniCalendar: true,
   ...load(),
   set: (p) => {
     set(p);
