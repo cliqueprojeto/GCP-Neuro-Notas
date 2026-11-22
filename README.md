@@ -225,7 +225,7 @@ npm test               # testes de criptografia, IA e atualizações
 npm run tauri build    # instaladores do seu sistema
 ```
 
-Requisitos: Node 22, Rust estável e, no Linux, `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev`. As releases são geradas pelo GitHub Actions ao publicar uma tag `vX.Y.Z` ([release.yml](.github/workflows/release.yml)). Para o Google Drive e o OneDrive, veja [docs/CLOUD-SETUP.md](docs/CLOUD-SETUP.md).
+Requisitos: Node 22, Rust estável e, no Linux, `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev`. Para lançar uma versão: atualize `version` em `package.json`, `src-tauri/Cargo.toml` e `src-tauri/tauri.conf.json`, crie `docs/release-notes/vX.Y.Z.md` e envie ao GitHub — o [release.yml](.github/workflows/release.yml) compila, testa e publica os instaladores (também dá para disparar pela aba Actions). Para o Google Drive e o OneDrive, veja [docs/CLOUD-SETUP.md](docs/CLOUD-SETUP.md).
 
 **Tecnologias:** Tauri 2 · Rust · SQLite · React · TipTap/ProseMirror · Argon2id · XChaCha20-Poly1305 · Recharts · emoji-mart · Lucide · docx · PptxGenJS · SheetJS · jsPDF.
 
