@@ -6,7 +6,8 @@ import {
   PieChart, Plus, Quote, Redo2, Rows3, SmilePlus, Sparkles, Sticker, Strikethrough, Table2, Text, Trash2, Underline as UIcon, Undo2, Play,
   CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid, Mic, Video, Paperclip, Map as MapIcon,
 } from 'lucide-react';
-import { editorExtensions } from './extensions';
+import { editorExtensions, focusEnd } from './extensions';
+import { LayoutIcon, insertColumns } from './columns';
 import { suggestRender, type SuggestItem } from './suggest';
 import { BlockHandle } from './BlockHandle';
 import { EmbedVideoModal } from './media';
@@ -67,7 +68,7 @@ export function Editor({ page, editable = true }: Props) {
             if (!q) return items;
             // Título que começa com a busca vem primeiro (ex.: "/vídeo" → Vídeo antes de YouTube).
             const rank = (i: SuggestItem) => (normalize(i.title).startsWith(q) ? 0 : normalize(i.title).includes(q) ? 1 : 2);
-            return items.filter((i) => normalize(i.title + ' ' + (i.subtitle || '') + ' ' + i.id).includes(q)).sort((a, b) => rank(a) - rank(b));
+            return items.filter((i) => normalize(i.title + ' ' + (i.subtitle || '') + ' ' + i.id + ' ' + (i.keywords || '')).includes(q)).sort((a, b) => rank(a) - rank(b));
           },
           render: suggestRender(() => tRef.current('editor.noResults')),
         },
@@ -210,6 +211,7 @@ export function Editor({ page, editable = true }: Props) {
       )}
       {editable && <BlockHandle editor={editor} />}
       <EditorContent editor={editor} />
+      {editable && <div className="editor-tail" onMouseDown={(e) => { e.preventDefault(); focusEnd(editor); }} title={t('editor.clickToWrite')} />}
       <div className="editor-foot muted small">
         {t('editor.words', { n: editor.storage.characterCount?.words?.() ?? 0 })} · {t('editor.chars', { n: editor.storage.characterCount?.characters?.() ?? 0 })} ·{' '}
         {t('editor.edited', { d: formatDate(page.updatedAt, LOCALES[lang], { dateStyle: 'medium', timeStyle: 'short' }) })}
@@ -250,7 +252,7 @@ export function Editor({ page, editable = true }: Props) {
 
 function buildSlash() {
   return (t: (k: TKey, v?: any) => string, ctx: { emoji: () => void; sticker: () => void; ai: () => void; youtube: () => void; page: Page }): SuggestItem[] => {
-    const g = { basic: t('slash.group.basic'), media: t('slash.group.media'), adv: t('slash.group.advanced'), pages: t('slash.group.pages'), ai: 'IA' };
+    const g = { layout: t('slash.group.layout'), basic: t('slash.group.basic'), media: t('slash.group.media'), adv: t('slash.group.advanced'), pages: t('slash.group.pages'), ai: 'IA' };
     const childPage = (type: Page['type'], editor: TEditor) => {
       const np = useVault.getState().createPage({ type, parentId: ctx.page.id, title: '' });
       editor.chain().focus().insertContent([{ type: 'pageLink', attrs: { id: np.id, label: t(type === 'database' ? 'page.newDatabase' : type === 'report' ? 'page.newReport' : 'page.untitled') } }, { type: 'text', text: ' ' }]).run();
@@ -262,6 +264,15 @@ function buildSlash() {
       { id: 'h1', tone: 'violet', group: g.basic, title: t('slash.h1'), icon: <Heading1 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 1 }).run() },
       { id: 'h2', tone: 'violet', group: g.basic, title: t('slash.h2'), icon: <Heading2 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 2 }).run() },
       { id: 'h3', tone: 'violet', group: g.basic, title: t('slash.h3'), icon: <Heading3 size={18} />, run: ({ editor }) => editor.chain().focus().setHeading({ level: 3 }).run() },
+      ...([
+        ['cols2', '1-1', 'cols.two', 'cols.twoSub'], ['cols3', '1-1-1', 'cols.three', 'cols.threeSub'], ['cols4', '1-1-1-1', 'cols.four', 'cols.fourSub'], ['cols5', '1-1-1-1-1', 'cols.five', 'cols.fiveSub'],
+        ['colsSideR', '2-1', 'cols.sideR', 'cols.sideRSub'], ['colsSideL', '1-2', 'cols.sideL', 'cols.sideLSub'], ['colsCenter', '1-2-1', 'cols.center', 'cols.centerSub'],
+      ] as const).map(([id, layout, title, sub]) => ({
+        id, tone: 'layout', group: g.layout, title: t(title as any), subtitle: t(sub as any), keywords: 'layout colunas columns columnas grade',
+        icon: <LayoutIcon cols={layout.split('-').map(Number)} size={18} />,
+        run: ({ editor }: { editor: TEditor }) => insertColumns(editor, layout, 'plain'),
+      })),
+      { id: 'colsCards', tone: 'layout', group: g.layout, title: t('cols.cards'), subtitle: t('cols.cardsSub'), keywords: 'layout colunas cartoes cards', icon: <LayoutIcon cols={[1, 1, 1]} size={18} />, run: ({ editor }) => insertColumns(editor, '1-1-1', 'cards') },
       { id: 'todo', tone: 'green', group: g.basic, title: t('slash.todo'), icon: <CheckSquare size={18} />, run: ({ editor }) => editor.chain().focus().toggleTaskList().run() },
       { id: 'bullet', tone: 'blue', group: g.basic, title: t('slash.bullet'), icon: <List size={18} />, run: ({ editor }) => editor.chain().focus().toggleBulletList().run() },
       { id: 'numbered', tone: 'blue', group: g.basic, title: t('slash.numbered'), icon: <ListOrdered size={18} />, run: ({ editor }) => editor.chain().focus().toggleOrderedList().run() },

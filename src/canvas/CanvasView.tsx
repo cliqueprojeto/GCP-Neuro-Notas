@@ -205,6 +205,14 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   const saveT = useRef<ReturnType<typeof setTimeout>>();
   const history = useRef<CanvasData[]>([]);
   const future = useRef<CanvasData[]>([]);
+  const peekIds = useRef(new Set<string>()).current;
+  const markers = new Map<string, { color: string; w: number }>();
+  const markerFor = (color: string, w: number) => {
+    const key = `${color}|${w}`;
+    let id = [...markers.keys()].indexOf(key);
+    if (id < 0) (markers.set(key, { color, w }), (id = markers.size - 1));
+    return `url(#am-${page.id}-${id})`;
+  };
 
   useEffect(() => setLocal(initial), [initial]);
 
@@ -751,13 +759,25 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
         <div className="canvas-backdrop" style={bgs.backdrop} />
         {!local.nodes.length && <div className="canvas-hint">{t('canvas.hint')}</div>}
         <div className="canvas-world" style={{ transform: `translate(${vx}px, ${vy}px) scale(${zoom})` }}>
+          {(() => {
+            peekIds.clear();
+            if (presenting) for (const e of local.edges) {
+              const a = local.nodes.find((n) => n.id === e.from), b = local.nodes.find((n) => n.id === e.to);
+              if (!a || !b) continue;
+              const sa = presentState(a), sb = presentState(b);
+              if (sa.hidden || sb.hidden) continue;
+              if (sa.onSlide && !sb.onSlide) peekIds.add(b.id);
+              if (sb.onSlide && !sa.onSlide) peekIds.add(a.id);
+            }
+            return null;
+          })()}
           {ordered.map((n) => {
             const target = n.pageId ? pages[n.pageId] : undefined;
             // Com slides escolhidos, o elemento só aparece neles; sem escolha, vale a posição dentro da moldura.
             const ps = presenting ? presentState(n) : { onSlide: false, hidden: false };
             const onSlide = presenting && ps.onSlide;
             const hiddenHere = presenting && ps.hidden;
-            const animCls = (presenting && n.anim && n.anim !== 'none' ? (onSlide ? ` pa pa-${n.anim}` : ' pa-wait') : '') + (hiddenHere ? ' pa-hidden' : '');
+            const animCls = (presenting && n.anim && n.anim !== 'none' ? (onSlide ? ` pa pa-${n.anim}` : ' pa-wait') : '') + (hiddenHere ? ' pa-hidden' : '') + (presenting && !onSlide && peekIds.has(n.id) ? ' pa-peek' : '');
             const order = onSlide ? ordered.filter((x) => x.kind !== 'frame' && x.anim && x.anim !== 'none').sort((a, b) => a.y - b.y || a.x - b.x).findIndex((x) => x.id === n.id) : 0;
             return (
               <div
@@ -877,9 +897,11 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               const on = sel === e.id;
               let pe = '';
               let edelay = 0;
+              let bridgeDir = 0;
               if (presenting) {
                 const sa = presentState(a), sb = presentState(b);
                 if (sa.hidden || sb.hidden) pe = ' pe-hidden';
+                else if (sa.onSlide !== sb.onSlide) { pe = ' pe-bridge'; bridgeDir = sa.onSlide ? 1 : -1; }
                 else if (sa.onSlide && sb.onSlide) {
                   pe = ' pe-draw';
                   const nd = (n: CanvasNode) => (n.anim && n.anim !== 'none' ? (n.animDelay ?? 0.25) + (n.animDur || 0.7) : 0.2);
@@ -891,15 +913,25 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               const da = dashArray(dash, ew);
               const ld = dash === 'zigzag' || dash === 'wave' ? wigglePath(d, dash, ew) : d;
               if (pe === ' pe-draw' && da) pe = ' pe-fade';
-              const mk = ew === 2 ? 'arrow' : `arrow-${ew}`;
+              const ecol = on ? 'var(--accent)' : e.color || 'var(--muted)';
+              const mUrl = markerFor(ecol, on ? ew + 1 : ew);
+              const mUrl2 = markerFor(ecol, ew * 2 + 3);
               return (
                 <g key={presenting && pe ? `${e.id}-s${slide}` : e.id} className={'edge d-' + dash + (on ? ' on' : '') + pe} style={{ ['--edge' as any]: e.color || 'var(--muted)', ['--edelay' as any]: `${edelay}s`, ['--ew' as any]: `${ew}px` }}
                   onPointerDown={(ev) => (ev.stopPropagation(), setSel(e.id), setEdit(null))}
                   onDoubleClick={(ev) => { ev.stopPropagation(); editLabel(e); }}>
                   <path d={d} className="edge-hit" />
-                  {dash === 'double' && <path d={d} pathLength={1} className="edge-line edge-double-out" markerEnd={arrow !== 'none' ? `url(#arrow-${ew * 2 + 3})` : undefined} markerStart={arrow === 'both' ? `url(#arrow-${ew * 2 + 3})` : undefined} />}
+                  {dash === 'double' && <path d={d} pathLength={1} className="edge-line edge-double-out" markerEnd={arrow !== 'none' ? mUrl2 : undefined} markerStart={arrow === 'both' ? mUrl2 : undefined} />}
                   {dash !== 'double' && <path d={ld} pathLength={da ? undefined : 1} className="edge-line" strokeDasharray={da} strokeLinecap={dash === 'dotted' || dash === 'dashdot' ? 'round' : undefined}
-                    markerEnd={arrow !== 'none' ? `url(#${mk})` : undefined} markerStart={arrow === 'both' ? `url(#${mk})` : undefined} />}
+                    markerEnd={arrow !== 'none' ? mUrl : undefined} markerStart={arrow === 'both' ? mUrl : undefined} />}
+                  {bridgeDir !== 0 && (
+                    <>
+                      <path d={d} className={'edge-flow' + (bridgeDir < 0 ? ' rev' : '')} />
+                      <circle r={5 + ew} className="edge-spark">
+                        <animateMotion dur="2.4s" repeatCount="indefinite" path={d} keyPoints={bridgeDir > 0 ? '0;1' : '1;0'} keyTimes="0;1" calcMode="linear" />
+                      </circle>
+                    </>
+                  )}
                   {dash === 'double' && <path d={d} pathLength={1} className="edge-double-in" />}
                   {e.label && <text x={(p1.x + p2.x) / 2} y={(p1.y + p2.y) / 2 - 8} textAnchor="middle">{e.label}</text>}
                   {on && (
@@ -911,6 +943,13 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                 </g>
               );
             })}
+            <defs>
+              {[...markers.values()].map((m, i) => (
+                <marker key={i} id={`am-${page.id}-${i}`} viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth={10 + m.w * 2.4} markerHeight={10 + m.w * 2.4} orient="auto-start-reverse">
+                  <path d="M0 0L10 5L0 10z" style={{ fill: m.color }} />
+                </marker>
+              ))}
+            </defs>
             {draft?.kind === 'link' && (() => {
               const a = local.nodes.find((n) => n.id === draft.from);
               if (!a) return null;

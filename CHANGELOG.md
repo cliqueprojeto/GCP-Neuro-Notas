@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.4.2 — Colunas nas páginas, linhas editáveis e conectores contínuos na apresentação
+
+- **Colunas e layouts** (`/colunas`, `/layout`): 2, 3, 4 ou 5 colunas, conteúdo + barra lateral (2:1 e 1:2), destaque central (1:2:1) e colunas em cartões, com ícones de layout. Barra própria para trocar a proporção, somar ou tirar colunas (o conteúdo é preservado) e escolher o estilo: simples, cartões, com borda, sombreado, destaque ou vidro. No celular as colunas viram uma pilha.
+- **Linhas editáveis entre componentes**: clicar no vão entre dois blocos (tabela, base, mapa, mídia…) cria uma linha ali; clicar abaixo do texto leva ao fim da página pronto para escrever; o documento sempre termina num parágrafo editável.
+- **Apresentação**: conectores que ligam elementos de slides diferentes continuam visíveis, com fluxo animado e um ponto de luz que segue para o próximo slide; o elemento do outro slide aparece em transparência até a chegada. Pontas de seta agora seguem a cor da linha em todos os sistemas (antes ficavam pretas em alguns).
+
 ## 1.4.1 — Visões sem duplicar e mapas mentais em tópicos
 
 - **Gerenciador de visões** nas bases: cada tipo (Tabela, Quadro, Gantt, Anexos…) liga e desliga com um clique, sem criar cópias; ocultar sem perder filtros, renomear, duplicar, excluir, reordenar com setas ou arrastando (também pelas abas) e escolher a **visão padrão** (estrela) que abre primeiro.

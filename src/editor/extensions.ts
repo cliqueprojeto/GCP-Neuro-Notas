@@ -1,8 +1,9 @@
 import { AttachmentView, MapBlockView } from './geoBlocks';
+import { Column, Columns } from './columns';
 import { Extension, Node, mergeAttributes, type AnyExtension } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
-import { PluginKey } from '@tiptap/pm/state';
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
@@ -187,6 +188,57 @@ export function slashExtension(suggestion: Partial<SuggestionOptions<SuggestItem
   });
 }
 
+/**
+ * Linhas editáveis entre componentes:
+ * - depois de editar, o documento sempre termina num parágrafo onde dá para digitar;
+ * - clicar no vão entre dois blocos (tabela, base, mídia…) cria ali uma linha nova com o cursor.
+ */
+export const EditableGaps = Extension.create({
+  name: 'editableGaps',
+  addProseMirrorPlugins() {
+    const needsTail = (doc: any) => {
+      const last = doc.lastChild;
+      if (!last) return true;
+      if (last.type.name !== 'paragraph') return true;
+      const end = last.lastChild;
+      return !!end && !end.isText && end.isInline; // termina com menção/átomo: difícil de clicar depois
+    };
+    return [
+      new Plugin({
+        key: new PluginKey('editableGaps'),
+        appendTransaction: (trs, _old, state) => {
+          if (!trs.some((tr) => tr.docChanged) || !needsTail(state.doc)) return null;
+          return state.tr.insert(state.doc.content.size, state.schema.nodes.paragraph.create()).setMeta('addToHistory', false);
+        },
+        props: {
+          handleClick: (view, pos, event) => {
+            if (!view.editable || event.target !== view.dom) return false;
+            const $pos = view.state.doc.resolve(pos);
+            if ($pos.depth !== 0) return false;
+            const before = $pos.nodeBefore, after = $pos.nodeAfter;
+            // só entre blocos que não são texto (ou no fim, depois de um bloco)
+            if ((before && before.isTextblock && !needsTail({ lastChild: before })) || (after && after.isTextblock && !before)) return false;
+            const tr = view.state.tr.insert(pos, view.state.schema.nodes.paragraph.create());
+            tr.setSelection(TextSelection.create(tr.doc, pos + 1)).scrollIntoView();
+            view.dispatch(tr);
+            view.focus();
+            return true;
+          },
+        },
+      }),
+    ];
+  },
+});
+
+/** Clique na área vazia abaixo do texto: vai para o fim e, se preciso, cria uma linha para digitar. */
+export function focusEnd(editor: any) {
+  const { state } = editor;
+  const last = state.doc.lastChild;
+  const emptyPara = last && last.type.name === 'paragraph' && last.content.size === 0;
+  if (emptyPara) return editor.chain().focus('end').run();
+  editor.chain().insertContentAt(state.doc.content.size, { type: 'paragraph' }).focus('end').run();
+}
+
 /** Alt+Shift+↑/↓ move o bloco atual. */
 export const BlockMove = Extension.create({
   name: 'blockMove',
@@ -230,6 +282,8 @@ function base(placeholder?: string): AnyExtension[] {
     MediaRec,
     Attachment,
     MapBlock,
+    Columns,
+    Column,
     ...(placeholder !== undefined ? [Placeholder.configure({ placeholder, includeChildren: false }), CharacterCount] : []),
   ];
 }
@@ -239,7 +293,7 @@ export function editorExtensions(opts: {
   slash: Partial<SuggestionOptions<SuggestItem>>;
   pageLink: Partial<SuggestionOptions<any>>;
 }): AnyExtension[] {
-  return [...base(opts.placeholder), BlockMove, slashExtension(opts.slash), pageLinkExtension(opts.pageLink)];
+  return [...base(opts.placeholder), BlockMove, EditableGaps, slashExtension(opts.slash), pageLinkExtension(opts.pageLink)];
 }
 
 let cachedExport: AnyExtension[] | null = null;

@@ -9,6 +9,7 @@ export interface SuggestItem {
   icon?: ReactNode;
   group?: string;
   tone?: string;
+  keywords?: string;
   run: (props: SuggestionProps<SuggestItem>) => void;
 }
 
