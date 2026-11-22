@@ -1,5 +1,41 @@
 # Histórico de versões
 
+## 1.4.0 — Apresentações premium, PowerPoint, diagramas e novas visões de bases
+
+### Apresentação
+- Voo contínuo entre slides (zoom e passeio com enquadramento inteligente), além de zoom suave, esmaecer e corte seco — por apresentação ou por slide, com duração.
+- Conectores animados (a linha se desenha depois dos elementos), títulos animados por slide, slides automáticos por grupos quando não há molduras.
+- Links abrem páginas, bases e relatórios numa tela limpa, somente leitura, com botão "Voltar à apresentação".
+- Cronômetro opcional, progressivo ou regressivo, com alerta no último minuto e ao estourar o tempo.
+
+### Apresentações
+- Nova entrada fixa na barra lateral: pastas com ícone e cor, uma apresentação em várias pastas, mover, arrastar e soltar, visão em cartões ou registro, busca e apresentar com um clique.
+- Novos decks com temas de fundo e slides 16:9 já enquadrados; tema de cada apresentação pelo menu do cartão.
+
+### PowerPoint
+- Exportação com formas nativas editáveis, fundo do tema (degradê ou imagem), conectores fiéis, transições e animações de entrada.
+- Importação de `.pptx`: posições, tamanhos, cores do tema, fontes, negrito/itálico, alinhamento, imagens, fundos (slide, layout e mestre), grupos, tabelas, transições e animações.
+
+### Quadro
+- Banco de diagramas e mapas mentais por categoria, gerados a partir de uma lista com recuo, com paletas, estilos de forma e opção de moldura.
+- Fundos: temas, padrão da grade e imagem com ponto de foco, véu e ajuste (preencher, ajustar, mosaico).
+- Estilos de conector (tracejado, pontilhado, traço-ponto, serrilhado, ondulado, duplo, neon) e espessura.
+- Negrito, itálico, alinhamento e tamanho de texto em notas, formas e textos; refazer; diagramas inseridos sem sobrepor o conteúdo.
+
+### Bases de dados
+- Visões Gantt (arrastar/redimensionar, escala de dias, semanas ou meses), Cronograma, Mapa e Anexos.
+- Campos Arquivos e Local; tela cheia; desfazer e refazer.
+
+### Páginas
+- Blocos `/anexo` e `/mapa` (ponto A, ponto B e trajeto de carro, bicicleta ou a pé via OpenStreetMap).
+
+### Modelos
+- Plano de aula com campos dinâmicos e base de intercorrências em sala (PT/EN/ES).
+
+### Android
+- Ícone adaptativo sem bordas, que preenche qualquer formato de ícone.
+- Barras do Quadro reorganizadas para não se sobreporem em celular (em pé e deitado) e tablet.
+
 ## 1.3.3 — Mídia premium, gravação de áudio e vídeo e apresentação por elemento
 
 ### Mídia nas páginas

@@ -172,12 +172,12 @@ await step('quadro', async () => {
   await p.waitForSelector('.canvas-area');
   const area = await p.locator('.canvas-area').boundingBox();
   await p.keyboard.press('n');
-  await p.mouse.click(area.x + 300, area.y + 250);
+  await p.mouse.click(area.x + Math.min(300, area.width * 0.28), area.y + Math.min(250, area.height * 0.3));
   await p.keyboard.press('Escape');
   await p.mouse.click(area.x + 50, area.y + 50);
   await p.waitForTimeout(300);
   await p.keyboard.press('s');
-  await p.mouse.click(area.x + 750, area.y + 420);
+  await p.mouse.click(area.x + Math.min(750, area.width * 0.75), area.y + Math.min(420, area.height * 0.62));
   await p.mouse.click(area.x + 50, area.y + 50);
   await p.waitForTimeout(300);
   // liga do lado direito da nota até perto do lado esquerdo da forma (magnetismo)
@@ -196,7 +196,7 @@ await step('quadro', async () => {
   await p.keyboard.press('f');
   await p.mouse.move(area.x + 150, area.y + 120);
   await p.mouse.down();
-  await p.mouse.move(area.x + 1000, area.y + 600, { steps: 8 });
+  await p.mouse.move(area.x + Math.min(1000, area.width * 0.92), area.y + Math.min(600, area.height * 0.8), { steps: 8 });
   await p.mouse.up();
   await p.waitForTimeout(300);
   await p.click('.canvas-present');

@@ -35,6 +35,20 @@ Tudo fica **no seu computador**, em um banco de dados interno (SQLite embutido),
 
 ## ✨ Recursos
 
+### 🆕 Novidades da 1.4
+
+| | Recurso | Detalhes |
+|---|---|---|
+| 🎞️ | **Apresentação premium** | Voo contínuo entre slides (zoom e passeio como no Quadro), conectores que se desenham, links abertos em tela limpa com botão de voltar, cronômetro progressivo ou regressivo e transição por slide |
+| 🗂️ | **Apresentações** | Página fixa com pastas e ícones (um item pode estar em várias), cartões ou registro, temas de fundo e novos decks prontos |
+| 📊 | **PowerPoint** | Exporta com formas editáveis, fundo do tema, transições e animações; importa `.pptx` mantendo posições, cores, fontes, imagens e efeitos |
+| 🧠 | **Diagramas e mapas mentais** | Banco por categoria (lista, processo, ciclo, hierarquia, mapa mental, relação, matriz, pirâmide, espinha de peixe…) gerado a partir dos seus itens |
+| 🎨 | **Fundos e conectores** | Temas de fundo e imagem com ponto de foco no Quadro; linhas tracejada, pontilhada, serrilhada, ondulada, dupla ou neon, com espessura |
+| 📅 | **Bases** | Visões **Gantt** (arrastar e redimensionar), **Cronograma**, **Mapa** e **Anexos**; campos Arquivos e Local; tela cheia; desfazer e refazer |
+| 🗺️ | **Blocos novos** | `/anexo` com ícone por tipo de arquivo e `/mapa` com ponto A, ponto B e trajeto (OpenStreetMap) |
+| 🧑‍🏫 | **Educação** | Modelo de plano de aula com campos dinâmicos e base de intercorrências em sala |
+| 📱 | **Android** | Ícone sem bordas que preenche qualquer formato e barras do Quadro sem sobreposição |
+
 ### 🆕 Novidades da 1.3
 
 | | Recurso | Detalhes |
@@ -193,6 +207,15 @@ O instalador já traz o núcleo nativo (Rust), o banco de dados SQLite, as fonte
 
 ## 🖼️ Telas
 
+### Novidades da 1.4
+
+| | |
+|---|---|
+| <img src="docs/screenshots/v1.4/01-apresentacao.png" alt="Apresentação" /> | <img src="docs/screenshots/v1.4/02-apresentacoes.png" alt="Apresentações" /> |
+| <img src="docs/screenshots/v1.4/03-diagramas.png" alt="Diagramas" /> | <img src="docs/screenshots/v1.4/04-fundo-conectores.png" alt="Fundos e conectores" /> |
+| <img src="docs/screenshots/v1.4/05-gantt.png" alt="Gantt" /> | <img src="docs/screenshots/v1.4/06-cronograma.png" alt="Cronograma" /> |
+| <img src="docs/screenshots/v1.4/07-anexos.png" alt="Anexos" /> | <img src="docs/screenshots/v1.4/08-intercorrencias.png" alt="Intercorrências em sala" /> |
+
 ### Novidades da 1.3
 
 | | |
@@ -316,9 +339,10 @@ O apoio é voluntário: todas as funções estão disponíveis sem contribuiçã
 **GCP-Neuro Notas** brings together a block editor with databases, a connected second brain with `[[links]]`, backlinks and an interactive graph, and an infinite **whiteboard** to draw and connect ideas — in a native, offline, **encrypted** app for Android, Linux, Windows and macOS (Intel and Apple Silicon).
 
 - **Editor:** `/` commands, tables, media, galleries, emojis, stickers, **polls**, **raffles**, **forms**, version history.
-- **Databases:** table, Kanban, gallery, calendar and list views, filters, sorting, password fields with generator.
+- **Databases:** table, Kanban, gallery, calendar, list, **Gantt**, **timeline**, **map** and **attachments** views, filters, sorting, files and location fields, password fields with generator, full screen, undo/redo.
 - **BI reports:** 10 chart types, series, aggregations, filters and fully custom colors.
-- **Whiteboard:** pen, eraser, frames, shapes, sticky notes, embedded pages and connectors; switch any page between *Document* and *Whiteboard*.
+- **Whiteboard:** pen, eraser, frames, shapes, sticky notes, embedded pages, styled connectors, background themes and a bank of ready-made **diagrams and mind maps**; switch any page between *Document* and *Whiteboard*.
+- **Presentations:** continuous zoom navigation between slides, animated connectors, timer, folders with icons, and **PowerPoint export/import** with transitions and animations.
 - **AI (optional, your own key):** Claude, OpenAI, Gemini, Mistral, Groq, DeepSeek, Grok, OpenRouter, Ollama — the app detects the best available model automatically. Ask questions about all your notes with cited sources.
 - **Export:** print, PDF, DOCX, PPTX (native charts), XLSX, Markdown, HTML. **Share** password-protected `.gcpshare` files with other users.
 - **Backup & sync:** Google Drive and OneDrive, end-to-end encrypted; password-protected backup files.
@@ -332,9 +356,10 @@ Download the installer for your system from the [latest release](https://github.
 **GCP-Neuro Notas** reúne un editor de bloques con bases de datos, un segundo cerebro conectado con `[[enlaces]]`, retroenlaces y grafo interactivo, y una **pizarra** infinita para dibujar y conectar ideas — en una app nativa, sin conexión y **cifrada** para Android, Linux, Windows y macOS (Intel y Apple Silicon).
 
 - **Editor:** comandos `/`, tablas, medios, galerías, emojis, stickers, **encuestas**, **sorteos**, **formularios**, historial de versiones.
-- **Bases de datos:** vistas de tabla, Kanban, galería, calendario y lista, filtros, orden y contraseñas con generador.
+- **Bases de datos:** vistas de tabla, Kanban, galería, calendario, lista, **Gantt**, **cronograma**, **mapa** y **adjuntos**, filtros, orden, campos de archivos y lugar, contraseñas con generador, pantalla completa, deshacer/rehacer.
 - **Informes BI:** 10 tipos de gráfico, series, cálculos, filtros y colores personalizados.
-- **Pizarra:** lápiz, borrador, marcos, formas, notas adhesivas, páginas insertadas y conectores.
+- **Pizarra:** lápiz, borrador, marcos, formas, notas adhesivas, páginas insertadas, conectores con estilos, temas de fondo y banco de **diagramas y mapas mentales**.
+- **Presentaciones:** navegación continua con zoom entre diapositivas, conectores animados, cronómetro, carpetas con íconos y **exportar/importar PowerPoint** con transiciones y animaciones.
 - **IA opcional con tu propia clave**, con detección automática del mejor modelo y respuestas que citan tus notas.
 - **Exportar:** imprimir, PDF, DOCX, PPTX, XLSX, Markdown, HTML. **Compartir** archivos `.gcpshare` protegidos con contraseña.
 - **Copia y sincronización** en Google Drive y OneDrive, cifradas de extremo a extremo.
