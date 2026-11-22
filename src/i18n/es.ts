@@ -925,4 +925,8 @@ export const es: Dict = {
   'cols.style.shaded': 'Sombreado',
   'cols.style.accent': 'Destacado',
   'cols.style.glass': 'Vidrio',
+  'canvas.media': 'Medios (YouTube, audio, video)',
+  'canvas.media.youtube': 'Video de YouTube',
+  'canvas.media.audio': 'Audio del equipo',
+  'canvas.media.video': 'Video del equipo',
 };

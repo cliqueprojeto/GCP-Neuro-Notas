@@ -2,10 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import {
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
-  Trash2, Triangle, Type, Undo2, Redo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle, Palette, LayoutTemplate,
+  Trash2, Triangle, Type, Undo2, Redo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle, Palette, LayoutTemplate, Clapperboard, Play, Music, Film,
 } from 'lucide-react';
 import { Presenter, PresentSettings, PresentPage } from './Presenter';
 import { DiagramGallery } from './DiagramGallery';
+import { HtmlWithMedia, YouTubePlayer } from '../components/YouTubePlayer';
+import { youtubeId } from '../editor/media';
+import { pickFiles, toFileRef } from '../lib/files';
+import { toast } from '../store/ui';
 import type { DiagOut } from './diagrams';
 import { BgPanel, EdgeStylePanel, EdgeDashPreview } from './BoardStyle';
 import { bgStyles, dashArray, wigglePath } from './backgrounds';
@@ -48,6 +52,23 @@ const textStyle = (n: CanvasNode): React.CSSProperties | undefined => {
   if (n.font) st.fontFamily = n.font;
   return st;
 };
+/** Mídia no quadro e na apresentação: YouTube com capa e player, áudio e vídeo tocando no lugar. */
+function CanvasMedia({ media, active = true }: { media: NonNullable<CanvasNode['media']>; active?: boolean }) {
+  const ref = useRef<HTMLMediaElement | null>(null);
+  useEffect(() => { if (!active) ref.current?.pause(); }, [active]);
+  if (media.type === 'youtube') return <YouTubePlayer id={media.src} isolate active={active} className="cv-yt" />;
+  if (media.type === 'video') return <video ref={(el) => { ref.current = el; }} className="cv-video" src={media.src} controls playsInline onPointerDown={(e) => e.stopPropagation()} />;
+  return (
+    <div className="cv-audio">
+      <div className="cv-audio-ic"><Music size={20} /></div>
+      <div className="cv-audio-body">
+        <b className="ellipsis">{media.name || 'Áudio'}</b>
+        <audio ref={(el) => { ref.current = el; }} src={media.src} controls preload="metadata" onPointerDown={(e) => e.stopPropagation()} />
+      </div>
+    </div>
+  );
+}
+
 const NOTE_COLORS = ['#fde68a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#ddd6fe', '#fed7aa', '#e2e8f0', '#1e293b'];
 const INK = ['#1f2937', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
 const EMPTY: CanvasData = { nodes: [], edges: [], view: { x: 0, y: 0, zoom: 1 } };
@@ -192,6 +213,8 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   const [animOpen, setAnimOpen] = useState(false);
   const animRef = useRef<HTMLButtonElement>(null);
   const bgRef = useRef<HTMLButtonElement>(null);
+  const mediaRef = useRef<HTMLButtonElement>(null);
+  const [mediaOpen, setMediaOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [bgOpen, setBgOpen] = useState(false);
   const edgeStyleRef = useRef<HTMLButtonElement>(null);
@@ -834,10 +857,11 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                 {n.kind === 'page' && (
                   <div className="cnode-page">
                     <div className="cnode-page-head"><PageIcon icon={target?.icon || '📄'} size={16} /><b className="ellipsis">{target?.title || t('page.untitled')}</b></div>
-                    {target ? <div className="cnode-doc prose" dangerouslySetInnerHTML={{ __html: target.type === 'page' ? pageToHtml(target) : `<p>${t('canvas.openToSee')}</p>` }} /> : <p>{t('editor.brokenLink')}</p>}
+                    {target ? <HtmlWithMedia className="cnode-doc prose" html={target.type === 'page' ? pageToHtml(target) : `<p>${t('canvas.openToSee')}</p>`} /> : <p>{t('editor.brokenLink')}</p>}
                   </div>
                 )}
                 {n.kind === 'image' && n.src && <img src={n.src} alt="" draggable={false} />}
+                {n.kind === 'media' && n.media && <CanvasMedia media={n.media} active={!presenting || onSlide} />}
                 {n.kind === 'button' && (
                   <div className="cnode-button">
                     {edit === n.id ? (
@@ -1066,6 +1090,30 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           <button className="dock-btn" onClick={() => addNode({ kind: 'button', text: t('comp.newButton'), w: 200, h: 56, color: '#7c3aed', button: { variant: 'gradient', shape: 'pill', size: 'md' }, link: { type: 'none', target: '' } })} title={t('canvas.button')}><MousePointerClick size={19} /></button>
           <button ref={chartRef} className="dock-btn" onClick={() => setChartOpen(true)} title={t('canvas.chart')}><BarChart3 size={19} /></button>
           <button className="dock-btn" onClick={() => setDiagOpen(true)} title={t('diag.title')}><LayoutTemplate size={19} /></button>
+          <button ref={mediaRef} className={'dock-btn' + (mediaOpen ? ' on' : '')} onClick={() => setMediaOpen(!mediaOpen)} title={t('canvas.media')}><Clapperboard size={19} /></button>
+          <Popover anchor={mediaRef.current} open={mediaOpen} onClose={() => setMediaOpen(false)}>
+            <div className="menu" style={{ width: 250 }}>
+              <button className="menu-item" onClick={async () => {
+                setMediaOpen(false);
+                const url = await askText({ title: t('canvas.media.youtube'), placeholder: 'https://www.youtube.com/watch?v=…' });
+                const id = url ? youtubeId(url) : null;
+                if (url && !id) return toast(t('media.badVideo'), 'error');
+                if (id) addNode({ kind: 'media', media: { type: 'youtube', src: id }, w: 560, h: 315, color: '#000000' });
+              }}><Play size={15} className="yt-red" /> {t('canvas.media.youtube')}</button>
+              <button className="menu-item" onClick={async () => {
+                setMediaOpen(false);
+                const [f] = await pickFiles(false, 'audio/*');
+                if (!f) return;
+                try { const r = await toFileRef(f); addNode({ kind: 'media', media: { type: 'audio', src: r.data, name: f.name }, w: 380, h: 96, color: '#ffffff' }); } catch (e) { toast(String((e as Error).message), 'error'); }
+              }}><Music size={15} /> {t('canvas.media.audio')}</button>
+              <button className="menu-item" onClick={async () => {
+                setMediaOpen(false);
+                const [f] = await pickFiles(false, 'video/*');
+                if (!f) return;
+                try { const r = await toFileRef(f); addNode({ kind: 'media', media: { type: 'video', src: r.data, name: f.name }, w: 480, h: 270, color: '#000000' }); } catch (e) { toast(String((e as Error).message), 'error'); }
+              }}><Film size={15} /> {t('canvas.media.video')}</button>
+            </div>
+          </Popover>
           <button className="dock-btn" onClick={async () => { const [src] = await pickImages(false, 1400); if (src) addNode({ kind: 'image', src, w: 320, h: 220, color: '#ffffff' }); }} title={t('canvas.image')}><ImagePlus size={19} /></button>
           {(tool === 'pen' || tool === 'connector' || tool === 'text') && (
             <div className="dock-sub">

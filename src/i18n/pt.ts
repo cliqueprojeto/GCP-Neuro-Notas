@@ -941,6 +941,10 @@ export const pt = {
   'cols.style.shaded': 'Sombreado',
   'cols.style.accent': 'Destaque',
   'cols.style.glass': 'Vidro',
+  'canvas.media': 'Mídia (YouTube, áudio, vídeo)',
+  'canvas.media.youtube': 'Vídeo do YouTube',
+  'canvas.media.audio': 'Áudio do computador',
+  'canvas.media.video': 'Vídeo do computador',
 };
 
 export type Dict = Record<keyof typeof pt, string>;

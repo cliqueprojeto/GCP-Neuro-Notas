@@ -260,7 +260,8 @@ export const DEFAULT_SETTINGS: VaultSettings = {
 
 export interface CanvasNode {
   id: string;
-  kind: 'note' | 'page' | 'image' | 'shape' | 'text' | 'frame' | 'draw' | 'button' | 'chart';
+  kind: 'note' | 'page' | 'image' | 'shape' | 'text' | 'frame' | 'draw' | 'button' | 'chart' | 'media';
+  media?: { type: 'youtube' | 'audio' | 'video'; src: string; name?: string };
   x: number;
   y: number;
   w: number;

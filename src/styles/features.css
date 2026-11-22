@@ -1020,3 +1020,27 @@ tfoot:hover .calc-cell.empty .calc-hint, .calc-cell.empty:focus .calc-hint { opa
 @keyframes edgeflow { to { stroke-dashoffset: -32; } }
 .canvas-edges .edge-spark { fill: var(--edge); pointer-events: none; filter: drop-shadow(0 0 6px var(--edge)) drop-shadow(0 0 14px var(--edge)); opacity: .95; }
 .canvas-shell.presenting .edge.pe-bridge .edge-line { opacity: 1; }
+/* ===== Player do YouTube com capa, mídia no quadro e na apresentação ===== */
+.yt-player { position: absolute; inset: 0; background: #000; overflow: hidden; border-radius: inherit; cursor: default; }
+.yt-player img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .5s ease, filter .3s; }
+.yt-player:hover img { transform: scale(1.03); filter: brightness(.92); }
+.yt-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .55) 0%, transparent 32%, transparent 70%, rgba(0, 0, 0, .35) 100%); pointer-events: none; }
+.yt-title { position: absolute; left: 16px; right: 16px; top: 14px; display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 600; font-size: 15px; line-height: 1.3; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); pointer-events: none; }
+.yt-title span:last-child { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.yt-logo { flex-shrink: 0; width: 30px; height: 30px; border-radius: 99px; display: grid; place-items: center; background: #f00; font-size: 12px; }
+.yt-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 0; background: none; padding: 0; cursor: pointer; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .5)); transition: transform .2s ease; }
+.yt-play:hover { transform: translate(-50%, -50%) scale(1.1); }
+.yt-play svg path:first-child { transition: fill .2s; }
+.yt-player:not(:hover) .yt-play svg path:first-child { fill: rgba(33, 33, 33, .82); }
+.yt-player.compact .yt-title { font-size: 12px; top: 8px; left: 10px; }
+.yt-player.playing iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.media-video.hydrated { position: relative; margin: 14px 0; }
+.hydrated-audio { width: 100%; margin: 10px 0; }
+.cnode.k-media { border-radius: 14px; overflow: hidden; box-shadow: 0 14px 34px rgba(0, 0, 0, .3); }
+.cnode.k-media .cv-yt { border-radius: 14px; }
+.cv-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.cv-audio { position: absolute; inset: 0; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, var(--panel)), var(--panel)); border: 1px solid var(--border); border-radius: 14px; }
+.cv-audio-ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--accent-grad); flex-shrink: 0; }
+.cv-audio-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; color: var(--text); font-size: 13px; }
+.cv-audio-body audio { width: 100%; height: 34px; }
+.canvas-shell.presenting .cnode.k-media, .canvas-shell.presenting .cnode .yt-player, .canvas-shell.presenting .cnode audio, .canvas-shell.presenting .cnode video { pointer-events: auto; }

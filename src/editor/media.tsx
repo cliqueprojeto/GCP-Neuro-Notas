@@ -4,6 +4,7 @@
  * (microfone ou câmera) ou enviado do computador/celular.
  */
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
+import { YouTubePlayer } from '../components/YouTubePlayer';
 import { useEffect, useRef, useState } from 'react';
 import { AlignCenter, AlignLeft, AlignRight, Camera, ExternalLink, Mic, Pause, Play, RefreshCw, Square, Trash2, Upload, Video } from 'lucide-react';
 import { useT } from '../i18n';
@@ -112,16 +113,10 @@ export function YoutubeView({ node, updateAttributes, deleteNode, editor, select
       <div ref={box} className="media-box" style={{ width: `${widthOf(a)}%` }}>
         <div className="media-video">
           {id ? (
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1${a.start ? `&start=${a.start}` : ''}`}
-              title="YouTube"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
+            <YouTubePlayer id={id} start={a.start || 0} />
           ) : (
             <div className="media-broken">{t('media.badVideo')}</div>
           )}
-          {editor.isEditable && <div className="media-shield" />}
         </div>
         {editor.isEditable && (
           <>

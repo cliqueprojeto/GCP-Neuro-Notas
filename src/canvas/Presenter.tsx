@@ -7,6 +7,7 @@ import { pageToHtml } from '../lib/transfer';
 import { cellText, cellValue, titleProp } from '../database/logic';
 import { Chart } from '../reports/ReportView';
 import { PageIcon } from '../components/ui';
+import { HtmlWithMedia } from '../components/YouTubePlayer';
 
 export type DeckTransition = 'fly' | 'smooth' | 'fade' | 'slide' | 'none';
 export interface DeckSettings { transition: DeckTransition; duration: number; timer?: { mode: 'off' | 'up' | 'down'; minutes: number } }
@@ -170,7 +171,7 @@ export function PresentPage({ page, onBack, onOpen }: { page: Page; onBack: () =
     return () => window.removeEventListener('keydown', k, true);
   }, [onBack]);
   const body = useMemo(() => {
-    if (page.type === 'page') return <div className="prose" dangerouslySetInnerHTML={{ __html: pageToHtml(page) }} />;
+    if (page.type === 'page') return <HtmlWithMedia className="prose" html={pageToHtml(page)} />;
     if (page.type === 'database' && page.db) {
       const props = page.db.properties.filter((p) => p.type !== 'password').slice(0, 10);
       const tp = titleProp(page.db);

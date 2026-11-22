@@ -1,4 +1,5 @@
 mod db;
+mod player;
 mod system;
 
 use tauri::Manager;
@@ -20,6 +21,8 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .manage(system::OAuthState::default())
         .setup(|app| {
+            #[cfg(desktop)]
+            player::start();
             let dir = app.path().app_data_dir()?;
             let database = db::Db::open(dir.join("gcp-notas.db"))?;
             app.manage(database);
@@ -58,6 +61,7 @@ pub fn run() {
             system::oauth_result,
             system::update_download,
             system::update_install,
+            player::player_port,
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o GCP Notas");

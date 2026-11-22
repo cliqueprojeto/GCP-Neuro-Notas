@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- GCP-Neuro Notas — folha de nota com um cérebro de conexões neurais -->
+  <clipPath id="squircle"><rect x="40" y="40" width="944" height="944" rx="212"/></clipPath>
+  <!-- GCP-Neuro Notas (ícone do app em todos os sistemas) — folha de nota com um cérebro de conexões neurais -->
   <defs>
     <radialGradient id="bg" cx="30%" cy="22%" r="95%">
       <stop offset="0" stop-color="#6d28d9"/>
@@ -12,8 +13,8 @@
       <stop offset="1" stop-color="#22d3ee" stop-opacity=".45"/>
     </linearGradient>
     <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#e9e4ff"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#c4b5fd" stop-opacity=".12"/>
     </linearGradient>
     <linearGradient id="syn" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#22d3ee"/>
@@ -34,15 +35,18 @@
     </filter>
   </defs>
 
-  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#bg)"/>
-  <rect x="32" y="32" width="960" height="960" rx="224" fill="none" stroke="url(#rim)" stroke-width="10"/>
+  <g clip-path="url(#squircle)">
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#bg)"/>
+  
   <!-- brilho suave -->
-  <ellipse cx="380" cy="230" rx="360" ry="190" fill="#a78bfa" opacity=".16"/>
+  <ellipse cx="360" cy="220" rx="460" ry="260" fill="#a78bfa" opacity=".14"/>
+  <g transform="translate(512 522) scale(0.92) translate(-512 -522)">
 
   <!-- folha de nota com canto dobrado -->
   <g filter="url(#sh)">
     <path d="M300 218h330l146 146v410a52 52 0 0 1-52 52H300a52 52 0 0 1-52-52V270a52 52 0 0 1 52-52z" fill="url(#page)"/>
-    <path d="M630 218v104a42 42 0 0 0 42 42h104z" fill="#c4b5fd"/>
+    <path d="M630 218v104a42 42 0 0 0 42 42h104z" fill="#c4b5fd" opacity=".55"/>
+    <path d="M300 218h330l146 146v410a52 52 0 0 1-52 52H300a52 52 0 0 1-52-52V270a52 52 0 0 1 52-52z" fill="none" stroke="#ddd6fe" stroke-opacity=".45" stroke-width="6"/>
   </g>
 
   <!-- cérebro feito de sinapses -->
@@ -65,4 +69,6 @@
     <circle cx="512" cy="526" r="38" fill="url(#gold)"/>
   </g>
   <circle cx="500" cy="514" r="11" fill="#fffbeb" opacity=".9"/>
+  </g>
+</g>
 </svg>

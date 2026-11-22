@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.4.3 — YouTube tocando na página e na apresentação, mídia no quadro e novo ícone em todos os sistemas
+
+- **YouTube**: capa do vídeo em alta resolução com título e botão de play; o vídeo toca dentro da página. Corrigido o "Erro 153" (configuração do player): no computador o player passa por uma página local do próprio app (127.0.0.1), que envia a origem exigida pelo YouTube; no Android o player recebe a política de referência correta.
+- **Apresentações**: vídeos do YouTube, áudios e vídeos gravados tocam direto no slide e nas páginas abertas por link; ao trocar de slide, a mídia do slide anterior pausa.
+- **Quadro**: novo elemento **Mídia** (YouTube, áudio ou vídeo do computador), que também toca na apresentação; páginas incorporadas no quadro mostram vídeos e áudios tocáveis.
+- **Ícone**: o novo ícone (folha de vidro com o cérebro neural, sem moldura) agora também no Windows, macOS e Linux, e no logotipo dentro do app.
+
 ## 1.4.2 — Colunas nas páginas, linhas editáveis e conectores contínuos na apresentação
 
 - **Colunas e layouts** (`/colunas`, `/layout`): 2, 3, 4 ou 5 colunas, conteúdo + barra lateral (2:1 e 1:2), destaque central (1:2:1) e colunas em cartões, com ícones de layout. Barra própria para trocar a proporção, somar ou tirar colunas (o conteúdo é preservado) e escolher o estilo: simples, cartões, com borda, sombreado, destaque ou vidro. No celular as colunas viram uma pilha.
