@@ -64,6 +64,13 @@ const openPage = async (title) => {
   await p.waitForTimeout(900);
 };
 
+await step('templates-cofre-novo', async () => {
+  // Regressão 1.3.2: Templates sem nenhum modelo próprio não pode travar.
+  await openSidebar();
+  await p.click('.sidebar >> text="Templates"');
+  await p.waitForSelector('.tpl-card', { timeout: 8000 });
+});
+
 await step('sidebar-calendario', async () => {
   await openSidebar();
   await shot('01-sidebar-minical');

@@ -10,6 +10,9 @@ import { importFromNotion, notionErrorKey, pushToNotion, searchNotion, syncFromN
 import { NotionIcon } from './BrandIcons';
 import type { Page } from '../../lib/types';
 
+// Valores estáveis: um [] ou {} novo a cada leitura faria a tela redesenhar sem parar.
+const NO_LINKS: Record<string, string> = {};
+
 /** Cartão "Notion" em Configurações › Backup: token, importar e sincronizar. */
 export function NotionCard() {
   const t = useT();
@@ -155,7 +158,7 @@ function NotionPicker({ onClose }: { onClose: () => void }) {
 export function NotionSendModal({ page, onClose }: { page: Page; onClose: () => void }) {
   const t = useT();
   const token = useVault((s) => s.settings.notion?.token);
-  const links = useVault((s) => s.settings.notion?.links || {});
+  const links = useVault((s) => s.settings.notion?.links) ?? NO_LINKS;
   const linked = Object.entries(links).find(([, local]) => local === page.id)?.[0];
   const [items, setItems] = useState<NotionItem[] | null>(null);
   const [parent, setParent] = useState('');

@@ -11,6 +11,9 @@ import { relatedPages, unlinkedMentions } from '../ai/brain';
 import { PageIcon, Popover, Switch } from './ui';
 import type { Page } from '../lib/types';
 
+// Valores estáveis: um [] ou {} novo a cada leitura faria a tela redesenhar sem parar.
+const NO_COLORS: { link?: string; board?: string; child?: string; suggestion?: string; width?: number } = {};
+
 type Kind = 'link' | 'board' | 'child' | 'related' | 'mention' | 'tag' | 'data';
 interface N { id: string; page?: Page; tag?: string; label: string; x: number; y: number; vx: number; vy: number; deg: number; group: number }
 interface E { a: string; b: string; kind: Kind; both?: boolean }
@@ -113,7 +116,7 @@ export function Graph() {
   const [selId, setSelId] = useState<string | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const settled = useRef(false);
-  const gc = usePrefs((s) => s.graphColors || {});
+  const gc = usePrefs((s) => s.graphColors) ?? NO_COLORS;
   const setPrefs = usePrefs((s) => s.set);
   const [colorsOpen, setColorsOpen] = useState(false);
   const colorsRef = useRef<HTMLButtonElement>(null);

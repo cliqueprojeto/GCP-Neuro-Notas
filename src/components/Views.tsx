@@ -16,6 +16,9 @@ import { AUTHOR_URL } from './Sidebar';
 import { RELEASES_URL, REPO } from '../lib/updater';
 import type { Page } from '../lib/types';
 
+// Valores estáveis: um [] ou {} novo a cada leitura faria a tela redesenhar sem parar.
+const NO_TEMPLATES: never[] = [];
+
 // --------------------------------------------------------------- templates
 
 export function Templates() {
@@ -26,7 +29,7 @@ export function Templates() {
   const go = useUi((s) => s.go);
   const cats = Object.keys(CATEGORY_ICONS) as TemplateCategory[];
   const list = TEMPLATES.filter((x) => cat === 'all' || x.category === cat);
-  const mine = useVault((s) => s.settings.templates || []);
+  const mine = useVault((s) => s.settings.templates) ?? NO_TEMPLATES;
   return (
     <div className="page-shell">
       <div className="page-hero compact">

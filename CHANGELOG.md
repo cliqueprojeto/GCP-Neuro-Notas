@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.3.2 — Correção
+
+- **Templates** voltou a abrir: em cofres sem nenhum modelo próprio a tela travava o app (em todos os sistemas). O mesmo defeito foi corrigido na janela "Enviar ao Notion" e nas cores do Grafo.
+- O app passa a procurar atualizações no novo endereço do repositório, **cliqueprojeto/GCP-Neuro-Notas**.
+
 ## 1.3.1 — Apagar tudo e recomeçar
 
 - Em **Configurações › Backup e sincronização**, nova zona de perigo **Apagar tudo e recomeçar**: remove o banco de dados interno, as configurações e as preferências do aparelho e volta ao assistente inicial, como numa instalação nova.
