@@ -4,7 +4,7 @@ import {
   AlignCenter, AlignLeft, AlignRight, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
   FileText, Heading1, Heading2, Heading3, Highlighter, ImageIcon, Images, Italic, Link2, List, ListOrdered, ListTree, Minus, MessageSquareQuote,
   PieChart, Plus, Quote, Redo2, Rows3, SmilePlus, Sparkles, Sticker, Strikethrough, Table2, Text, Trash2, Underline as UIcon, Undo2, Play,
-  CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid, Mic, Video, Paperclip, Map as MapIcon,
+  CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid, Mic, Video, Paperclip, Map as MapIcon, QrCode,
 } from 'lucide-react';
 import { editorExtensions, focusEnd } from './extensions';
 import { LayoutIcon, insertColumns } from './columns';
@@ -295,6 +295,7 @@ function buildSlash() {
         id: 'youtube', tone: 'red', group: g.media, title: 'YouTube', subtitle: t('media.youtubeSub'), icon: <Play size={18} />,
         run: () => ctx.youtube(),
       },
+      { id: 'qrcode', tone: 'violet', group: g.media, title: t('qr.block'), subtitle: t('qr.blockSub'), keywords: 'qr code qrcode pix wifi whatsapp vcard link codigo', icon: <QrCode size={18} />, run: ({ editor }) => editor.chain().focus().insertContent([{ type: 'qrcode', attrs: { autoOpen: true } }, { type: 'paragraph' }]).run() },
       { id: 'attachment', tone: 'teal', group: g.media, title: t('files.block'), subtitle: t('files.blockSub'), icon: <Paperclip size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'attachment', attrs: { autoPick: true } }).run() },
       { id: 'map', tone: 'green', group: g.media, title: t('geo.block'), subtitle: t('geo.blockSub'), icon: <MapIcon size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'mapBlock' }).run() },
       { id: 'audio', tone: 'pink', group: g.media, title: t('media.audio'), subtitle: t('media.audioSlash'), icon: <Mic size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'mediaRec', attrs: { kind: 'audio' } }).run() },
