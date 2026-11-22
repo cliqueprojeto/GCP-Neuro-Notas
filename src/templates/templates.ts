@@ -220,6 +220,22 @@ export const TEMPLATES: Template[] = [
       { title: l('Cem anos de solidão', 'One Hundred Years of Solitude', 'Cien años de soledad'), author: 'Gabriel García Márquez', status: l('Quero ler', 'Want to read', 'Quiero leer'), genre: [l('Romance', 'Fiction', 'Novela'), l('Cultura', 'Culture', 'Cultura')] },
     ], [{ type: 'gallery' }, { type: 'board', groupBy: 'status' }, { type: 'table' }])],
   },
+  {
+    id: 'lessonplan', category: 'education', icon: '🧑‍🏫', cover: 'g:9',
+    title: l('Plano de aula + intercorrências', 'Lesson plan + classroom incidents', 'Plan de clase + incidencias en el aula'),
+    description: l('Modelo de plano de aula, banco de planos com campos dinâmicos (BNCC, metodologia, recursos, avaliação) e registro de intercorrências em sala.', 'Lesson plan model, a plans database with dynamic fields (standards, methods, resources, assessment) and a classroom incidents log.', 'Modelo de plan de clase, base de planes con campos dinámicos (competencias, metodología, recursos, evaluación) y registro de incidencias en el aula.'),
+    build: (lang) => [
+      page(lang, l('Plano de aula', 'Lesson plan', 'Plan de clase'), '🧑‍🏫', lessonHtml),
+      { ...lessonDb(lang), parentId: '$root' },
+      { ...incidentsDb(lang), parentId: '$root' },
+    ],
+  },
+  {
+    id: 'incidents', category: 'education', icon: '🛟', cover: 'g:10',
+    title: l('Intercorrências em sala', 'Classroom incidents', 'Incidencias en el aula'),
+    description: l('Faltas, comportamento, questões emocionais, saúde e encaminhamentos — por turma, gravidade e status.', 'Absences, behavior, emotional issues, health and referrals — by class, severity and status.', 'Faltas, conducta, cuestiones emocionales, salud y derivaciones — por grupo, gravedad y estado.'),
+    build: (lang) => [incidentsDb(lang)],
+  },
   // ---------------------------------------------------------------- projetos
   {
     id: 'project', category: 'projects', icon: '🚀', cover: 'g:0',
@@ -413,6 +429,123 @@ export const TEMPLATES: Template[] = [
     },
   },
 ];
+
+
+// ------------------------------------------------------------ educação: plano de aula e intercorrências
+
+const lessonHtml = l(
+  `<div data-type="callout" data-emoji="🎯" data-tone="purple">Objetivo da aula em uma frase: ao final, os estudantes serão capazes de…</div><h2>Identificação</h2><table><tr><th><p>Escola</p></th><th><p>Disciplina</p></th><th><p>Turma / Ano</p></th><th><p>Data</p></th><th><p>Duração</p></th></tr><tr><td><p></p></td><td><p></p></td><td><p></p></td><td><p>${d(0)}</p></td><td><p>50 min</p></td></tr></table><h2>Competências e habilidades (BNCC)</h2><ul><li><p>Código — descrição</p></li></ul><h2>Objetivos de aprendizagem</h2><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Objetivo 1</p></li><li data-type="taskItem" data-checked="false"><p>Objetivo 2</p></li></ul><h2>Conteúdos</h2><ul><li><p></p></li></ul><h2>Sequência didática</h2><table><tr><th><p>Momento</p></th><th><p>Tempo</p></th><th><p>Estratégia</p></th><th><p>O que os estudantes fazem</p></th></tr><tr><td><p>Acolhida e problematização</p></td><td><p>10 min</p></td><td><p>Pergunta disparadora</p></td><td><p></p></td></tr><tr><td><p>Desenvolvimento</p></td><td><p>25 min</p></td><td><p>Atividade em grupos</p></td><td><p></p></td></tr><tr><td><p>Sistematização</p></td><td><p>10 min</p></td><td><p>Socialização</p></td><td><p></p></td></tr><tr><td><p>Fechamento</p></td><td><p>5 min</p></td><td><p>Saída rápida (exit ticket)</p></td><td><p></p></td></tr></table><h2>Recursos</h2><ul><li><p>Quadro, projetor, materiais impressos…</p></li></ul><h2>Inclusão e adaptações</h2><div data-type="callout" data-emoji="♿" data-tone="info">Adaptações para estudantes com deficiência, TEA, TDAH, dificuldades de leitura ou altas habilidades.</div><h2>Avaliação</h2><p>Critérios, instrumentos e evidências de aprendizagem.</p><h2>Registro pós-aula</h2><div data-type="toggle" data-summary="O que funcionou / o que ajustar"><p></p></div><div data-type="toggle" data-summary="Intercorrências (registre na base abaixo)"><p></p></div><h2>Referências</h2><ul><li><p></p></li></ul>`,
+  `<div data-type="callout" data-emoji="🎯" data-tone="purple">Lesson goal in one sentence: by the end, students will be able to…</div><h2>Overview</h2><table><tr><th><p>School</p></th><th><p>Subject</p></th><th><p>Class / Grade</p></th><th><p>Date</p></th><th><p>Duration</p></th></tr><tr><td><p></p></td><td><p></p></td><td><p></p></td><td><p>${d(0)}</p></td><td><p>50 min</p></td></tr></table><h2>Standards and skills</h2><ul><li><p>Code — description</p></li></ul><h2>Learning objectives</h2><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Objective 1</p></li><li data-type="taskItem" data-checked="false"><p>Objective 2</p></li></ul><h2>Content</h2><ul><li><p></p></li></ul><h2>Lesson sequence</h2><table><tr><th><p>Stage</p></th><th><p>Time</p></th><th><p>Strategy</p></th><th><p>What students do</p></th></tr><tr><td><p>Warm-up and hook</p></td><td><p>10 min</p></td><td><p>Driving question</p></td><td><p></p></td></tr><tr><td><p>Development</p></td><td><p>25 min</p></td><td><p>Group activity</p></td><td><p></p></td></tr><tr><td><p>Consolidation</p></td><td><p>10 min</p></td><td><p>Sharing</p></td><td><p></p></td></tr><tr><td><p>Closing</p></td><td><p>5 min</p></td><td><p>Exit ticket</p></td><td><p></p></td></tr></table><h2>Resources</h2><ul><li><p>Board, projector, handouts…</p></li></ul><h2>Inclusion and adaptations</h2><div data-type="callout" data-emoji="♿" data-tone="info">Adaptations for students with disabilities, autism, ADHD, reading difficulties or giftedness.</div><h2>Assessment</h2><p>Criteria, instruments and evidence of learning.</p><h2>After-class notes</h2><div data-type="toggle" data-summary="What worked / what to adjust"><p></p></div><div data-type="toggle" data-summary="Incidents (log them in the database below)"><p></p></div><h2>References</h2><ul><li><p></p></li></ul>`,
+  `<div data-type="callout" data-emoji="🎯" data-tone="purple">Objetivo de la clase en una frase: al final, los estudiantes serán capaces de…</div><h2>Identificación</h2><table><tr><th><p>Escuela</p></th><th><p>Materia</p></th><th><p>Grupo / Grado</p></th><th><p>Fecha</p></th><th><p>Duración</p></th></tr><tr><td><p></p></td><td><p></p></td><td><p></p></td><td><p>${d(0)}</p></td><td><p>50 min</p></td></tr></table><h2>Competencias y habilidades</h2><ul><li><p>Código — descripción</p></li></ul><h2>Objetivos de aprendizaje</h2><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Objetivo 1</p></li><li data-type="taskItem" data-checked="false"><p>Objetivo 2</p></li></ul><h2>Contenidos</h2><ul><li><p></p></li></ul><h2>Secuencia didáctica</h2><table><tr><th><p>Momento</p></th><th><p>Tiempo</p></th><th><p>Estrategia</p></th><th><p>Qué hacen los estudiantes</p></th></tr><tr><td><p>Bienvenida y problematización</p></td><td><p>10 min</p></td><td><p>Pregunta detonadora</p></td><td><p></p></td></tr><tr><td><p>Desarrollo</p></td><td><p>25 min</p></td><td><p>Actividad en grupos</p></td><td><p></p></td></tr><tr><td><p>Sistematización</p></td><td><p>10 min</p></td><td><p>Socialización</p></td><td><p></p></td></tr><tr><td><p>Cierre</p></td><td><p>5 min</p></td><td><p>Ticket de salida</p></td><td><p></p></td></tr></table><h2>Recursos</h2><ul><li><p>Pizarra, proyector, materiales impresos…</p></li></ul><h2>Inclusión y adaptaciones</h2><div data-type="callout" data-emoji="♿" data-tone="info">Adaptaciones para estudiantes con discapacidad, TEA, TDAH, dificultades lectoras o altas capacidades.</div><h2>Evaluación</h2><p>Criterios, instrumentos y evidencias de aprendizaje.</p><h2>Registro posclase</h2><div data-type="toggle" data-summary="Qué funcionó / qué ajustar"><p></p></div><div data-type="toggle" data-summary="Incidencias (regístrelas en la base de abajo)"><p></p></div><h2>Referencias</h2><ul><li><p></p></li></ul>`,
+);
+
+const SUBJECTS = [
+  { label: l('Português', 'Language arts', 'Lengua'), color: 'blue' },
+  { label: l('Matemática', 'Math', 'Matemáticas'), color: 'purple' },
+  { label: l('Ciências', 'Science', 'Ciencias'), color: 'green' },
+  { label: l('História', 'History', 'Historia'), color: 'orange' },
+  { label: l('Arte', 'Art', 'Arte'), color: 'pink' },
+];
+const CLASSES = [
+  { label: l('6º A', 'Grade 6 A', '6º A'), color: 'teal' },
+  { label: l('7º B', 'Grade 7 B', '7º B'), color: 'yellow' },
+  { label: l('8º C', 'Grade 8 C', '8º C'), color: 'brown' },
+];
+
+function lessonDb(lang: Lang): Partial<Page> {
+  const st = [
+    { label: l('Planejada', 'Planned', 'Planificada'), color: 'gray' },
+    { label: l('Ministrada', 'Taught', 'Impartida'), color: 'green' },
+    { label: l('Replanejar', 'Re-plan', 'Replanificar'), color: 'red' },
+  ];
+  return database(lang, l('Planos de aula', 'Lesson plans', 'Planes de clase'), '📒', [
+    { key: 'title', name: l('Aula', 'Lesson', 'Clase'), type: 'title' },
+    { key: 'subject', name: l('Disciplina', 'Subject', 'Materia'), type: 'select', options: SUBJECTS },
+    { key: 'class', name: l('Turma', 'Class', 'Grupo'), type: 'select', options: CLASSES },
+    { key: 'date', name: l('Data', 'Date', 'Fecha'), type: 'date' },
+    { key: 'minutes', name: l('Duração (min)', 'Duration (min)', 'Duración (min)'), type: 'number' },
+    { key: 'status', name: 'Status', type: 'status', options: st },
+    { key: 'skills', name: l('BNCC / habilidades', 'Standards / skills', 'Competencias'), type: 'text' },
+    { key: 'goal', name: l('Objetivo', 'Objective', 'Objetivo'), type: 'text' },
+    { key: 'method', name: l('Metodologia', 'Methods', 'Metodología'), type: 'multi', options: [
+      { label: l('Expositiva dialogada', 'Interactive lecture', 'Expositiva dialogada'), color: 'blue' },
+      { label: l('Sala de aula invertida', 'Flipped classroom', 'Aula invertida'), color: 'purple' },
+      { label: l('Projeto', 'Project-based', 'Proyecto'), color: 'green' },
+      { label: l('Trabalho em grupo', 'Group work', 'Trabajo en grupo'), color: 'orange' },
+      { label: l('Gamificação', 'Gamification', 'Gamificación'), color: 'pink' },
+      { label: l('Rotação por estações', 'Station rotation', 'Rotación por estaciones'), color: 'teal' },
+    ] },
+    { key: 'resources', name: l('Recursos', 'Resources', 'Recursos'), type: 'multi', options: [
+      { label: l('Projetor', 'Projector', 'Proyector'), color: 'gray' },
+      { label: l('Laboratório', 'Lab', 'Laboratorio'), color: 'green' },
+      { label: l('Tablets', 'Tablets', 'Tabletas'), color: 'blue' },
+      { label: l('Material impresso', 'Handouts', 'Material impreso'), color: 'yellow' },
+    ] },
+    { key: 'assess', name: l('Avaliação', 'Assessment', 'Evaluación'), type: 'select', options: [
+      { label: l('Diagnóstica', 'Diagnostic', 'Diagnóstica'), color: 'blue' },
+      { label: l('Formativa', 'Formative', 'Formativa'), color: 'green' },
+      { label: l('Somativa', 'Summative', 'Sumativa'), color: 'purple' },
+    ] },
+    { key: 'done', name: l('Objetivo atingido', 'Goal met', 'Objetivo logrado'), type: 'progress' },
+    { key: 'files', name: l('Materiais', 'Materials', 'Materiales'), type: 'files' },
+  ], [
+    { title: l('Gêneros textuais: a crônica', 'Text genres: the chronicle', 'Géneros textuales: la crónica'), subject: SUBJECTS[0].label, class: CLASSES[0].label, date: d(-1), minutes: 50, status: st[1].label, skills: 'EF67LP28', goal: l('Identificar marcas da crônica', 'Identify features of a chronicle', 'Identificar rasgos de la crónica'), method: [l('Expositiva dialogada', 'Interactive lecture', 'Expositiva dialogada'), l('Trabalho em grupo', 'Group work', 'Trabajo en grupo')], resources: [l('Material impresso', 'Handouts', 'Material impreso')], assess: l('Formativa', 'Formative', 'Formativa'), done: 80 },
+    { title: l('Frações equivalentes', 'Equivalent fractions', 'Fracciones equivalentes'), subject: SUBJECTS[1].label, class: CLASSES[1].label, date: d(1), minutes: 100, status: st[0].label, skills: 'EF06MA07', goal: l('Comparar e simplificar frações', 'Compare and simplify fractions', 'Comparar y simplificar fracciones'), method: [l('Gamificação', 'Gamification', 'Gamificación'), l('Rotação por estações', 'Station rotation', 'Rotación por estaciones')], resources: [l('Tablets', 'Tablets', 'Tabletas')], assess: l('Diagnóstica', 'Diagnostic', 'Diagnóstica') },
+    { title: l('Ciclo da água', 'The water cycle', 'El ciclo del agua'), subject: SUBJECTS[2].label, class: CLASSES[2].label, date: d(3), minutes: 50, status: st[0].label, skills: 'EF06CI03', goal: l('Explicar as etapas do ciclo', 'Explain the stages of the cycle', 'Explicar las etapas del ciclo'), method: [l('Projeto', 'Project-based', 'Proyecto')], resources: [l('Laboratório', 'Lab', 'Laboratorio'), l('Projetor', 'Projector', 'Proyector')], assess: l('Somativa', 'Summative', 'Sumativa') },
+  ], [{ type: 'calendar', dateProp: 'date' }, { type: 'board', groupBy: 'status' }, { type: 'table' }, { type: 'timeline', dateProp: 'date' }, { type: 'files' }]);
+}
+
+function incidentsDb(lang: Lang): Partial<Page> {
+  const kinds = [
+    { label: l('Falta', 'Absence', 'Falta'), color: 'gray' },
+    { label: l('Atraso', 'Late arrival', 'Retraso'), color: 'yellow' },
+    { label: l('Comportamental', 'Behavioral', 'Conductual'), color: 'orange' },
+    { label: l('Psicológico / emocional', 'Psychological / emotional', 'Psicológico / emocional'), color: 'purple' },
+    { label: l('Saúde', 'Health', 'Salud'), color: 'red' },
+    { label: l('Conflito / bullying', 'Conflict / bullying', 'Conflicto / acoso'), color: 'pink' },
+    { label: l('Aprendizagem', 'Learning', 'Aprendizaje'), color: 'blue' },
+    { label: l('Familiar / social', 'Family / social', 'Familiar / social'), color: 'brown' },
+    { label: l('Uso de celular', 'Phone use', 'Uso del celular'), color: 'teal' },
+    { label: l('Outro', 'Other', 'Otro'), color: 'gray' },
+  ];
+  const sev = [
+    { label: l('Baixa', 'Low', 'Baja'), color: 'green' },
+    { label: l('Média', 'Medium', 'Media'), color: 'yellow' },
+    { label: l('Alta', 'High', 'Alta'), color: 'orange' },
+    { label: l('Urgente', 'Urgent', 'Urgente'), color: 'red' },
+  ];
+  const st = [
+    { label: l('Aberta', 'Open', 'Abierta'), color: 'red' },
+    { label: l('Em acompanhamento', 'Following up', 'En seguimiento'), color: 'blue' },
+    { label: l('Resolvida', 'Resolved', 'Resuelta'), color: 'green' },
+  ];
+  const who = [
+    { label: l('Coordenação', 'Coordinator', 'Coordinación'), color: 'blue' },
+    { label: l('Família', 'Family', 'Familia'), color: 'orange' },
+    { label: l('Psicologia escolar', 'School psychologist', 'Psicología escolar'), color: 'purple' },
+    { label: l('Direção', 'Principal', 'Dirección'), color: 'gray' },
+    { label: l('Saúde / enfermaria', 'Health office', 'Enfermería'), color: 'red' },
+    { label: l('Conselho Tutelar', 'Child protection', 'Protección infantil'), color: 'brown' },
+  ];
+  return database(lang, l('Intercorrências em sala', 'Classroom incidents', 'Incidencias en el aula'), '🛟', [
+    { key: 'title', name: l('Ocorrência', 'Incident', 'Incidencia'), type: 'title' },
+    { key: 'student', name: l('Estudante', 'Student', 'Estudiante'), type: 'text' },
+    { key: 'class', name: l('Turma', 'Class', 'Grupo'), type: 'select', options: CLASSES },
+    { key: 'date', name: l('Data', 'Date', 'Fecha'), type: 'date' },
+    { key: 'kind', name: l('Tipo', 'Type', 'Tipo'), type: 'select', options: kinds },
+    { key: 'sev', name: l('Gravidade', 'Severity', 'Gravedad'), type: 'select', options: sev },
+    { key: 'status', name: 'Status', type: 'status', options: st },
+    { key: 'notified', name: l('Comunicado a', 'Notified', 'Comunicado a'), type: 'multi', options: who },
+    { key: 'action', name: l('Encaminhamento', 'Action taken', 'Derivación'), type: 'text' },
+    { key: 'by', name: l('Registrado por', 'Reported by', 'Registrado por'), type: 'text' },
+    { key: 'files', name: l('Anexos', 'Attachments', 'Adjuntos'), type: 'files' },
+  ], [
+    { title: l('Faltou 3 dias seguidos', 'Absent 3 days in a row', 'Faltó 3 días seguidos'), student: l('Estudante A', 'Student A', 'Estudiante A'), class: CLASSES[0].label, date: d(-3), kind: kinds[0].label, sev: sev[1].label, status: st[1].label, notified: [who[1].label, who[0].label], action: l('Contato com a família por telefone', 'Phoned the family', 'Contacto telefónico con la familia') },
+    { title: l('Crise de ansiedade na prova', 'Anxiety attack during test', 'Crisis de ansiedad en el examen'), student: l('Estudante B', 'Student B', 'Estudiante B'), class: CLASSES[1].label, date: d(-1), kind: kinds[3].label, sev: sev[2].label, status: st[1].label, notified: [who[2].label, who[1].label], action: l('Acolhimento e encaminhamento à psicologia', 'Support and referral to the psychologist', 'Acogida y derivación a psicología') },
+    { title: l('Discussão entre colegas', 'Argument between classmates', 'Discusión entre compañeros'), student: l('Estudantes C e D', 'Students C and D', 'Estudiantes C y D'), class: CLASSES[2].label, date: d(0), kind: kinds[2].label, sev: sev[1].label, status: st[0].label, notified: [who[0].label], action: l('Mediação de conflito agendada', 'Conflict mediation scheduled', 'Mediación de conflicto programada') },
+    { title: l('Mal-estar e febre', 'Felt sick with fever', 'Malestar y fiebre'), student: l('Estudante E', 'Student E', 'Estudiante E'), class: CLASSES[0].label, date: d(0), kind: kinds[4].label, sev: sev[3].label, status: st[2].label, notified: [who[4].label, who[1].label], action: l('Família buscou na escola', 'Family picked up the student', 'La familia lo recogió') },
+  ], [{ type: 'board', groupBy: 'status' }, { type: 'table' }, { type: 'calendar', dateProp: 'date' }, { type: 'timeline', dateProp: 'date' }]);
+}
 
 function tasksDb(lang: Lang): Partial<Page> {
   const who = ['Ana', 'Bruno', 'Carla', 'Diego'];
