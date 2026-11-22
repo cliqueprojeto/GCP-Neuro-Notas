@@ -4,7 +4,7 @@ import {
   AlignCenter, AlignLeft, AlignRight, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
   FileText, Heading1, Heading2, Heading3, Highlighter, ImageIcon, Images, Italic, Link2, List, ListOrdered, ListTree, Minus, MessageSquareQuote,
   PieChart, Plus, Quote, Redo2, Rows3, SmilePlus, Sparkles, Sticker, Strikethrough, Table2, Text, Trash2, Underline as UIcon, Undo2, Play,
-  CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid, Mic, Video,
+  CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid, Mic, Video, Paperclip, Map as MapIcon,
 } from 'lucide-react';
 import { editorExtensions } from './extensions';
 import { suggestRender, type SuggestItem } from './suggest';
@@ -284,6 +284,8 @@ function buildSlash() {
         id: 'youtube', tone: 'red', group: g.media, title: 'YouTube', subtitle: t('media.youtubeSub'), icon: <Play size={18} />,
         run: () => ctx.youtube(),
       },
+      { id: 'attachment', tone: 'teal', group: g.media, title: t('files.block'), subtitle: t('files.blockSub'), icon: <Paperclip size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'attachment', attrs: { autoPick: true } }).run() },
+      { id: 'map', tone: 'green', group: g.media, title: t('geo.block'), subtitle: t('geo.blockSub'), icon: <MapIcon size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'mapBlock' }).run() },
       { id: 'audio', tone: 'pink', group: g.media, title: t('media.audio'), subtitle: t('media.audioSlash'), icon: <Mic size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'mediaRec', attrs: { kind: 'audio' } }).run() },
       { id: 'video', tone: 'violet', group: g.media, title: t('media.video'), subtitle: t('media.videoSlash'), icon: <Video size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'mediaRec', attrs: { kind: 'video', size: 'l' } }).run() },
       { id: 'emoji', tone: 'amber', group: g.media, title: t('slash.emoji'), icon: <SmilePlus size={18} />, run: () => ctx.emoji() },

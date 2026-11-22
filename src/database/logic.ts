@@ -8,13 +8,14 @@ export const OPTION_COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'tea
 
 export const PROP_TYPES: PropType[] = [
   'text', 'number', 'currency', 'formula', 'conditional', 'select', 'multi', 'status', 'date', 'checkbox', 'url', 'email', 'phone',
-  'cpf', 'cnpj', 'cep', 'password', 'rating', 'progress', 'created',
+  'cpf', 'cnpj', 'cep', 'password', 'rating', 'progress', 'created', 'files', 'location',
 ];
 
 /** Grupos do menu "tipo de campo" (com cor e ícone, como no Notion). */
-export const PROP_GROUPS: { key: 'basic' | 'choice' | 'docs' | 'system'; types: PropType[] }[] = [
+export const PROP_GROUPS: { key: 'basic' | 'choice' | 'media' | 'docs' | 'system'; types: PropType[] }[] = [
   { key: 'basic', types: ['text', 'number', 'currency', 'formula', 'conditional', 'rating', 'progress'] },
   { key: 'choice', types: ['select', 'multi', 'status', 'checkbox', 'date'] },
+  { key: 'media', types: ['files', 'location'] },
   { key: 'docs', types: ['phone', 'email', 'cpf', 'cnpj', 'cep', 'url', 'password'] },
   { key: 'system', types: ['created'] },
 ];
@@ -54,6 +55,10 @@ export function cellText(prop: Property, v: any, locale?: string): string {
       return v ? '✔' : '';
     case 'password':
       return '••••••••';
+    case 'files':
+      return (Array.isArray(v) ? v : []).map((f: any) => f?.name).filter(Boolean).join(', ');
+    case 'location':
+      return typeof v === 'object' ? v.label || `${v.lat?.toFixed?.(5)}, ${v.lon?.toFixed?.(5)}` : String(v);
     case 'created':
       return new Date(v).toLocaleString();
     case 'currency':

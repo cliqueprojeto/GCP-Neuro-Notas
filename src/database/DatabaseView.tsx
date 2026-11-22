@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowDownAZ, ArrowDownUp, ArrowDownZA, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, BookmarkPlus, CalendarDays, ChevronLeft, ChevronRight,
   Columns3, Copy, CopyPlus, Download, EyeOff, FileDown, FileSpreadsheet, Filter as FilterIcon, FilterX, GalleryVerticalEnd, GripVertical, LayoutList,
-  Maximize2, MoreHorizontal, Plus, Printer, Search, Settings2, Table2, Trash2, Upload, X,
+  Maximize2, Minimize2, GanttChart, CalendarRange, Map as MapIcon, Paperclip, Undo2, Redo2, MoreHorizontal, Plus, Printer, Search, Settings2, Table2, Trash2, Upload, X,
 } from 'lucide-react';
 import type { CalcKind, DatabaseData, Filter, Page, Property, PropType, Row, View, ViewType } from '../lib/types';
 import { useT, useLang, LOCALES, type TKey } from '../i18n';
@@ -16,8 +16,9 @@ import { printTable, readSpreadsheet, tableCsv, tablePdf, tableXlsx } from './io
 import { SaveTemplateModal } from '../templates/user';
 import { uid } from '../lib/crypto';
 import { normalize } from '../lib/doc';
+import { FilesView, GanttView, MapDbView, TimelineView } from './views2';
 
-const VIEW_ICONS: Record<ViewType, any> = { table: Table2, board: Columns3, gallery: GalleryVerticalEnd, calendar: CalendarDays, list: LayoutList };
+const VIEW_ICONS: Record<ViewType, any> = { table: Table2, board: Columns3, gallery: GalleryVerticalEnd, calendar: CalendarDays, list: LayoutList, gantt: GanttChart, timeline: CalendarRange, map: MapIcon, files: Paperclip };
 
 type Ctx = { x: number; y: number; items: MenuEntry[] } | null;
 
@@ -36,23 +37,69 @@ export function DatabaseView({ page }: { page: Page }) {
     view: useRef<HTMLButtonElement>(null), add: useRef<HTMLButtonElement>(null), export: useRef<HTMLButtonElement>(null),
   };
 
-  const save = (next: DatabaseData) => update(page.id, { db: recompute(next) });
-  const setView = (patch: Partial<View>) => save({ ...db, views: db.views.map((v) => (v.id === view.id ? { ...v, ...patch } : v)) });
-  const setRow = (id: string, cells: Record<string, any>) => save({ ...db, rows: db.rows.map((r) => (r.id === id ? { ...r, cells: { ...r.cells, ...cells }, updatedAt: Date.now() } : r)) });
-  const setProp = (p: Property) => save({ ...db, properties: db.properties.map((x) => (x.id === p.id ? p : x)) });
+  // sempre parte do estado mais recente (várias mudanças seguidas não se sobrescrevem)
+  const cur = () => useVault.getState().pages[page.id]?.db || db;
+  const past = useRef<DatabaseData[]>([]);
+  const future = useRef<DatabaseData[]>([]);
+  const lastPush = useRef(0);
+  const [, bump] = useState(0);
+  const save = (next: DatabaseData, record = true) => {
+    if (record) {
+      const now = Date.now();
+      // digitação contínua vira um único passo de desfazer
+      if (now - lastPush.current > 700 || !past.current.length) past.current = [...past.current.slice(-60), cur()];
+      lastPush.current = now;
+      future.current = [];
+    }
+    update(page.id, { db: recompute(next) });
+    bump((x) => x + 1);
+  };
+  const undo = () => {
+    const prev = past.current.pop();
+    if (!prev) return;
+    future.current = [...future.current, cur()];
+    lastPush.current = 0;
+    save(prev, false);
+  };
+  const redo = () => {
+    const next = future.current.pop();
+    if (!next) return;
+    past.current = [...past.current, cur()];
+    lastPush.current = 0;
+    save(next, false);
+  };
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      const typing = (e.target as HTMLElement)?.closest?.('input,textarea,[contenteditable="true"]');
+      if (full && e.key === 'Escape' && !document.querySelector('.modal-back, .popover, .ctx-back')) return setFull(false);
+      if (typing || !(e.ctrlKey || e.metaKey)) return;
+      if (!rootRef.current?.matches(':hover') && !full) return;
+      if (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z')) (e.preventDefault(), redo());
+      else if (e.key.toLowerCase() === 'z') (e.preventDefault(), undo());
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  });
+  const rootRef = useRef<HTMLDivElement>(null);
+  const setView = (patch: Partial<View>) => { const d = cur(); const vid = d.views.find((v) => v.id === d.activeView)?.id || view.id; save({ ...d, views: d.views.map((v) => (v.id === vid ? { ...v, ...patch } : v)) }); };
+  const setRow = (id: string, cells: Record<string, any>) => { const d = cur(); save({ ...d, rows: d.rows.map((r) => (r.id === id ? { ...r, cells: { ...r.cells, ...cells }, updatedAt: Date.now() } : r)) }); };
+  const setProp = (p: Property) => { const d = cur(); save({ ...d, properties: d.properties.map((x) => (x.id === p.id ? p : x)) }); };
   const addRow = (cells: Record<string, any> = {}, at?: number) => {
-    const r = newRow(db, cells);
-    const rows = [...db.rows];
+    const d = cur();
+    const r = newRow(d, cells);
+    const rows = [...d.rows];
     rows.splice(at ?? rows.length, 0, r);
-    save({ ...db, rows });
+    save({ ...d, rows });
     return r;
   };
-  const delRow = (id: string) => save({ ...db, rows: db.rows.filter((r) => r.id !== id) });
+  const delRow = (id: string) => { const d = cur(); save({ ...d, rows: d.rows.filter((r) => r.id !== id) }); };
   const addProp = (type: PropType, at?: number) => {
+    const d = cur();
     const p = makeProperty(type, t(`db.type.${type}` as TKey), [t('db.status.todo'), t('db.status.doing'), t('db.status.done')]);
-    const properties = [...db.properties];
+    const properties = [...d.properties];
     properties.splice(at ?? properties.length, 0, p);
-    save({ ...db, properties });
+    save({ ...d, properties });
     return p;
   };
   const rows = useMemo(() => visibleRows(db, view, search), [db, view, search]);
@@ -62,8 +109,12 @@ export function DatabaseView({ page }: { page: Page }) {
   const addView = (type: ViewType) => {
     const v: View = { id: uid('v'), name: t(`db.view.${type}` as TKey), type, filters: [] };
     if (type === 'board') v.groupBy = db.properties.find((p) => p.type === 'status' || p.type === 'select')?.id;
-    if (type === 'calendar') v.dateProp = db.properties.find((p) => p.type === 'date')?.id;
-    save({ ...db, views: [...db.views, v], activeView: v.id });
+    if (type === 'calendar' || type === 'gantt' || type === 'timeline') v.dateProp = db.properties.find((p) => p.type === 'date')?.id;
+    if (type === 'gantt') v.endProp = db.properties.filter((p) => p.type === 'date')[1]?.id;
+    if (type === 'map') v.locProp = db.properties.find((p) => p.type === 'location')?.id;
+    if (type === 'files') v.filesProp = db.properties.find((p) => p.type === 'files')?.id;
+    const d = cur();
+    save({ ...d, views: [...d.views, v], activeView: v.id });
     setMenu('');
   };
 
@@ -86,7 +137,8 @@ export function DatabaseView({ page }: { page: Page }) {
   };
 
   return (
-    <div className="db">
+    <div ref={rootRef} className={'db' + (full ? ' db-full' : '')}>
+      {full && <div className="db-full-head"><b>{page.title || t('page.untitled')}</b><span className="grow" /><button className="btn ghost sm" onClick={() => setFull(false)}><Minimize2 size={15} /> {t('db.exitFull')}</button></div>}
       <div className="db-bar">
         <div className="db-views">
           {db.views.map((v) => {
@@ -122,6 +174,9 @@ export function DatabaseView({ page }: { page: Page }) {
         </button>
         <button ref={refs.props} title={t('db.properties')} className="btn ghost sm" onClick={() => setMenu(menu === 'props' ? '' : 'props')}><EyeOff size={15} /> <span className="hide-xs">{t('db.properties')}</span></button>
         <div className="db-tools">
+          <button className="icon-btn sm" title={`${t('tb.undo')} (Ctrl+Z)`} onClick={undo} disabled={!past.current.length}><Undo2 size={16} /></button>
+          <button className="icon-btn sm" title={`${t('tb.redo')} (Ctrl+Shift+Z)`} onClick={redo} disabled={!future.current.length}><Redo2 size={16} /></button>
+          <button className={'icon-btn sm' + (full ? ' on' : '')} title={full ? t('db.exitFull') : t('db.fullScreen')} onClick={() => setFull(!full)}>{full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
           <button className="icon-btn sm" title={t('db.print')} onClick={() => printTable(page.title || t('page.untitled'), shown, rows, yes)}><Printer size={16} /></button>
           <button ref={refs.export} className="icon-btn sm" title={t('db.export')} onClick={() => setMenu(menu === 'export' ? '' : 'export')}><Download size={16} /></button>
           <button className="icon-btn sm" title={t('db.import')} onClick={doImport}><Upload size={16} /></button>
@@ -226,6 +281,10 @@ export function DatabaseView({ page }: { page: Page }) {
       {view.type === 'gallery' && <GalleryView db={db} rows={rows} openRow={setOpenRow} addRow={addRow} shown={shown} setRow={setRow} setProp={setProp} />}
       {view.type === 'calendar' && <CalendarView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} />}
       {view.type === 'list' && <ListView db={db} rows={rows} openRow={setOpenRow} addRow={addRow} shown={shown} setRow={setRow} setProp={setProp} />}
+      {view.type === 'gantt' && <GanttView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} setView={setView} setRow={setRow} />}
+      {view.type === 'timeline' && <TimelineView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} setView={setView} setRow={setRow} />}
+      {view.type === 'map' && <MapDbView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} setView={setView} setRow={setRow} />}
+      {view.type === 'files' && <FilesView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} setView={setView} setRow={setRow} />}
 
       <div className="db-foot muted small">{t('db.count', { n: rows.length, total: db.rows.length })}{view.type === 'table' && <span className="hide-mobile"> · {t('db.tableHint')}</span>}</div>
 

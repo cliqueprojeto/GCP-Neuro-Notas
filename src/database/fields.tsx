@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   AtSign, Building2, Calculator, Calendar, CheckSquare, CircleDot, Clock, DollarSign, Fingerprint, Gauge, Hash, KeyRound, Link2, ListChecks,
-  MapPin, Phone, Plus, Search, SigmaSquare, Star, Tags, Text, Trash2, Type, X,
+  MapPin, Map, Paperclip, Phone, Plus, Search, SigmaSquare, Star, Tags, Text, Trash2, Type, X,
 } from 'lucide-react';
 import type { CondOp, CondRule, DatabaseData, Property, PropType } from '../lib/types';
 import { useT, useLang, type TKey } from '../i18n';
@@ -34,6 +34,8 @@ export const TYPE_META: Record<PropType, { icon: any; tone: string }> = {
   url: { icon: Link2, tone: 'blue' },
   password: { icon: KeyRound, tone: 'red' },
   created: { icon: Clock, tone: 'gray' },
+  files: { icon: Paperclip, tone: 'teal' },
+  location: { icon: Map, tone: 'teal' },
 };
 
 export function TypeIcon({ type, size = 15 }: { type: PropType; size?: number }) {

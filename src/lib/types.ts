@@ -48,7 +48,9 @@ export type PropType =
   | 'conditional'
   | 'cpf'
   | 'cnpj'
-  | 'cep';
+  | 'cep'
+  | 'files'
+  | 'location';
 
 export type CondOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'empty' | 'notEmpty';
 
@@ -103,7 +105,7 @@ export interface Filter {
   value?: any;
 }
 
-export type ViewType = 'table' | 'board' | 'gallery' | 'calendar' | 'list';
+export type ViewType = 'table' | 'board' | 'gallery' | 'calendar' | 'list' | 'gantt' | 'timeline' | 'map' | 'files';
 
 export interface View {
   id: string;
@@ -111,6 +113,10 @@ export interface View {
   type: ViewType;
   groupBy?: string;
   dateProp?: string;
+  endProp?: string; // Gantt: data de término
+  locProp?: string; // Mapa: campo de local
+  filesProp?: string; // Anexos: campo de arquivos
+  scale?: 'day' | 'week' | 'month'; // Gantt
   sort?: { prop: string; dir: 'asc' | 'desc' } | null;
   filters: Filter[];
   hidden?: string[];
@@ -121,6 +127,9 @@ export type CalcKind =
   | 'none' | 'sum' | 'avg' | 'median' | 'min' | 'max' | 'range'
   | 'count' | 'filled' | 'empty' | 'unique' | 'pctFilled' | 'pctEmpty'
   | 'checked' | 'unchecked' | 'pctChecked' | 'earliest' | 'latest';
+
+export interface FileRef { id: string; name: string; type: string; size: number; data: string; addedAt: number }
+export interface GeoPoint { label: string; lat: number; lon: number }
 
 export interface DatabaseData {
   properties: Property[];

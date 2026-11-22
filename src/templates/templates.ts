@@ -67,7 +67,7 @@ function database(lang: Lang, title: L, icon: string, cols: ColDef[], rows: Reco
   });
   const vs: View[] = (views.length ? views : [{ type: 'table' as ViewType }]).map((v: VDef) => ({
     id: uid('v'),
-    name: v.name?.[lang] || { table: l('Tabela', 'Table', 'Tabla'), board: l('Quadro', 'Board', 'Tablero'), gallery: l('Galeria', 'Gallery', 'Galería'), calendar: l('Calendário', 'Calendar', 'Calendario'), list: l('Lista', 'List', 'Lista') }[v.type || 'table'][lang],
+    name: v.name?.[lang] || { table: l('Tabela', 'Table', 'Tabla'), board: l('Quadro', 'Board', 'Tablero'), gallery: l('Galeria', 'Gallery', 'Galería'), calendar: l('Calendário', 'Calendar', 'Calendario'), list: l('Lista', 'List', 'Lista'), gantt: l('Gantt', 'Gantt', 'Gantt'), timeline: l('Cronograma', 'Timeline', 'Cronograma'), map: l('Mapa', 'Map', 'Mapa'), files: l('Anexos', 'Attachments', 'Adjuntos') }[v.type || 'table'][lang],
     type: v.type || 'table',
     filters: [],
     groupBy: v.groupBy ? ids[v.groupBy] : undefined,

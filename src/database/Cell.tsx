@@ -9,6 +9,10 @@ import { copyText, openUrl } from '../lib/platform';
 import { generatePassword } from '../lib/crypto';
 import { toast } from '../store/ui';
 import { formatDate } from '../lib/doc';
+import type { FileRef, GeoPoint } from '../lib/types';
+import { fileKind, fmtSize, openFile, pickFiles, toFileRef } from '../lib/files';
+import { geocode, osmLink } from '../lib/geo';
+import { MapPin, Paperclip, Search as SearchIcon } from 'lucide-react';
 
 export function OptionPill({ label, color }: { label: string; color: string }) {
   return <span className={`pill c-${color}`}>{label}</span>;
@@ -100,6 +104,10 @@ export function Cell({ prop, row, onChange, onPropChange, readOnly, compact }: C
         </div>
       );
     }
+    case 'files':
+      return <FilesCell value={Array.isArray(v) ? v : []} onChange={onChange} readOnly={readOnly} compact={compact} />;
+    case 'location':
+      return <LocationCell value={v && typeof v === 'object' ? v : null} onChange={onChange} readOnly={readOnly} />;
     case 'created':
       return <span className="cell-text muted">{formatDate(row.createdAt, LOCALES[lang], { dateStyle: 'short', timeStyle: 'short' })}</span>;
     case 'number':
@@ -247,6 +255,82 @@ function OptionEditor({ prop, selected, onToggle, onPropChange }: { prop: Proper
           <button className="menu-item" onClick={create}><Plus size={14} /> {t('db.createOption', { v: q.trim() })}</button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Campo "Arquivos": anexos com ícone contextual; clique abre, ✕ remove, clipe anexa. */
+export function FilesCell({ value, onChange, readOnly, compact }: { value: FileRef[]; onChange: (v: FileRef[]) => void; readOnly?: boolean; compact?: boolean }) {
+  const t = useT();
+  const add = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const files = await pickFiles(true);
+    if (!files.length) return;
+    try {
+      const refs = await Promise.all(files.map(toFileRef));
+      onChange([...value, ...refs]);
+    } catch (err) {
+      toast(String((err as Error).message), 'error');
+    }
+  };
+  return (
+    <div className={'files-cell' + (compact ? ' compact' : '')}>
+      {value.map((f) => {
+        const k = fileKind(f);
+        const I = k.icon;
+        return (
+          <span key={f.id} className="file-chip" title={`${f.name} · ${fmtSize(f.size)}`} onClick={(e) => (e.stopPropagation(), openFile(f))}>
+            {f.type.startsWith('image/') ? <img src={f.data} alt="" /> : <I size={13} style={{ color: k.color }} />}
+            <span className="fc-name">{f.name}</span>
+            {!readOnly && !compact && <button className="fc-x" onClick={(e) => (e.stopPropagation(), onChange(value.filter((x) => x.id !== f.id)))}><X size={11} /></button>}
+          </span>
+        );
+      })}
+      {!readOnly && <button className="icon-btn xs fc-add" onClick={add} title={t('files.attach')}><Paperclip size={13} /></button>}
+    </div>
+  );
+}
+
+/** Campo "Local": busca o endereço no OpenStreetMap e guarda as coordenadas. */
+export function LocationCell({ value, onChange, readOnly }: { value: GeoPoint | null; onChange: (v: GeoPoint | null) => void; readOnly?: boolean }) {
+  const t = useT();
+  const lang = useLang();
+  const ref = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<GeoPoint[]>([]);
+  const [err, setErr] = useState('');
+  const search = async () => {
+    setBusy(true); setErr('');
+    try { setRes(await geocode(q, lang)); } catch { setErr(t('geo.offline')); } finally { setBusy(false); }
+  };
+  return (
+    <div className="loc-cell">
+      <button ref={ref} className="loc-btn" disabled={readOnly && !value} onClick={(e) => { e.stopPropagation(); if (readOnly && value) openUrl(osmLink(value)); else (setOpen(true), setQ(value?.label || '')); }}>
+        <MapPin size={13} /> <span className="ellipsis">{value ? value.label.split(',').slice(0, 2).join(',') : readOnly ? '' : t('geo.pick')}</span>
+      </button>
+      <Popover anchor={ref.current} open={open} onClose={() => setOpen(false)}>
+        <div className="loc-pop" onClick={(e) => e.stopPropagation()}>
+          <div className="row gap-sm">
+            <input className="input" autoFocus placeholder={t('geo.searchPh')} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} />
+            <button className="btn primary sm" onClick={search} disabled={busy}><SearchIcon size={14} /></button>
+          </div>
+          {err && <p className="small" style={{ color: 'var(--danger, #ef4444)' }}>{err}</p>}
+          <div className="loc-results">
+            {res.map((r, i) => (
+              <button key={i} className="menu-item" onClick={() => (onChange(r), setOpen(false))}><MapPin size={14} /> <span className="grow">{r.label}</span></button>
+            ))}
+            {!busy && !res.length && <p className="muted small">{t('geo.hint')}</p>}
+          </div>
+          {value && (
+            <div className="row gap-sm">
+              <button className="btn ghost xs" onClick={() => openUrl(osmLink(value))}><ExternalLink size={13} /> {t('geo.openMap')}</button>
+              <button className="btn ghost xs danger" onClick={() => (onChange(null), setOpen(false))}><X size={13} /> {t('common.remove')}</button>
+            </div>
+          )}
+        </div>
+      </Popover>
     </div>
   );
 }

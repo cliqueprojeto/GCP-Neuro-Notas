@@ -1,3 +1,4 @@
+import { AttachmentView, MapBlockView } from './geoBlocks';
 import { Extension, Node, mergeAttributes, type AnyExtension } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
@@ -103,6 +104,8 @@ export const Raffle = atomBlock(
 );
 export const Form = atomBlock('form', { title: '', description: '', fields: [], responses: [] }, FormView);
 export const Gallery = atomBlock('gallery', { images: [], columns: 3 }, GalleryView);
+export const Attachment = atomBlock('attachment', { files: [], autoPick: false }, AttachmentView);
+export const MapBlock = atomBlock('mapBlock', { a: null, b: null, profile: 'car', height: 340 }, MapBlockView);
 export const MediaRec = atomBlock('mediaRec', { kind: 'audio', src: '', size: null, align: 'center', width: null, caption: '', duration: 0 }, MediaRecView);
 
 const dataAttr = (name: string, def: any = null) => ({
@@ -225,6 +228,8 @@ function base(placeholder?: string): AnyExtension[] {
     Buttons,
     Cards,
     MediaRec,
+    Attachment,
+    MapBlock,
     ...(placeholder !== undefined ? [Placeholder.configure({ placeholder, includeChildren: false }), CharacterCount] : []),
   ];
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import {
   Bold, Italic, AlignLeft, AlignCenter, AlignRight, Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
-  Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle, Palette, LayoutTemplate,
+  Trash2, Triangle, Type, Undo2, Redo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle, Palette, LayoutTemplate,
 } from 'lucide-react';
 import { Presenter, PresentSettings, PresentPage } from './Presenter';
 import { DiagramGallery } from './DiagramGallery';
@@ -204,6 +204,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   const pickRef = useRef<HTMLButtonElement>(null);
   const saveT = useRef<ReturnType<typeof setTimeout>>();
   const history = useRef<CanvasData[]>([]);
+  const future = useRef<CanvasData[]>([]);
 
   useEffect(() => setLocal(initial), [initial]);
 
@@ -263,7 +264,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   }, [page.id, update]);
 
   const commit = (next: CanvasData, immediate = false, snapshot = true) => {
-    if (snapshot) history.current = [...history.current.slice(-40), local];
+    if (snapshot) (history.current = [...history.current.slice(-40), local]), (future.current = []);
     setLocal(next);
     if (saveT.current) clearTimeout(saveT.current);
     const run = () => update(page.id, { canvas: next });
@@ -272,7 +273,11 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   };
   const undo = () => {
     const prev = history.current.pop();
-    if (prev) commit(prev, true, false);
+    if (prev) (future.current = [...future.current.slice(-40), local]), commit(prev, true, false);
+  };
+  const redo = () => {
+    const next = future.current.pop();
+    if (next) (history.current = [...history.current.slice(-40), local]), commit(next, true, false);
   };
   useEffect(() => () => saveT.current && clearTimeout(saveT.current), []);
 
@@ -327,6 +332,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest('input,textarea,[contenteditable="true"]')) return;
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) return e.preventDefault(), redo();
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') return e.preventDefault(), undo();
       if (sel && !edit && (e.key === 'Delete' || e.key === 'Backspace')) return remove(sel), setSel(null);
       const map: Record<string, Tool> = { v: 'select', h: 'hand', p: 'pen', e: 'eraser', c: 'connector', f: 'frame', t: 'text', n: 'note', s: 'shape' };
@@ -994,7 +1000,8 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           <button className="tb" onClick={() => commit({ ...local, view: { ...local.view, zoom: Math.max(0.1, zoom * 0.85) } }, false, false)}><Minus size={16} /></button>
           <span className="zoom-label">{Math.round(zoom * 100)}%</span>
           <button className="tb" onClick={() => commit({ ...local, view: { ...local.view, zoom: Math.min(3, zoom * 1.15) } }, false, false)}><Plus size={16} /></button>
-          <button className="tb" onClick={undo} title={t('tb.undo')} disabled={!history.current.length}><Undo2 size={16} /></button>
+          <button className="tb" onClick={undo} title={`${t('tb.undo')} (Ctrl+Z)`} disabled={!history.current.length}><Undo2 size={16} /></button>
+          <button className="tb" onClick={redo} title={`${t('tb.redo')} (Ctrl+Shift+Z)`} disabled={!future.current.length}><Redo2 size={16} /></button>
           <button ref={bgRef} className={'tb' + (bgOpen ? ' on' : '')} onClick={() => setBgOpen(!bgOpen)} title={t('canvas.bg')}><Palette size={16} /></button>
           <Popover anchor={bgRef.current} open={bgOpen} onClose={() => setBgOpen(false)}>
             <BgPanel bg={local.bg} onChange={(bg) => commit({ ...local, bg }, true)} />
