@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1.1.0 — Android
+
+- App **Android** nativo (APK para arm64, armv7 e x86_64; Android 7.0+), gerado e assinado pelo GitHub Actions.
+- Interface de celular e tablet: barra inferior com Início, Buscar, ＋ Criar, IA e Menu; folha de criação; janelas em folha deslizante; áreas seguras; alvos de toque maiores.
+- Pinça com dois dedos no Quadro e botões de zoom no Grafo.
+- Botão/gesto "voltar" do Android navega dentro do app e fecha painéis.
+- Ações antes visíveis só com o mouse agora aparecem sempre em telas de toque.
+- Exportações, backups e compartilhamentos salvos pelo seletor de arquivos nativo do Android.
+- Aviso de nova versão no celular com download do APK.
+- Correções: assistente inicial e login não estouram mais a largura em telas estreitas.
+
 ## 1.0.0 — primeira versão
 
 Primeira versão pública do **GCP Notas**.

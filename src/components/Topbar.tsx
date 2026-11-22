@@ -27,6 +27,11 @@ export function Topbar({ update, onUpdate }: { update: ReleaseInfo | null; onUpd
       )}
       <button className="icon-btn hide-mobile" onClick={ui.back} disabled={!ui.history.length}><ArrowLeft size={17} /></button>
       <button className="icon-btn hide-mobile" onClick={ui.forward} disabled={!ui.future.length}><ArrowRight size={17} /></button>
+      {!crumbs.length && (
+        <div className="topbar-brand show-mobile-flex">
+          <img src="/logo.svg" alt="" /> <b>GCP Notas</b>
+        </div>
+      )}
       <div className="crumbs">
         {crumbs.map((p, i) => (
           <span key={p.id} className="crumb">

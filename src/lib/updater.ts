@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { APP_VERSION, isTauri, netFetch, platformInfo } from './platform';
+import { APP_VERSION, isDesktop, netFetch, platformInfo } from './platform';
 import { usePrefs } from '../store/prefs';
 import type { UpdateFrequency } from './types';
 
@@ -28,7 +28,8 @@ export function compareVersions(a: string, b: string): number {
 /** Escolhe o instalador certo para este sistema entre os arquivos da release. */
 export function pickAsset(assets: any[], os: string, arch: string, pkg: string) {
   let re: RegExp | null = null;
-  if (os === 'windows') re = /Windows-x64-Setup\.exe$/i;
+  if (os === 'android') re = /Android\.apk$/i;
+  else if (os === 'windows') re = /Windows-x64-Setup\.exe$/i;
   else if (os === 'macos') re = arch === 'aarch64' ? /macOS-arm64\.dmg$/i : /macOS-x86_64\.dmg$/i;
   else if (os === 'linux') re = pkg === 'rpm' ? /\.x86_64\.rpm$/ : pkg === 'arch' ? /\.pkg\.tar\.zst$/ : /_amd64\.deb$/;
   if (!re) return undefined;
@@ -85,7 +86,7 @@ export function isCheckDue(): boolean {
 }
 
 export async function downloadAndInstall(rel: ReleaseInfo, onProgress: (received: number, total: number) => void) {
-  if (!isTauri || !rel.asset) throw new Error('unsupported');
+  if (!isDesktop || !rel.asset) throw new Error('unsupported');
   const { listen } = await import('@tauri-apps/api/event');
   const un = await listen<{ received: number; total: number }>('update-progress', (e) => onProgress(e.payload.received, e.payload.total));
   try {

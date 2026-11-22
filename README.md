@@ -6,12 +6,12 @@
 
 **Notas, bases de dados, relatórios BI, quadro infinito e segundo cérebro com IA — offline, criptografado e nativo.**
 
-Livre · Gratuito · Sem cadastro · Linux, Windows e macOS (Intel e Apple Silicon)
+Livre · Gratuito · Sem cadastro · Android, Linux, Windows e macOS (Intel e Apple Silicon)
 
 [![Última versão](https://img.shields.io/github/v/release/cliqueprojeto/GCP-Notas?label=vers%C3%A3o&color=8b5cf6)](https://github.com/cliqueprojeto/GCP-Notas/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/cliqueprojeto/GCP-Notas/total?color=4cc3f5)](https://github.com/cliqueprojeto/GCP-Notas/releases)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-34d399)](LICENSE)
-![Plataformas](https://img.shields.io/badge/Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-ec4899)
+![Plataformas](https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-ec4899)
 
 **[⬇️ Baixar](#️-download-e-instalação)** · **[✨ Recursos](#-recursos)** · **[🖼️ Telas](#️-telas)** · **[🔐 Segurança](#-segurança-e-privacidade)** · **[📜 Versões](CHANGELOG.md)** · **[❤️ Apoie](#️-apoie-o-projeto)**
 
@@ -112,6 +112,7 @@ Baixe o arquivo do seu sistema na [página da última versão](https://github.co
 
 | Sistema | Arquivo | Como instalar |
 |---|---|---|
+| **Android 7.0+ (celular e tablet)** | `GCP-Notas-x.y.z-Android.apk` | Baixe pelo celular, toque no arquivo, permita *Instalar apps desconhecidos* e confirme. |
 | **Windows 10/11** | `GCP-Notas-x.y.z-Windows-x64-Setup.exe` | Dê dois cliques e avance. Não precisa de administrador; o app abre ao final. |
 | **macOS Apple Silicon (M1, M2, M3, M4…)** | `GCP-Notas-x.y.z-macOS-arm64.dmg` | Abra o `.dmg` e arraste o GCP Notas para **Aplicativos**. |
 | **macOS Intel** | `GCP-Notas-x.y.z-macOS-x86_64.dmg` | Abra o `.dmg` e arraste o GCP Notas para **Aplicativos**. |
@@ -211,9 +212,19 @@ O instalador já traz o núcleo nativo (Rust), o banco de dados SQLite, as fonte
 | `Ctrl/⌘ + Shift + L` | Bloquear o cofre |
 | `Alt + ←/→` | Voltar / avançar |
 
-## 📱 Celulares e tablets
+## 📱 Android (celular e tablet)
 
-O app é construído com **Tauri 2**, que gera aplicativos **nativos** para Android e iOS a partir do mesmo código (não é um PWA). A interface já é responsiva e o núcleo (SQLite + criptografia) é portátil. Veja o roteiro em [docs/MOBILE.md](docs/MOBILE.md).
+App **nativo** (não é PWA), com todos os recursos da versão para computador e uma interface pensada para toque: barra inferior com botão **＋ Criar**, menu em gaveta, janelas em folha deslizante, pinça para zoom no Quadro, gesto "voltar" do Android e arquivos salvos nas pastas do celular. Detalhes em [docs/MOBILE.md](docs/MOBILE.md).
+
+| Início | Criar | Menu | Editor |
+|---|---|---|---|
+| <img src="docs/screenshots/android/03-inicio.png" width="200" alt="Início" /> | <img src="docs/screenshots/android/04-criar.png" width="200" alt="Criar" /> | <img src="docs/screenshots/android/05-menu.png" width="200" alt="Menu" /> | <img src="docs/screenshots/android/06-editor.png" width="200" alt="Editor" /> |
+| **Comando /** | **Relatório BI** | **Kanban** | **Cofre de senhas** |
+| <img src="docs/screenshots/android/07-comandos.png" width="200" alt="Comandos" /> | <img src="docs/screenshots/android/08-relatorio.png" width="200" alt="Relatório" /> | <img src="docs/screenshots/android/09-kanban.png" width="200" alt="Kanban" /> | <img src="docs/screenshots/android/10-senhas.png" width="200" alt="Senhas" /> |
+| **Quadro** | **Grafo** | **Assistente inicial** | **Apoie** |
+| <img src="docs/screenshots/android/11-quadro.png" width="200" alt="Quadro" /> | <img src="docs/screenshots/android/13-grafo.png" width="200" alt="Grafo" /> | <img src="docs/screenshots/android/01-assistente.png" width="200" alt="Assistente" /> | <img src="docs/screenshots/android/15-apoie.png" width="200" alt="Apoie" /> |
+
+O iOS/iPadOS sai do mesmo código e é a próxima etapa.
 
 ## 🛠️ Desenvolvimento
 
@@ -248,7 +259,7 @@ O apoio é voluntário: todas as funções estão disponíveis sem contribuiçã
 
 ## 🇺🇸 English
 
-**GCP Notas** brings together a block editor with databases, a connected second brain with `[[links]]`, backlinks and an interactive graph, and an infinite **whiteboard** to draw and connect ideas — in a native, offline, **encrypted** app for Linux, Windows and macOS (Intel and Apple Silicon).
+**GCP Notas** brings together a block editor with databases, a connected second brain with `[[links]]`, backlinks and an interactive graph, and an infinite **whiteboard** to draw and connect ideas — in a native, offline, **encrypted** app for Android, Linux, Windows and macOS (Intel and Apple Silicon).
 
 - **Editor:** `/` commands, tables, media, galleries, emojis, stickers, **polls**, **raffles**, **forms**, version history.
 - **Databases:** table, Kanban, gallery, calendar and list views, filters, sorting, password fields with generator.
@@ -264,7 +275,7 @@ Download the installer for your system from the [latest release](https://github.
 
 ## 🇪🇸 Español
 
-**GCP Notas** reúne un editor de bloques con bases de datos, un segundo cerebro conectado con `[[enlaces]]`, retroenlaces y grafo interactivo, y una **pizarra** infinita para dibujar y conectar ideas — en una app nativa, sin conexión y **cifrada** para Linux, Windows y macOS (Intel y Apple Silicon).
+**GCP Notas** reúne un editor de bloques con bases de datos, un segundo cerebro conectado con `[[enlaces]]`, retroenlaces y grafo interactivo, y una **pizarra** infinita para dibujar y conectar ideas — en una app nativa, sin conexión y **cifrada** para Android, Linux, Windows y macOS (Intel y Apple Silicon).
 
 - **Editor:** comandos `/`, tablas, medios, galerías, emojis, stickers, **encuestas**, **sorteos**, **formularios**, historial de versiones.
 - **Bases de datos:** vistas de tabla, Kanban, galería, calendario y lista, filtros, orden y contraseñas con generador.

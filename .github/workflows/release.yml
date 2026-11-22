@@ -135,6 +135,80 @@ jobs:
           path: out/*.deb
           retention-days: 3
 
+  android:
+    needs: draft
+    if: needs.draft.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ needs.draft.outputs.version }}
+      NDK_VERSION: 27.2.12479018
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: SDK, NDK e build-tools do Android
+        run: |
+          sdkmanager --install "ndk;${NDK_VERSION}" "build-tools;34.0.0" "platforms;android-34" > /dev/null
+          echo "NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/build-tools/34.0.0" >> "$GITHUB_PATH"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: android
+      - name: Dependências e testes
+        run: |
+          npm ci
+          npm test
+      - name: Gerar projeto Android e ícones
+        run: |
+          npx tauri android init --ci
+          npx tauri icon assets/branding/icon-1024.png
+      - name: Compilar APK (arm64, armv7 e x86_64)
+        run: npx tauri android build --apk --ci --target aarch64 armv7 x86_64
+      - name: Assinar o APK
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          APK=$(find src-tauri/gen/android -name "*-release-unsigned.apk" | head -1)
+          test -n "$APK"
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > release.jks
+          else
+            echo "::warning::Sem chave de assinatura nos segredos: usando uma chave temporária (para atualizar será preciso reinstalar). Veja docs/MOBILE.md."
+            KS_PASS=temporaria123; KEY_PASS=temporaria123; KEY_ALIAS=gcpnotas
+            keytool -genkeypair -v -keystore release.jks -storepass "$KS_PASS" -keypass "$KEY_PASS" -alias "$KEY_ALIAS" \
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=GCP Notas, O=Gestao Cultural Pro, C=BR"
+          fi
+          mkdir -p out
+          zipalign -p -f 4 "$APK" aligned.apk
+          apksigner sign --ks release.jks --ks-pass "pass:$KS_PASS" --key-pass "pass:${KEY_PASS:-$KS_PASS}" --ks-key-alias "$KEY_ALIAS" \
+            --out "out/GCP-Notas-${VERSION}-Android.apk" aligned.apk
+          apksigner verify --print-certs "out/GCP-Notas-${VERSION}-Android.apk" | head -3
+          rm -f release.jks
+          cd out && sha256sum "GCP-Notas-${VERSION}-Android.apk" > "GCP-Notas-${VERSION}-Android.apk.sha256" && ls -la
+      - name: Enviar ao rascunho da release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in 1 2 3 4; do
+            gh release upload "${{ needs.draft.outputs.tag }}" --clobber out/* && break
+            test "$attempt" -lt 4; sleep $((attempt * 15))
+          done
+
   arch:
     needs: [draft, build]
     if: needs.draft.outputs.skip != 'true'
@@ -159,7 +233,7 @@ jobs:
         run: gh release upload "${{ needs.draft.outputs.tag }}" --clobber dist/*.pkg.tar.zst dist/*.pkg.tar.zst.sha256
 
   publish:
-    needs: [draft, build, arch]
+    needs: [draft, build, arch, android]
     if: needs.draft.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     steps:
@@ -176,7 +250,8 @@ jobs:
           gh release download "$TAG" --dir release --pattern '*'
           rm -f release/SHA256SUMS.txt
           for f in "GCP-Notas-$V-Windows-x64-Setup.exe" "GCP-Notas-$V-macOS-arm64.dmg" "GCP-Notas-$V-macOS-x86_64.dmg" \
-                   "gcp-notas_${V}_amd64.deb" "gcp-notas-$V-1.x86_64.rpm" "gcp-notas-bin-$V-1-x86_64.pkg.tar.zst"; do
+                   "gcp-notas_${V}_amd64.deb" "gcp-notas-$V-1.x86_64.rpm" "gcp-notas-bin-$V-1-x86_64.pkg.tar.zst" \
+                   "GCP-Notas-$V-Android.apk"; do
             test -s "release/$f"
             (cd release && sha256sum -c "$f.sha256")
           done

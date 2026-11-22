@@ -14,6 +14,7 @@ import { Settings } from './components/settings/Settings';
 import { About, Support, Tasks, Templates, Trash } from './components/Views';
 import { AIPanel, CommandPalette, Toasts, UpdateDialog } from './components/Overlays';
 import { Spinner } from './components/ui';
+import { MobileNav } from './components/MobileNav';
 import { checkForUpdate, isCheckDue, type ReleaseInfo } from './lib/updater';
 import { autoBackupIfDue } from './cloud/cloud';
 
@@ -126,6 +127,7 @@ function Workspace() {
           {route.name === 'about' && <About />}
         </div>
       </main>
+      <MobileNav />
       <AIPanel />
       <CommandPalette />
       <Toasts />

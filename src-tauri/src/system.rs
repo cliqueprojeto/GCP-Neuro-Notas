@@ -61,7 +61,7 @@ pub fn platform_info(app: AppHandle) -> PlatformInfo {
 /// Descobre por qual gerenciador o app foi instalado (deb, rpm ou pacman).
 fn linux_package_kind() -> String {
     if std::env::consts::OS != "linux" {
-        return String::new();
+        return String::new(); // Android, Windows e macOS não usam gerenciador de pacotes
     }
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
     let ok = |cmd: &str, args: &[&str]| {

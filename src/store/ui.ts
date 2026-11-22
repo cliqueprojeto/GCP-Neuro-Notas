@@ -36,6 +36,34 @@ interface UiState {
 
 let tid = 1;
 
+function pushHistory() {
+  try {
+    window.history.pushState({ gcp: true }, '');
+  } catch {
+    /* ignora */
+  }
+}
+
+function internalBack() {
+  const s = useUi.getState();
+  const h = s.history;
+  if (!h.length) return;
+  useUi.setState({ route: h[h.length - 1], history: h.slice(0, -1), future: [s.route, ...s.future], mobileNav: false });
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    const s = useUi.getState();
+    // Primeiro fecha painéis abertos; depois navega para a tela anterior.
+    if (s.palette || s.aiPanel || s.mobileNav) {
+      useUi.setState({ palette: false, aiPanel: false, mobileNav: false });
+      if (s.history.length) pushHistory();
+      return;
+    }
+    internalBack();
+  });
+}
+
 export const useUi = create<UiState>((set, get) => ({
   route: { name: 'home' },
   history: [],
@@ -46,13 +74,15 @@ export const useUi = create<UiState>((set, get) => ({
   toasts: [],
   go(r) {
     const cur = get().route;
-    if (JSON.stringify(cur) === JSON.stringify(r)) return;
+    if (JSON.stringify(cur) === JSON.stringify(r)) return set({ mobileNav: false });
     set({ route: r, history: [...get().history.slice(-50), cur], future: [], mobileNav: false });
+    pushHistory();
   },
   back() {
-    const h = get().history;
-    if (!h.length) return;
-    set({ route: h[h.length - 1], history: h.slice(0, -1), future: [get().route, ...get().future] });
+    if (!get().history.length) return;
+    // Mantém o histórico do sistema em sincronia (botão/gesto "voltar" do Android).
+    if (window.history.state?.gcp) window.history.back();
+    else internalBack();
   },
   forward() {
     const f = get().future;

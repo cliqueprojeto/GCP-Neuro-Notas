@@ -17,7 +17,7 @@ import { activeProvider, LANG_NAMES } from '../ai/assist';
 import type { ChatMessage } from '../ai/providers';
 import type { Page } from '../lib/types';
 import { downloadAndInstall, RELEASES_URL, type ReleaseInfo } from '../lib/updater';
-import { isTauri, openUrl } from '../lib/platform';
+import { isDesktop, openUrl } from '../lib/platform';
 import { THEMES } from '../lib/themes';
 
 // --------------------------------------------------------- paleta de comandos
@@ -259,12 +259,12 @@ export function UpdateDialog({ release, onClose }: { release: ReleaseInfo; onClo
           <button className="btn ghost" onClick={() => (prefs.set({ skippedVersion: release.version }), onClose())}>{t('update.skip')}</button>
           <div className="grow" />
           <button className="btn ghost" onClick={() => openUrl(release.url || RELEASES_URL)}><ExternalLink size={14} /> GitHub</button>
-          {isTauri && release.asset ? (
+          {isDesktop && release.asset ? (
             <button className="btn primary" onClick={install} disabled={!!progress || done}>
               {progress ? <Loader2 size={15} className="spin" /> : <Download size={15} />} {done ? t('update.installing') : progress ? `${pct}%` : t('update.install')}
             </button>
           ) : (
-            <button className="btn primary" onClick={() => openUrl(release.url || RELEASES_URL)}>{t('update.download')}</button>
+            <button className="btn primary" onClick={() => openUrl(release.asset?.url || release.url || RELEASES_URL)}>{t('update.download')}</button>
           )}
         </>
       }>

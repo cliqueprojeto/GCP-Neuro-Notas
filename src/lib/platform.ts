@@ -5,6 +5,10 @@
 import { invoke } from '@tauri-apps/api/core';
 
 export const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+/** Celular/tablet (Android ou iOS), no app nativo ou no navegador. */
+export const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+/** App instalado em computador (onde existe o atualizador interno). */
+export const isDesktop = isTauri && !isMobile;
 
 export interface DbRecord {
   id: string;
@@ -133,7 +137,11 @@ export async function saveTextFile(defaultName: string, contents: string, filter
     const { save } = await import('@tauri-apps/plugin-dialog');
     const path = await save({ defaultPath: defaultName, filters });
     if (!path) return null;
-    await invoke('write_text_file', { path, contents });
+    if (isMobile) {
+      // No Android o caminho escolhido é um content:// — gravado pelo plugin de arquivos.
+      const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+      await writeTextFile(path, contents);
+    } else await invoke('write_text_file', { path, contents });
     return path;
   }
   const blob = new Blob([contents], { type: 'application/octet-stream' });
@@ -150,7 +158,13 @@ export async function saveBinaryFile(defaultName: string, base64: string, filter
     const { save } = await import('@tauri-apps/plugin-dialog');
     const path = await save({ defaultPath: defaultName, filters });
     if (!path) return null;
-    await invoke('write_binary_file', { path, base64Data: base64 });
+    if (isMobile) {
+      const { writeFile } = await import('@tauri-apps/plugin-fs');
+      const bin = atob(base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      await writeFile(path, bytes);
+    } else await invoke('write_binary_file', { path, base64Data: base64 });
     return path;
   }
   const a = document.createElement('a');
@@ -173,8 +187,9 @@ export async function pickTextFiles(filters: FileFilter[], multiple = false): Pr
     if (!sel) return [];
     const paths = Array.isArray(sel) ? sel : [sel];
     const out: PickedFile[] = [];
+    const fs = isMobile ? await import('@tauri-apps/plugin-fs') : null;
     for (const p of paths) {
-      const text = await invoke<string>('read_text_file', { path: p });
+      const text = fs ? await fs.readTextFile(p) : await invoke<string>('read_text_file', { path: p });
       out.push({ name: p.split(/[\\/]/).pop() || p, text });
     }
     return out;
@@ -246,7 +261,7 @@ export const APP_VERSION = __APP_VERSION__;
 export async function platformInfo(): Promise<PlatformInfo> {
   if (isTauri) return invoke<PlatformInfo>('platform_info');
   const ua = navigator.userAgent;
-  const os = /Windows/.test(ua) ? 'windows' : /Mac/.test(ua) ? 'macos' : /Android/.test(ua) ? 'android' : 'linux';
+  const os = /Android/.test(ua) ? 'android' : /iPhone|iPad/.test(ua) ? 'ios' : /Windows/.test(ua) ? 'windows' : /Mac/.test(ua) ? 'macos' : 'linux';
   return { os, arch: 'x86_64', package: '', version: APP_VERSION, data_dir: 'IndexedDB' };
 }
 

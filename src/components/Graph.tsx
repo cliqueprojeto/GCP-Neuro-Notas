@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Network, Search, Sparkles } from 'lucide-react';
+import { Maximize, Minus, Network, Plus, Search, Sparkles } from 'lucide-react';
 import { useT } from '../i18n';
 import { useVault, livePages } from '../store/vault';
 import { useUi } from '../store/ui';
@@ -223,6 +223,11 @@ export function Graph() {
         />
         {!nodes.length && <div className="canvas-hint">{t('graph.empty')}</div>}
         <div className="graph-help muted small">{t('graph.help')}</div>
+        <div className="canvas-zoom graph-zoom">
+          <button className="tb" onClick={() => (state.current.view = { x: 0, y: 0, k: 1 })}><Maximize size={16} /></button>
+          <button className="tb" onClick={() => (state.current.view = { ...state.current.view, k: Math.max(0.15, state.current.view.k * 0.8) })}><Minus size={16} /></button>
+          <button className="tb" onClick={() => (state.current.view = { ...state.current.view, k: Math.min(4, state.current.view.k * 1.25) })}><Plus size={16} /></button>
+        </div>
       </div>
     </div>
   );

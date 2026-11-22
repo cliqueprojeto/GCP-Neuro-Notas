@@ -9,6 +9,7 @@ export const en: Dict = {
   'nav.expand': 'Show sidebar', 'nav.favorites': 'Favorites', 'nav.graph': 'Idea graph', 'nav.home': 'Home', 'nav.lock': 'Lock now',
   'nav.new': 'New', 'nav.newPage': 'New page', 'nav.pages': 'Pages', 'nav.search': 'Search or run…', 'nav.settings': 'Settings',
   'nav.support': 'Support the project', 'nav.tasks': 'Tasks', 'nav.templates': 'Templates', 'nav.today': "Today's journal", 'nav.trash': 'Trash',
+  'mnav.search': 'Search', 'mnav.ai': 'AI', 'mnav.menu': 'Menu',
   'status.encrypted': 'Encrypted', 'status.saving': 'Saving…',
   'new.page': 'Page', 'new.page.hint': 'Document with full editor', 'new.database': 'Database', 'new.database.hint': 'Table, board, gallery, calendar',
   'new.report': 'BI report', 'new.report.hint': 'Charts from your databases', 'new.canvas': 'Whiteboard', 'new.canvas.hint': 'Draw and connect ideas', 'new.fromTemplate': 'From a template…',

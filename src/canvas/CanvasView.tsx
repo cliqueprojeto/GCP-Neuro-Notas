@@ -54,6 +54,61 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
 
   useEffect(() => setLocal(initial), [initial]);
 
+  // Pinça com dois dedos (celular/tablet): zoom em torno do ponto entre os dedos.
+  const pinch = useRef<{ d0: number; z0: number; v0: { x: number; y: number }; m0: { x: number; y: number } } | null>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const pts = new Map<number, { x: number; y: number }>();
+    const dist = () => {
+      const [a, b] = [...pts.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    };
+    const mid = () => {
+      const [a, b] = [...pts.values()];
+      return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        setDraft(null);
+        setLocal((l) => {
+          pinch.current = { d0: dist(), z0: l.view.zoom, v0: { x: l.view.x, y: l.view.y }, m0: mid() };
+          return l;
+        });
+      }
+    };
+    const move = (e: PointerEvent) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const p = pinch.current;
+      if (!p || pts.size < 2) return;
+      const r = el.getBoundingClientRect();
+      const m = mid();
+      const nz = Math.min(3, Math.max(0.1, (p.z0 * dist()) / p.d0));
+      const wx = (p.m0.x - r.left - p.v0.x) / p.z0, wy = (p.m0.y - r.top - p.v0.y) / p.z0;
+      setLocal((l) => ({ ...l, view: { zoom: nz, x: m.x - r.left - wx * nz, y: m.y - r.top - wy * nz } }));
+    };
+    const up = (e: PointerEvent) => {
+      if (!pts.delete(e.pointerId)) return;
+      if (pts.size < 2 && pinch.current) {
+        pinch.current = null;
+        setLocal((l) => (update(page.id, { canvas: l }), l));
+      }
+    };
+    el.addEventListener('pointerdown', down, true);
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', up, true);
+    return () => {
+      el.removeEventListener('pointerdown', down, true);
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true);
+      window.removeEventListener('pointercancel', up, true);
+    };
+  }, [page.id, update]);
+
   const commit = (next: CanvasData, immediate = false, snapshot = true) => {
     if (snapshot) history.current = [...history.current.slice(-40), local];
     setLocal(next);
@@ -135,6 +190,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
       setDraft({ kind: 'pen', pts: [p.x, p.y] });
       track(
         (ev) => {
+          if (pinch.current) return;
           const q2 = toWorld(ev.clientX, ev.clientY);
           setDraft((d) => (d && d.kind === 'pen' ? { kind: 'pen', pts: [...d.pts, q2.x, q2.y] } : d));
         },
@@ -195,7 +251,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     setEdit(null);
     const sx = e.clientX, sy = e.clientY, ox = vx, oy = vy;
     track(
-      (ev) => setLocal((l) => ({ ...l, view: { ...l.view, x: ox + ev.clientX - sx, y: oy + ev.clientY - sy } })),
+      (ev) => !pinch.current && setLocal((l) => ({ ...l, view: { ...l.view, x: ox + ev.clientX - sx, y: oy + ev.clientY - sy } })),
       () => setLocal((l) => (commit(l, false, false), l)),
     );
   };

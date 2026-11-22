@@ -9,6 +9,7 @@ export const pt = {
   'nav.expand': 'Mostrar barra lateral', 'nav.favorites': 'Favoritos', 'nav.graph': 'Grafo de ideias', 'nav.home': 'Início', 'nav.lock': 'Bloquear agora',
   'nav.new': 'Novo', 'nav.newPage': 'Nova página', 'nav.pages': 'Páginas', 'nav.search': 'Buscar ou executar…', 'nav.settings': 'Configurações',
   'nav.support': 'Apoie o projeto', 'nav.tasks': 'Tarefas', 'nav.templates': 'Templates', 'nav.today': 'Diário de hoje', 'nav.trash': 'Lixeira',
+  'mnav.search': 'Buscar', 'mnav.ai': 'IA', 'mnav.menu': 'Menu',
   'status.encrypted': 'Criptografado', 'status.saving': 'Salvando…',
   'new.page': 'Página', 'new.page.hint': 'Documento com editor completo', 'new.database': 'Base de dados', 'new.database.hint': 'Tabela, quadro, galeria, agenda',
   'new.report': 'Relatório BI', 'new.report.hint': 'Gráficos a partir das bases', 'new.canvas': 'Quadro', 'new.canvas.hint': 'Desenhe e conecte ideias', 'new.fromTemplate': 'A partir de um template…',
