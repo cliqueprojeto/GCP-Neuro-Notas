@@ -121,6 +121,7 @@ export interface View {
   filters: Filter[];
   hidden?: string[];
   calcs?: Record<string, CalcKind>; // cálculo do rodapé por coluna
+  hiddenTab?: boolean; // visão oculta da barra de abas
 }
 
 export type CalcKind =
@@ -136,6 +137,7 @@ export interface DatabaseData {
   rows: Row[];
   views: View[];
   activeView: string;
+  defaultView?: string; // visão aberta ao entrar na base
 }
 
 /** Modelo criado pelo usuário (estrutura de tabela ou documento). */

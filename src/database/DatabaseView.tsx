@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowDownAZ, ArrowDownUp, ArrowDownZA, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, BookmarkPlus, CalendarDays, ChevronLeft, ChevronRight,
   Columns3, Copy, CopyPlus, Download, EyeOff, FileDown, FileSpreadsheet, Filter as FilterIcon, FilterX, GalleryVerticalEnd, GripVertical, LayoutList,
-  Maximize2, Minimize2, GanttChart, CalendarRange, Map as MapIcon, Paperclip, Undo2, Redo2, MoreHorizontal, Plus, Printer, Search, Settings2, Table2, Trash2, Upload, X,
+  Maximize2, Minimize2, Star, Check, LayoutGrid, GanttChart, CalendarRange, Map as MapIcon, Paperclip, Undo2, Redo2, MoreHorizontal, Plus, Printer, Search, Settings2, Table2, Trash2, Upload, X,
 } from 'lucide-react';
 import type { CalcKind, DatabaseData, Filter, Page, Property, PropType, Row, View, ViewType } from '../lib/types';
 import { useT, useLang, LOCALES, type TKey } from '../i18n';
@@ -106,7 +106,18 @@ export function DatabaseView({ page }: { page: Page }) {
   const shown = db.properties.filter((p) => !(view.hidden || []).includes(p.id));
   const yes = t('common.yes');
 
-  const addView = (type: ViewType) => {
+  const addView = (type: ViewType, force = false) => {
+    const d0 = cur();
+    const same = d0.views.filter((x) => x.type === type);
+    if (same.length && !force) {
+      // tipo já existe: o clique liga/desliga a exibição em vez de duplicar
+      const allHidden = same.every((x) => x.hiddenTab);
+      const views = d0.views.map((x) => (x.type === type ? { ...x, hiddenTab: !allHidden } : x));
+      const visible = views.filter((x) => !x.hiddenTab);
+      if (!visible.length) return toast(t('db.views.keepOne'), 'info');
+      const active = views.find((x) => x.id === d0.activeView && !x.hiddenTab) ? d0.activeView : allHidden ? same[0].id : visible[0].id;
+      return save({ ...d0, views, activeView: active });
+    }
     const v: View = { id: uid('v'), name: t(`db.view.${type}` as TKey), type, filters: [] };
     if (type === 'board') v.groupBy = db.properties.find((p) => p.type === 'status' || p.type === 'select')?.id;
     if (type === 'calendar' || type === 'gantt' || type === 'timeline') v.dateProp = db.properties.find((p) => p.type === 'date')?.id;
@@ -115,8 +126,37 @@ export function DatabaseView({ page }: { page: Page }) {
     if (type === 'files') v.filesProp = db.properties.find((p) => p.type === 'files')?.id;
     const d = cur();
     save({ ...d, views: [...d.views, v], activeView: v.id });
-    setMenu('');
   };
+  const moveView = (id: string, dir: -1 | 1) => {
+    const d = cur();
+    const views = [...d.views];
+    const i = views.findIndex((x) => x.id === id), j = i + dir;
+    if (i < 0 || j < 0 || j >= views.length) return;
+    [views[i], views[j]] = [views[j], views[i]];
+    save({ ...d, views });
+  };
+  const toggleView = (id: string) => {
+    const d = cur();
+    const views = d.views.map((x) => (x.id === id ? { ...x, hiddenTab: !x.hiddenTab } : x));
+    const visible = views.filter((x) => !x.hiddenTab);
+    if (!visible.length) return toast(t('db.views.keepOne'), 'info');
+    save({ ...d, views, activeView: visible.some((x) => x.id === d.activeView) ? d.activeView : visible[0].id, defaultView: d.defaultView && visible.some((x) => x.id === d.defaultView) ? d.defaultView : undefined });
+  };
+  const removeView = (id: string) => {
+    const d = cur();
+    if (d.views.length < 2) return;
+    const views = d.views.filter((x) => x.id !== id);
+    const visible = views.filter((x) => !x.hiddenTab);
+    if (!visible.length) views[0] = { ...views[0], hiddenTab: false };
+    save({ ...d, views, activeView: d.activeView === id ? (visible[0] || views[0]).id : d.activeView, defaultView: d.defaultView === id ? undefined : d.defaultView });
+  };
+  const renameView = (id: string, name: string) => { const d = cur(); save({ ...d, views: d.views.map((x) => (x.id === id ? { ...x, name } : x)) }); };
+  const dragView = useRef<string | null>(null);
+  // ao abrir a base, entra pela visão padrão
+  useEffect(() => {
+    const d = cur();
+    if (d.defaultView && d.defaultView !== d.activeView && d.views.some((x) => x.id === d.defaultView && !x.hiddenTab)) save({ ...d, activeView: d.defaultView }, false);
+  }, [page.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async (fn: () => Promise<unknown> | unknown) => {
     setMenu('');
@@ -141,23 +181,54 @@ export function DatabaseView({ page }: { page: Page }) {
       {full && <div className="db-full-head"><b>{page.title || t('page.untitled')}</b><span className="grow" /><button className="btn ghost sm" onClick={() => setFull(false)}><Minimize2 size={15} /> {t('db.exitFull')}</button></div>}
       <div className="db-bar">
         <div className="db-views">
-          {db.views.map((v) => {
+          {db.views.filter((v) => !v.hiddenTab || v.id === view.id).map((v) => {
             const Icon = VIEW_ICONS[v.type];
             return (
-              <button key={v.id} className={'db-view-tab' + (v.id === view.id ? ' on' : '')} onClick={() => save({ ...db, activeView: v.id })}>
-                <Icon size={15} /> {v.name}
+              <button key={v.id} className={'db-view-tab' + (v.id === view.id ? ' on' : '') + (v.hiddenTab ? ' ghosted' : '')} onClick={() => save({ ...cur(), activeView: v.id }, false)}
+                draggable onDragStart={() => (dragView.current = v.id)} onDragOver={(e) => e.preventDefault()}
+                onDrop={() => { const from = dragView.current; dragView.current = null; if (!from || from === v.id) return; const d = cur(); const views = [...d.views]; const a = views.findIndex((x) => x.id === from); const [it] = views.splice(a, 1); views.splice(views.findIndex((x) => x.id === v.id), 0, it); save({ ...d, views }); }}
+                title={db.defaultView === v.id ? t('db.views.isDefault') : undefined}>
+                <Icon size={15} /> {v.name}{db.defaultView === v.id && <Star size={11} className="dv-star" />}
               </button>
             );
           })}
-          <button ref={refs.add} className="icon-btn sm" onClick={() => setMenu(menu === 'add' ? '' : 'add')} title={t('db.addView')}><Plus size={16} /></button>
+          <button ref={refs.add} className={'icon-btn sm' + (menu === 'add' ? ' on' : '')} onClick={() => setMenu(menu === 'add' ? '' : 'add')} title={t('db.views.manage')}><LayoutGrid size={15} /></button>
           <Popover anchor={refs.add.current} open={menu === 'add'} onClose={() => setMenu('')}>
-            <div className="menu">
-              {(Object.keys(VIEW_ICONS) as ViewType[]).map((ty) => {
-                const Icon = VIEW_ICONS[ty];
-                return (
-                  <button key={ty} className="menu-item" onClick={() => addView(ty)}><Icon size={16} /> {t(`db.view.${ty}` as TKey)}</button>
-                );
-              })}
+            <div className="views-manager">
+              <div className="section-label">{t('db.views.show')}</div>
+              <div className="vm-types">
+                {(Object.keys(VIEW_ICONS) as ViewType[]).map((ty) => {
+                  const Icon = VIEW_ICONS[ty];
+                  const same = db.views.filter((x) => x.type === ty);
+                  const on = same.some((x) => !x.hiddenTab);
+                  return (
+                    <button key={ty} className={'vm-type' + (on ? ' on' : '')} onClick={() => addView(ty)} title={on ? t('db.views.hideType') : t('db.views.showType')}>
+                      <span className="vm-check">{on && <Check size={12} />}</span><Icon size={16} /> <span>{t(`db.view.${ty}` as TKey)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="section-label">{t('db.views.order')}</div>
+              <div className="vm-list">
+                {db.views.map((v, i) => {
+                  const Icon = VIEW_ICONS[v.type];
+                  return (
+                    <div key={v.id} className={'vm-row' + (v.hiddenTab ? ' off' : '')} draggable onDragStart={() => (dragView.current = v.id)} onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => { const from = dragView.current; dragView.current = null; if (!from || from === v.id) return; const d = cur(); const views = [...d.views]; const a = views.findIndex((x) => x.id === from); const [it] = views.splice(a, 1); views.splice(views.findIndex((x) => x.id === v.id), 0, it); save({ ...d, views }); }}>
+                      <GripVertical size={14} className="vm-grip" />
+                      <input type="checkbox" checked={!v.hiddenTab} onChange={() => toggleView(v.id)} title={t('db.views.visible')} />
+                      <Icon size={15} />
+                      <input className="vm-name" value={v.name} onChange={(e) => renameView(v.id, e.target.value)} />
+                      <button className={'icon-btn xs' + (db.defaultView === v.id ? ' on' : '')} title={t('db.views.setDefault')} onClick={() => save({ ...cur(), defaultView: db.defaultView === v.id ? undefined : v.id, views: cur().views.map((x) => (x.id === v.id ? { ...x, hiddenTab: false } : x)) })}><Star size={13} fill={db.defaultView === v.id ? 'currentColor' : 'none'} /></button>
+                      <button className="icon-btn xs" disabled={i === 0} onClick={() => moveView(v.id, -1)}><ArrowUp size={13} /></button>
+                      <button className="icon-btn xs" disabled={i === db.views.length - 1} onClick={() => moveView(v.id, 1)}><ArrowDown size={13} /></button>
+                      <button className="icon-btn xs" title={t('db.duplicateView')} onClick={() => { const d = cur(); const idx = d.views.findIndex((x) => x.id === v.id); const views = [...d.views]; views.splice(idx + 1, 0, { ...v, id: uid('v'), name: v.name + ' 2', hiddenTab: false }); save({ ...d, views }); }}><Copy size={13} /></button>
+                      <button className="icon-btn xs danger" disabled={db.views.length < 2} title={t('db.deleteView')} onClick={() => removeView(v.id)}><Trash2 size={13} /></button>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="muted small">{t('db.views.hint')}</p>
             </div>
           </Popover>
         </div>

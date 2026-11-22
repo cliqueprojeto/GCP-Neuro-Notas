@@ -935,3 +935,43 @@ tfoot:hover .calc-cell.empty .calc-hint, .calc-cell.empty:focus .calc-hint { opa
 .fcard-prev { overflow: hidden; }
 .fcard-prev img { position: absolute; inset: 0; }
 .map-places .swap { position: static; transform: none; align-self: flex-start; margin: -2px 0 -2px 26px; height: 24px; }
+/* ===== Gerenciador de visões ===== */
+.views-manager { width: 400px; max-width: calc(100vw - 24px); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.vm-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.vm-type { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; font-size: 12.5px; text-align: left; }
+.vm-type span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vm-type.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+.vm-check { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--border); display: grid; place-items: center; flex-shrink: 0; }
+.vm-type.on .vm-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+.vm-list { display: flex; flex-direction: column; gap: 3px; max-height: 300px; overflow: auto; }
+.vm-row { display: flex; align-items: center; gap: 5px; padding: 4px 4px 4px 2px; border-radius: 9px; border: 1px solid transparent; }
+.vm-row:hover { background: var(--panel-2); border-color: var(--border); }
+.vm-row.off { opacity: .55; }
+.vm-grip { color: var(--muted); cursor: grab; flex-shrink: 0; }
+.vm-name { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; padding: 4px 6px; border-radius: 6px; }
+.vm-name:focus { outline: 1px solid var(--accent); background: var(--bg); }
+.db-view-tab.ghosted { opacity: .6; font-style: italic; }
+.dv-star { color: #f59e0b; margin-left: 2px; }
+/* ===== Editor de tópicos dos diagramas ===== */
+.diag-items-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.seg.xs button { font-size: 11px; padding: 3px 8px; display: inline-flex; align-items: center; gap: 4px; }
+.outline-ed { border: 1px solid var(--border); border-radius: 12px; background: var(--bg); padding: 6px; max-height: 280px; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
+.ol-row { position: relative; display: flex; align-items: center; gap: 8px; border-radius: 9px; padding-right: 4px; transition: background .12s; }
+.ol-row:focus-within { background: color-mix(in srgb, var(--oc) 12%, transparent); }
+.ol-row:hover .ol-tools, .ol-row:focus-within .ol-tools { opacity: 1; }
+.ol-guide { position: absolute; top: -2px; bottom: -2px; width: 2px; border-radius: 2px; background: color-mix(in srgb, var(--oc) 45%, transparent); }
+.ol-dot { width: 9px; height: 9px; border-radius: 99px; background: var(--oc); flex-shrink: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--oc) 22%, transparent); }
+.ol-dot.big { width: 12px; height: 12px; border-radius: 4px; }
+.ol-row.center .ol-dot { width: 16px; height: 16px; border-radius: 99px; background: radial-gradient(circle at 35% 35%, #fff8, transparent 60%), var(--oc); }
+.ol-input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; padding: 7px 2px; outline: none; }
+.ol-row.center .ol-input { font-weight: 700; font-size: 14.5px; }
+.ol-row.lvl-1 .ol-input { font-weight: 600; }
+.ol-row.lvl-2 .ol-input, .ol-row.lvl-3 .ol-input, .ol-row.lvl-4 .ol-input { font-size: 13px; color: color-mix(in srgb, var(--text) 85%, var(--muted)); }
+.ol-tools { display: flex; gap: 1px; opacity: 0; transition: opacity .12s; }
+.ol-tools button { border: 0; background: none; color: var(--muted); padding: 3px; border-radius: 6px; cursor: pointer; display: grid; }
+.ol-tools button:hover:not(:disabled) { background: var(--panel-2); color: var(--text); }
+.ol-tools button:disabled { opacity: .3; cursor: default; }
+.ol-add { display: flex; align-items: center; gap: 6px; padding: 4px 2px 2px; flex-wrap: wrap; }
+.ol-keys { font-size: 10.5px; text-align: right; }
+@media (hover: none) { .ol-tools { opacity: 1; } }
+.diag-preview { position: sticky; top: 0; z-index: 3; background: var(--panel); box-shadow: 0 8px 16px -10px rgba(0, 0, 0, .35); }
