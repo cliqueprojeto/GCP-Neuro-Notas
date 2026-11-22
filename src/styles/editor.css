@@ -241,17 +241,18 @@ tr:hover .row-open { display: grid; }
 
 /* -------------------------------------------------------------- quadro */
 .canvas-shell { position: absolute; inset: 0; display: flex; flex-direction: column; }
-.canvas-area { position: relative; flex: 1; overflow: hidden; background-color: var(--bg); background-image: radial-gradient(circle, color-mix(in srgb, var(--muted) 35%, transparent) 1px, transparent 1.2px); touch-action: none; cursor: default; }
+.canvas-area { position: relative; flex: 1; overflow: hidden; background-color: var(--bg); touch-action: none; cursor: default; color: var(--text); }
+.canvas-photo, .canvas-dim, .canvas-backdrop { position: absolute; inset: 0; pointer-events: none; }
 .canvas-area.tool-hand { cursor: grab; } .canvas-area.tool-pen { cursor: crosshair; } .canvas-area.tool-eraser { cursor: cell; }
 .canvas-area.tool-frame, .canvas-area.tool-text, .canvas-area.tool-note, .canvas-area.tool-shape { cursor: copy; }
 .canvas-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .canvas-hint { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); color: var(--muted); text-align: center; max-width: 420px; pointer-events: none; line-height: 1.6; }
 .canvas-edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 .canvas-edges .edge { pointer-events: stroke; cursor: pointer; }
-.canvas-edges .edge-line { stroke: var(--edge); stroke-width: 2; fill: none; }
+.canvas-edges .edge-line { stroke: var(--edge); stroke-width: var(--ew, 2px); fill: none; }
 .canvas-edges .edge-hit { stroke: transparent; stroke-width: 14; fill: none; }
-.canvas-edges .edge.on .edge-line { stroke: var(--accent); stroke-width: 3; }
-.canvas-edges text { fill: var(--text); font-size: 13px; font-weight: 600; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+.canvas-edges .edge.on .edge-line { stroke: var(--accent); stroke-width: calc(var(--ew, 2px) + 1px); }
+.canvas-edges text { fill: var(--text); font-size: 13px; font-weight: 600; paint-order: stroke; stroke: var(--canvas-bg, var(--bg)); stroke-width: 4px; }
 .edge-draft { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
 .frame-draft { fill: var(--accent-soft); stroke: var(--accent); stroke-dasharray: 6 4; }
 .cnode { position: absolute; border-radius: 12px; user-select: none; }

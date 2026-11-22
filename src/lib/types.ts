@@ -253,7 +253,9 @@ export interface CanvasNode {
   pageId?: string;
   src?: string;
   color: string;
-  shape?: 'rect' | 'ellipse' | 'diamond' | 'triangle';
+  shape?: 'rect' | 'ellipse' | 'diamond' | 'triangle' | 'poly';
+  poly?: string; // pontos do polígono (0–100) quando shape = 'poly'
+  corner?: 'square' | 'rounded' | 'pill';
   points?: number[]; // traço livre (x,y relativos ao nó)
   stroke?: number;
   fontSize?: number;
@@ -283,11 +285,26 @@ export interface CanvasEdge {
   label?: string;
   style?: 'straight' | 'elbow' | 'curve';
   color?: string;
+  dash?: EdgeDash;
+  width?: number;
+}
+
+export type EdgeDash = 'solid' | 'dashed' | 'dotted' | 'dashdot' | 'zigzag' | 'wave' | 'double' | 'glow';
+export interface CanvasBg {
+  theme?: string;
+  pattern?: 'dots' | 'grid' | 'lines' | 'none';
+  image?: string;
+  fit?: 'cover' | 'contain' | 'tile';
+  dim?: number;
+  imageDark?: boolean;
+  focusX?: number;
+  focusY?: number;
 }
 
 export interface CanvasData {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   view: { x: number; y: number; zoom: number };
+  bg?: CanvasBg;
   present?: { transition: 'fly' | 'smooth' | 'fade' | 'slide' | 'none'; duration: number; timer?: { mode: 'off' | 'up' | 'down'; minutes: number } };
 }

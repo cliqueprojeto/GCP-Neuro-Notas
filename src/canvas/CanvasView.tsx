@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
-  Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle,
+  Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle, Palette, LayoutTemplate,
 } from 'lucide-react';
 import { Presenter, PresentSettings, PresentPage } from './Presenter';
+import { DiagramGallery } from './DiagramGallery';
+import type { DiagOut } from './diagrams';
+import { BgPanel, EdgeStylePanel, EdgeDashPreview } from './BoardStyle';
+import { bgStyles, dashArray, wigglePath } from './backgrounds';
 import { ButtonView, LinkPicker, followLink, linkLabel, newButton, type ButtonItem } from '../editor/components';
 import { Chart } from '../reports/ReportView';
 import { Select } from '../components/ui';
@@ -21,6 +25,17 @@ import { askConfirm, askText } from '../components/PromptHost';
 type Tool = 'select' | 'hand' | 'pen' | 'eraser' | 'connector' | 'frame' | 'text' | 'note' | 'shape';
 type ShapeKind = NonNullable<CanvasNode['shape']>;
 
+const darkCache = new Map<string, boolean>();
+function isDarkColor(c?: string) {
+  if (!c || c[0] !== '#' || c.length < 7) return false;
+  let v = darkCache.get(c);
+  if (v === undefined) {
+    const n = parseInt(c.slice(1, 7), 16);
+    v = (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255 < 0.58;
+    darkCache.set(c, v);
+  }
+  return v;
+}
 const NOTE_COLORS = ['#fde68a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#ddd6fe', '#fed7aa', '#e2e8f0', '#1e293b'];
 const INK = ['#1f2937', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
 const EMPTY: CanvasData = { nodes: [], edges: [], view: { x: 0, y: 0, zoom: 1 } };
@@ -147,6 +162,11 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   const [linkOpen, setLinkOpen] = useState(false);
   const [animOpen, setAnimOpen] = useState(false);
   const animRef = useRef<HTMLButtonElement>(null);
+  const bgRef = useRef<HTMLButtonElement>(null);
+  const [diagOpen, setDiagOpen] = useState(false);
+  const [bgOpen, setBgOpen] = useState(false);
+  const edgeStyleRef = useRef<HTMLButtonElement>(null);
+  const [edgeStyleOpen, setEdgeStyleOpen] = useState(false);
   const [chartOpen, setChartOpen] = useState(false);
   const linkRef = useRef<HTMLButtonElement>(null);
   const chartRef = useRef<HTMLButtonElement>(null);
@@ -246,6 +266,29 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     if (['note', 'shape', 'text'].includes(node.kind)) setEdit(node.id);
     setTool('select');
     return node;
+  };
+  const insertDiagram = (out: DiagOut) => {
+    const c = center();
+    for (const n of out.nodes) (n.x += c.x), (n.y += c.y);
+    // não sobrepõe o que já existe: se colidir, coloca à direita do conteúdo atual
+    const hit = (a: CanvasNode, b: CanvasNode) => a.x < b.x + b.w + 30 && b.x < a.x + a.w + 30 && a.y < b.y + b.h + 30 && b.y < a.y + a.h + 30;
+    if (local.nodes.length && out.nodes.some((n) => local.nodes.some((m) => hit(n, m)))) {
+      const maxX = Math.max(...local.nodes.map((m) => m.x + m.w));
+      const minX = Math.min(...out.nodes.map((n) => n.x));
+      for (const n of out.nodes) n.x += maxX + 140 - minX;
+    }
+    setTool('select');
+    setSel(null);
+    const xs = out.nodes.map((n) => n.x), ys = out.nodes.map((n) => n.y);
+    const r = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...out.nodes.map((n) => n.x + n.w)) - Math.min(...xs), h: Math.max(...out.nodes.map((n) => n.y + n.h)) - Math.min(...ys) };
+    const el = box.current;
+    let view = local.view;
+    // enquadra o diagrama se ele não couber na tela
+    if (el) {
+      const z = Math.max(0.15, Math.min(zoom, 1, (el.clientWidth * 0.85) / r.w, (el.clientHeight * 0.8) / r.h));
+      view = { zoom: z, x: el.clientWidth / 2 - (r.x + r.w / 2) * z, y: el.clientHeight / 2 - (r.y + r.h / 2) * z };
+    }
+    commit({ ...local, nodes: [...local.nodes, ...out.nodes], edges: [...local.edges, ...out.edges], view }, true);
   };
   const patchNode = (id: string, p: Partial<CanvasNode>, immediate = false) =>
     commit({ ...local, nodes: local.nodes.map((n) => (n.id === id ? { ...n, ...p } : n)) }, immediate, immediate);
@@ -648,6 +691,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     <button className={'dock-btn' + (tool === id ? ' on' : '')} onClick={() => setTool(id)} title={label}>{icon}</button>
   );
 
+  const bgs = bgStyles(local.bg, vx, vy, zoom, presenting);
   return (
     <div ref={shell} className={"canvas-shell" + (presenting ? " presenting tr-" + (frames[slide]?.slideTr || local.present?.transition || "fly") : "")} style={{ ["--tr-dur" as any]: `${local.present?.duration || 0.7}s` }}>
       <div
@@ -659,8 +703,11 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           if (tool !== 'select' || (e.target as HTMLElement).closest('[data-node]')) return;
           addNode({ kind: 'note' }, toWorld(e.clientX, e.clientY));
         }}
-        style={{ backgroundPosition: `${vx}px ${vy}px`, backgroundSize: `${24 * zoom}px ${24 * zoom}px` }}
+        style={bgs.area}
       >
+        {bgs.photo && <div className="canvas-photo" style={bgs.photo} />}
+        {bgs.dim > 0 && <div className="canvas-dim" style={{ background: bgs.dark ? `rgba(4,6,18,${bgs.dim})` : `rgba(255,255,255,${bgs.dim})` }} />}
+        <div className="canvas-backdrop" style={bgs.backdrop} />
         {!local.nodes.length && <div className="canvas-hint">{t('canvas.hint')}</div>}
         <div className="canvas-world" style={{ transform: `translate(${vx}px, ${vy}px) scale(${zoom})` }}>
           {ordered.map((n) => {
@@ -675,7 +722,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               <div
                 key={presenting && onSlide ? `${n.id}-s${slide}` : n.id}
                 data-node={n.id}
-                className={`cnode k-${n.kind} ${n.shape ? 's-' + n.shape : ''} ${sel === n.id ? 'sel' : ''} ${n.color === '#1e293b' ? 'dark' : ''} ${(draft?.kind === 'link' || draft?.kind === 'relink') && draft.snap?.id === n.id ? 'snap' : ''}${n.fill && n.fill !== 'solid' ? ' fill-' + n.fill : ''}${n.link && n.link.type !== 'none' && n.link.target ? ' has-link' : ''}${animCls}`}
+                className={`cnode k-${n.kind} ${n.shape ? 's-' + n.shape : ''} ${sel === n.id ? 'sel' : ''} ${(n.kind === 'note' || n.kind === 'shape') && isDarkColor(n.color) ? 'dark' : ''} ${(draft?.kind === 'link' || draft?.kind === 'relink') && draft.snap?.id === n.id ? 'snap' : ''}${n.fill && n.fill !== 'solid' ? ' fill-' + n.fill : ''}${n.link && n.link.type !== 'none' && n.link.target ? ' has-link' : ''}${animCls}`}
                 style={{ left: n.x, top: n.y, width: n.w, height: n.h, ['--node' as any]: n.color, ['--delay' as any]: n.animDelay != null ? `${n.animDelay}s` : `${Math.max(0, order) * 140 + 250}ms`, ['--adur' as any]: `${n.animDur || 0.7}s` }}
                 onPointerDown={(e) => {
                   if (presenting) return;
@@ -700,7 +747,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                   </div>
                 )}
                 {n.kind === 'shape' && (
-                  <svg className="shape-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style={n.fill === 'gradient' ? { fill: `url(#gr-${n.id})` } : undefined}>
+                  <svg className="shape-svg" viewBox={n.shape === 'rect' || !n.shape ? `0 0 ${n.w} ${n.h}` : '0 0 100 100'} preserveAspectRatio="none" style={n.fill === 'gradient' ? { fill: `url(#gr-${n.id})` } : undefined}>
                     {n.fill === 'gradient' && (
                       <defs>
                         <linearGradient id={`gr-${n.id}`} x1="0" y1="0" x2="1" y2="1">
@@ -709,7 +756,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                         </linearGradient>
                       </defs>
                     )}
-                    {n.shape === 'ellipse' ? <ellipse cx="50" cy="50" rx="49" ry="49" /> : n.shape === 'diamond' ? <polygon points="50,1 99,50 50,99 1,50" /> : n.shape === 'triangle' ? <polygon points="50,2 98,98 2,98" /> : <rect x="1" y="1" width="98" height="98" rx="6" />}
+                    {n.shape === 'ellipse' ? <ellipse cx="50" cy="50" rx="49" ry="49" /> : n.shape === 'diamond' ? <polygon points="50,1 99,50 50,99 1,50" /> : n.shape === 'triangle' ? <polygon points="50,2 98,98 2,98" /> : n.shape === 'poly' && n.poly ? <polygon points={n.poly} /> : <rect x="1" y="1" width={Math.max(1, n.w - 2)} height={Math.max(1, n.h - 2)} rx={n.corner === 'pill' ? (n.h - 2) / 2 : n.corner === 'square' ? 2 : Math.min(14, n.h / 4)} />}
                   </svg>
                 )}
                 {n.kind === 'draw' && n.points && (
@@ -769,6 +816,11 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                 <path d="M0 0L10 5L0 10z" fill="context-stroke" />
               </marker>
+              {[1, 3, 5, 8, 11, 13, 19].map((w) => (
+                <marker key={w} id={`arrow-${w}`} viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth={10 + w * 2.4} markerHeight={10 + w * 2.4} orient="auto-start-reverse">
+                  <path d="M0 0L10 5L0 10z" fill="context-stroke" />
+                </marker>
+              ))}
             </defs>
             {local.edges.map((e) => {
               const a = local.nodes.find((n) => n.id === e.from), b = local.nodes.find((n) => n.id === e.to);
@@ -793,12 +845,21 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                   edelay = Math.max(nd(a), nd(b)) + 0.15;
                 }
               }
+              const ew = e.width || 2;
+              const dash = e.dash || 'solid';
+              const da = dashArray(dash, ew);
+              const ld = dash === 'zigzag' || dash === 'wave' ? wigglePath(d, dash, ew) : d;
+              if (pe === ' pe-draw' && da) pe = ' pe-fade';
+              const mk = ew === 2 ? 'arrow' : `arrow-${ew}`;
               return (
-                <g key={presenting && pe === ' pe-draw' ? `${e.id}-s${slide}` : e.id} className={'edge' + (on ? ' on' : '') + pe} style={{ ['--edge' as any]: e.color || 'var(--muted)', ['--edelay' as any]: `${edelay}s` }}
+                <g key={presenting && pe ? `${e.id}-s${slide}` : e.id} className={'edge d-' + dash + (on ? ' on' : '') + pe} style={{ ['--edge' as any]: e.color || 'var(--muted)', ['--edelay' as any]: `${edelay}s`, ['--ew' as any]: `${ew}px` }}
                   onPointerDown={(ev) => (ev.stopPropagation(), setSel(e.id), setEdit(null))}
                   onDoubleClick={(ev) => { ev.stopPropagation(); editLabel(e); }}>
                   <path d={d} className="edge-hit" />
-                  <path d={d} pathLength={1} className="edge-line" markerEnd={arrow !== 'none' ? 'url(#arrow)' : undefined} markerStart={arrow === 'both' ? 'url(#arrow)' : undefined} />
+                  {dash === 'double' && <path d={d} pathLength={1} className="edge-line edge-double-out" markerEnd={arrow !== 'none' ? `url(#arrow-${ew * 2 + 3})` : undefined} markerStart={arrow === 'both' ? `url(#arrow-${ew * 2 + 3})` : undefined} />}
+                  {dash !== 'double' && <path d={ld} pathLength={da ? undefined : 1} className="edge-line" strokeDasharray={da} strokeLinecap={dash === 'dotted' || dash === 'dashdot' ? 'round' : undefined}
+                    markerEnd={arrow !== 'none' ? `url(#${mk})` : undefined} markerStart={arrow === 'both' ? `url(#${mk})` : undefined} />}
+                  {dash === 'double' && <path d={d} pathLength={1} className="edge-double-in" />}
                   {e.label && <text x={(p1.x + p2.x) / 2} y={(p1.y + p2.y) / 2 - 8} textAnchor="middle">{e.label}</text>}
                   {on && (
                     <>
@@ -875,6 +936,10 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                   </button>
                 ))}
                 <button className="tb" title={t('canvas.label')} onClick={() => editLabel(selEdge)}><Tag size={15} /></button>
+                <button ref={edgeStyleRef} className="tb wide" title={t('canvas.edgeStyle')} onClick={() => setEdgeStyleOpen(!edgeStyleOpen)}><EdgeDashPreview dash={selEdge.dash || 'solid'} width={selEdge.width || 2} /></button>
+                <Popover anchor={edgeStyleRef.current} open={edgeStyleOpen} onClose={() => setEdgeStyleOpen(false)}>
+                  <EdgeStylePanel edge={selEdge} onChange={(p) => commit({ ...local, edges: local.edges.map((x) => (x.id === selEdge.id ? { ...x, ...p } : x)) }, true)} />
+                </Popover>
                 <span className="tb-sep" />
                 {INK.slice(0, 8).map((c) => <button key={c} className={'color-dot sm' + (selEdge.color === c ? ' on' : '')} style={{ background: c }} onClick={() => commit({ ...local, edges: local.edges.map((x) => (x.id === selEdge.id ? { ...x, color: c } : x)) }, true)} />)}
               </>
@@ -889,11 +954,16 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           <span className="zoom-label">{Math.round(zoom * 100)}%</span>
           <button className="tb" onClick={() => commit({ ...local, view: { ...local.view, zoom: Math.min(3, zoom * 1.15) } }, false, false)}><Plus size={16} /></button>
           <button className="tb" onClick={undo} title={t('tb.undo')} disabled={!history.current.length}><Undo2 size={16} /></button>
+          <button ref={bgRef} className={'tb' + (bgOpen ? ' on' : '')} onClick={() => setBgOpen(!bgOpen)} title={t('canvas.bg')}><Palette size={16} /></button>
+          <Popover anchor={bgRef.current} open={bgOpen} onClose={() => setBgOpen(false)}>
+            <BgPanel bg={local.bg} onChange={(bg) => commit({ ...local, bg }, true)} />
+          </Popover>
         </div>
         <button className="canvas-present btn primary sm" onPointerDown={(e) => e.stopPropagation()} onClick={startPresenting} title={t('present.start')}>
           <Presentation size={15} /> <span className="hide-xs">{t('present.start')}</span>{frames.length ? ` · ${frames.length}` : ''}
         </button>
 
+        <DiagramGallery open={diagOpen} onClose={() => setDiagOpen(false)} onInsert={insertDiagram} />
         <div className="dock" onPointerDown={(e) => e.stopPropagation()}>
           <T id="select" icon={<MousePointer2 size={19} />} label={`${t('canvas.select')} (V)`} />
           <T id="hand" icon={<Hand size={19} />} label={`${t('canvas.hand')} (H)`} />
@@ -908,6 +978,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           <button ref={pickRef} className="dock-btn" onClick={() => setPickOpen(true)} title={t('canvas.page')}><FileText size={19} /></button>
           <button className="dock-btn" onClick={() => addNode({ kind: 'button', text: t('comp.newButton'), w: 200, h: 56, color: '#7c3aed', button: { variant: 'gradient', shape: 'pill', size: 'md' }, link: { type: 'none', target: '' } })} title={t('canvas.button')}><MousePointerClick size={19} /></button>
           <button ref={chartRef} className="dock-btn" onClick={() => setChartOpen(true)} title={t('canvas.chart')}><BarChart3 size={19} /></button>
+          <button className="dock-btn" onClick={() => setDiagOpen(true)} title={t('diag.title')}><LayoutTemplate size={19} /></button>
           <button className="dock-btn" onClick={async () => { const [src] = await pickImages(false, 1400); if (src) addNode({ kind: 'image', src, w: 320, h: 220, color: '#ffffff' }); }} title={t('canvas.image')}><ImagePlus size={19} /></button>
           {(tool === 'pen' || tool === 'connector' || tool === 'text') && (
             <div className="dock-sub">
