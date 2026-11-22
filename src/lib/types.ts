@@ -238,7 +238,7 @@ export const DEFAULT_SETTINGS: VaultSettings = {
 
 export interface CanvasNode {
   id: string;
-  kind: 'note' | 'page' | 'image' | 'shape' | 'text' | 'frame' | 'draw';
+  kind: 'note' | 'page' | 'image' | 'shape' | 'text' | 'frame' | 'draw' | 'button' | 'chart';
   x: number;
   y: number;
   w: number;
@@ -251,6 +251,12 @@ export interface CanvasNode {
   points?: number[]; // traço livre (x,y relativos ao nó)
   stroke?: number;
   fontSize?: number;
+  link?: { type: 'none' | 'page' | 'url' | 'email'; target: string };
+  anim?: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'pop' | 'spin' | 'pulse' | 'float' | 'wiggle';
+  button?: { variant: string; shape: string; size: string; icon?: string };
+  chart?: { reportId: string; widgetId: string };
+  fill?: 'solid' | 'gradient' | 'glass';
+  opacity?: number;
 }
 
 export type Side = 't' | 'r' | 'b' | 'l';
@@ -271,4 +277,5 @@ export interface CanvasData {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   view: { x: number; y: number; zoom: number };
+  present?: { transition: 'smooth' | 'fade' | 'slide' | 'none'; duration: number };
 }

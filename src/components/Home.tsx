@@ -46,7 +46,7 @@ export function Home() {
   return (
     <div className="page-shell home">
       <div className="page-hero">
-        <div className="eyebrow"><Sparkles size={13} /> GCP NOTAS</div>
+        <div className="eyebrow"><Sparkles size={13} /> GCP-NEURO NOTAS</div>
         <h1>{greet}! {t('home.title')}</h1>
         <p className="muted">{t('home.subtitle')}</p>
       </div>

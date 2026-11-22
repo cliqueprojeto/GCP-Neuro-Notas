@@ -39,7 +39,7 @@ export function Settings({ tab: initial }: { tab?: string }) {
   return (
     <div className="page-shell">
       <div className="page-hero compact">
-        <div className="eyebrow"><Sparkles size={13} /> GCP NOTAS</div>
+        <div className="eyebrow"><Sparkles size={13} /> GCP-NEURO NOTAS</div>
         <h1>{t('settings.title')}</h1>
         <p className="muted">{t('settings.subtitle')}</p>
       </div>

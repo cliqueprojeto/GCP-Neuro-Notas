@@ -8,8 +8,11 @@ import { useT } from '../i18n';
  * (como no AFFiNE). Teclado: → / espaço / PageDown avançam, ← volta, Esc sai.
  * No celular, deslize para os lados.
  */
-export function Presenter({ frames, index, setIndex, onClose, onReorder }: {
+export function Presenter({ frames, index, setIndex, onClose, onReorder, transition, duration, onSettings }: {
   frames: CanvasNode[];
+  transition: 'smooth' | 'fade' | 'slide' | 'none';
+  duration: number;
+  onSettings: (p: { transition: 'smooth' | 'fade' | 'slide' | 'none'; duration: number }) => void;
   index: number;
   setIndex: (i: number) => void;
   onClose: () => void;
@@ -81,12 +84,21 @@ export function Presenter({ frames, index, setIndex, onClose, onReorder }: {
         </span>
         <button className="icon-btn" onClick={next} disabled={index >= total - 1} aria-label={t('present.next')}><ChevronRight size={20} /></button>
         <span className="presenter-sep" />
-        {frames.length > 1 && <button className={'icon-btn' + (list ? ' on' : '')} onClick={() => setList(!list)} title={t('present.slides')}><LayoutList size={18} /></button>}
+        <button className={'icon-btn' + (list ? ' on' : '')} onClick={() => setList(!list)} title={t('present.slides')}><LayoutList size={18} /></button>
         <button className="icon-btn" onClick={onClose} title={t('present.exit')}><X size={19} /></button>
       </div>
       <div className="presenter-progress"><span style={{ width: `${((index + 1) / total) * 100}%` }} /></div>
       {list && (
         <div className="presenter-list">
+          <div className="section-label">{t('present.transition')}</div>
+          <div className="seg sm">
+            {(['smooth', 'fade', 'slide', 'none'] as const).map((tr) => (
+              <button key={tr} className={transition === tr ? 'on' : ''} onClick={() => onSettings({ transition: tr, duration })}>{t(`present.tr.${tr}` as any)}</button>
+            ))}
+          </div>
+          <div className="seg sm" style={{ marginTop: 6 }}>
+            {[0.4, 0.7, 1.2].map((d) => <button key={d} className={duration === d ? 'on' : ''} onClick={() => onSettings({ transition, duration: d })}>{d}s</button>)}
+          </div>
           <div className="section-label">{t('present.slides')}</div>
           {frames.map((f, i) => (
             <div key={f.id} className={'presenter-item' + (i === index ? ' on' : '')}>

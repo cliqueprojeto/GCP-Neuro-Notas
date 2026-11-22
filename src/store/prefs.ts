@@ -12,6 +12,7 @@ interface Prefs {
   sidebarCollapsed: boolean;
   sidebarWidth: number;
   miniCalendar: boolean;
+  graphColors: { link?: string; board?: string; child?: string; suggestion?: string; width?: number };
   set: (p: Partial<Omit<Prefs, 'set'>>) => void;
 }
 
@@ -34,6 +35,7 @@ export const usePrefs = create<Prefs>((set, get) => ({
   sidebarCollapsed: false,
   sidebarWidth: 264,
   miniCalendar: true,
+  graphColors: {},
   ...load(),
   set: (p) => {
     set(p);

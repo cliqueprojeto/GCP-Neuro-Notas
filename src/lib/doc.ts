@@ -53,10 +53,16 @@ export function outgoingLinks(p: Page): string[] {
     if (!n) return;
     if (n.type === 'pageLink' && n.attrs?.id) set.add(n.attrs.id);
     if (n.marks) for (const m of n.marks) if (m.type === 'link' && m.attrs?.href?.startsWith('gcp://page/')) set.add(m.attrs.href.slice(11));
+    // Botões e cartões com link para outra página também contam como ligação.
+    if ((n.type === 'buttons' || n.type === 'cards') && Array.isArray(n.attrs?.items))
+      for (const it of n.attrs.items) if (it?.link?.type === 'page' && it.link.target) set.add(it.link.target);
     n.content?.forEach(walk);
   };
   walk(p.content);
-  if (p.canvas) for (const n of p.canvas.nodes) if (n.pageId) set.add(n.pageId);
+  if (p.canvas) for (const n of p.canvas.nodes) {
+    if (n.pageId) set.add(n.pageId);
+    if (n.link?.type === 'page' && n.link.target) set.add(n.link.target);
+  }
   return [...set];
 }
 

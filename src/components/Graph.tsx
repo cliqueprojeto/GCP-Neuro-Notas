@@ -5,9 +5,10 @@ import { useVault, livePages } from '../store/vault';
 import { useUi, toast } from '../store/ui';
 import { usePrefs } from '../store/prefs';
 import { getTheme } from '../lib/themes';
+import { isMobile } from '../lib/platform';
 import { boardLinks, normalize, outgoingLinks } from '../lib/doc';
 import { relatedPages, unlinkedMentions } from '../ai/brain';
-import { PageIcon, Switch } from './ui';
+import { PageIcon, Popover, Switch } from './ui';
 import type { Page } from '../lib/types';
 
 type Kind = 'link' | 'board' | 'child' | 'related' | 'mention' | 'tag' | 'data';
@@ -45,6 +46,55 @@ function communities(ids: string[], edges: E[]): Map<string, number> {
   }));
 }
 
+/** Mistura duas cores (#rgb/#rrggbb/rgb()) — t = quanto da segunda. */
+function mixHex(a: string, b: string, t: number) {
+  const parse = (c: string) => {
+    const m = c.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (m) {
+      const h = m[1].length === 3 ? m[1].split('').map((x) => x + x).join('') : m[1];
+      return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    }
+    const r = c.match(/\d+(\.\d+)?/g);
+    return r ? r.slice(0, 3).map(Number) : [128, 128, 128];
+  };
+  const x = parse(a), y = parse(b);
+  return `rgb(${x.map((v, i) => Math.round(v * (1 - t) + y[i] * t)).join(',')})`;
+}
+
+/** Um passo da simulação de forças (repulsão, molas e gravidade ao centro). */
+function step(nodes: N[], edges: E[], byId: Map<string, N>, alpha: number, drag: N | null) {
+  for (let i = 0; i < nodes.length; i++) {
+    const a = nodes[i];
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
+      let dx = a.x - b.x, dy = a.y - b.y;
+      let d2 = dx * dx + dy * dy;
+      if (d2 < 1) (dx = Math.random()), (dy = Math.random()), (d2 = 1);
+      if (d2 > 250000) continue;
+      const f = (1800 / d2) * alpha;
+      const d = Math.sqrt(d2);
+      a.vx += (dx / d) * f; a.vy += (dy / d) * f;
+      b.vx -= (dx / d) * f; b.vy -= (dy / d) * f;
+    }
+  }
+  for (const e of edges) {
+    const a = byId.get(e.a), b = byId.get(e.b);
+    if (!a || !b) continue;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    const target = e.kind === 'child' || e.kind === 'tag' ? 90 : e.kind === 'related' || e.kind === 'mention' ? 160 : 120;
+    const strength = e.kind === 'related' || e.kind === 'mention' ? 0.015 : 0.04;
+    const f = ((d - target) / d) * strength * alpha;
+    a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
+  }
+  for (const n of nodes) {
+    n.vx -= n.x * 0.002 * alpha;
+    n.vy -= n.y * 0.002 * alpha;
+    if (n !== drag) { n.x += n.vx; n.y += n.vy; }
+    n.vx *= 0.82; n.vy *= 0.82;
+  }
+}
+
 /** Grafo de conhecimento interativo: links, quadros, hierarquia, tags e sugestões. */
 export function Graph() {
   const t = useT();
@@ -57,11 +107,16 @@ export function Graph() {
   const [similar, setSimilar] = useState(false);
   const [mentions, setMentions] = useState(true);
   const [tags, setTags] = useState(false);
-  const [orphans, setOrphans] = useState(true);
+  const [orphans, setOrphans] = useState(!isMobile); // no celular começa só com o que está ligado
   const [colorBy, setColorBy] = useState<'type' | 'group'>('type');
   const [focus, setFocus] = useState<{ id: string; depth: number } | null>(null);
   const [selId, setSelId] = useState<string | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const settled = useRef(false);
+  const gc = usePrefs((s) => s.graphColors || {});
+  const setPrefs = usePrefs((s) => s.set);
+  const [colorsOpen, setColorsOpen] = useState(false);
+  const colorsRef = useRef<HTMLButtonElement>(null);
   const state = useRef({ nodes: [] as N[], edges: [] as E[], view: { x: 0, y: 0, k: 1 }, drag: null as N | null, hover: null as N | null, sel: null as string | null, alpha: 1 });
 
   const all = livePages(pages);
@@ -121,6 +176,14 @@ export function Graph() {
       const a = (i / Math.max(visible.length, 1)) * Math.PI * 2;
       return { ...b, x: o?.x ?? Math.cos(a) * 240 + Math.random() * 20, y: o?.y ?? Math.sin(a) * 240 + Math.random() * 20, vx: 0, vy: 0, deg: deg.get(b.id) || 0, group: groups.get(b.id) ?? -1 };
     });
+    // Layout já assentado ao abrir: roda a simulação antes do primeiro desenho.
+    const fresh = nodes.filter((n) => !prev.has(n.id)).length;
+    if (fresh > nodes.length * 0.3 && nodes.length) {
+      const byId = new Map(nodes.map((n) => [n.id, n]));
+      let a = 1;
+      for (let i = 0; i < Math.min(400, 60000 / Math.max(1, nodes.length)); i++) (step(nodes, edges, byId, a, null), (a *= 0.985));
+      settled.current = true;
+    }
     const stats = { nodes: nodes.length, links: edges.filter((e) => e.kind === 'link' || e.kind === 'board').length, suggestions: edges.filter((e) => e.kind === 'mention').length, groups: new Set([...groups.values()].filter((g) => g >= 0)).size };
     return { nodes, edges, stats };
   }, [pages, hier, similar, orphans, mentions, tags, focus]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -128,8 +191,12 @@ export function Graph() {
   useEffect(() => {
     state.current.nodes = nodes;
     state.current.edges = edges;
-    state.current.alpha = 1;
-  }, [nodes, edges]);
+    state.current.alpha = settled.current ? 0.12 : 1;
+    if (settled.current) {
+      settled.current = false;
+      requestAnimationFrame(() => fit());
+    }
+  }, [nodes, edges]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => void (state.current.sel = selId), [selId]);
 
   useEffect(() => {
@@ -142,6 +209,13 @@ export function Graph() {
     const muted = css.getPropertyValue('--muted').trim() || '#999';
     const accent = css.getPropertyValue('--accent').trim() || '#8b5cf6';
     const bg = css.getPropertyValue('--bg').trim() || '#000';
+    const accent2 = css.getPropertyValue('--accent-2').trim() || '#22d3ee';
+    // Cores das ligações: escolhidas pelo usuário ou derivadas do tema (contraste garantido).
+    const colLink = gc.link || (dark ? mixHex(accent, '#ffffff', 0.35) : mixHex(accent, '#000000', 0.15));
+    const colBoard = gc.board || (dark ? mixHex(accent2, '#ffffff', 0.2) : mixHex(accent2, '#000000', 0.25));
+    const colChild = gc.child || (dark ? mixHex(muted, '#ffffff', 0.15) : mixHex(muted, '#000000', 0.1));
+    const colSug = gc.suggestion || (dark ? '#fbbf24' : '#d97706');
+    const lw = gc.width || 1;
     const resize = () => {
       const r = cv.parentElement!.getBoundingClientRect();
       cv.width = r.width * devicePixelRatio;
@@ -159,36 +233,7 @@ export function Graph() {
       const { nodes, edges } = s;
       const byId = new Map(nodes.map((n) => [n.id, n]));
       if (s.alpha > 0.005) {
-        for (let i = 0; i < nodes.length; i++) {
-          const a = nodes[i];
-          for (let j = i + 1; j < nodes.length; j++) {
-            const b = nodes[j];
-            let dx = a.x - b.x, dy = a.y - b.y;
-            let d2 = dx * dx + dy * dy;
-            if (d2 < 1) (dx = Math.random()), (dy = Math.random()), (d2 = 1);
-            if (d2 > 250000) continue;
-            const f = (1800 / d2) * s.alpha;
-            const d = Math.sqrt(d2);
-            a.vx += (dx / d) * f; a.vy += (dy / d) * f;
-            b.vx -= (dx / d) * f; b.vy -= (dy / d) * f;
-          }
-        }
-        for (const e of edges) {
-          const a = byId.get(e.a), b = byId.get(e.b);
-          if (!a || !b) continue;
-          const dx = b.x - a.x, dy = b.y - a.y;
-          const d = Math.sqrt(dx * dx + dy * dy) || 1;
-          const target = e.kind === 'child' || e.kind === 'tag' ? 90 : e.kind === 'related' || e.kind === 'mention' ? 160 : 120;
-          const strength = e.kind === 'related' || e.kind === 'mention' ? 0.015 : 0.04;
-          const f = ((d - target) / d) * strength * s.alpha;
-          a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
-        }
-        for (const n of nodes) {
-          n.vx -= n.x * 0.002 * s.alpha;
-          n.vy -= n.y * 0.002 * s.alpha;
-          if (n !== s.drag) { n.x += n.vx; n.y += n.vy; }
-          n.vx *= 0.82; n.vy *= 0.82;
-        }
+        step(nodes, edges, byId, s.alpha, s.drag);
         s.alpha *= 0.992;
       }
       const W = cv.width, H = cv.height, dpr = devicePixelRatio;
@@ -205,13 +250,16 @@ export function Graph() {
         if (!a || !b) continue;
         const on = hot && (e.a === hot.id || e.b === hot.id);
         const sug = e.kind === 'mention' || e.kind === 'related';
-        ctx.strokeStyle = on ? (sug ? '#f59e0b' : accent) : e.kind === 'board' ? (dark ? 'rgba(96,165,250,.45)' : 'rgba(37,99,235,.35)') : sug ? (dark ? 'rgba(245,158,11,.28)' : 'rgba(217,119,6,.3)') : dark ? 'rgba(160,165,220,0.24)' : 'rgba(60,60,110,0.2)';
-        ctx.lineWidth = ((on ? 2.2 : 1.1) * (e.kind === 'link' || e.kind === 'board' ? 1.15 : 1)) / k;
+        const base = e.kind === 'board' ? colBoard : e.kind === 'child' || e.kind === 'tag' || e.kind === 'data' ? colChild : sug ? colSug : colLink;
+        ctx.strokeStyle = on ? (sug ? colSug : accent) : base;
+        ctx.globalAlpha = hot && !on ? 0.35 : sug ? 0.75 : 0.9;
+        ctx.lineWidth = Math.max(0.6, ((on ? 2.6 : e.kind === 'link' || e.kind === 'board' ? 1.8 : 1.3) * lw) / k);
         ctx.setLineDash(e.kind === 'child' ? [4 / k, 4 / k] : sug ? [2 / k, 4 / k] : e.kind === 'tag' ? [1 / k, 3 / k] : []);
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
+        ctx.globalAlpha = hot && !on ? 0.35 : 1;
         // seta de direção nos links
         if ((e.kind === 'link' || e.kind === 'board' || e.kind === 'data') && k > 0.45) {
           const ang = Math.atan2(b.y - a.y, b.x - a.x);
@@ -238,6 +286,7 @@ export function Graph() {
         }
       }
       ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
       for (const n of nodes) {
         const r = n.tag ? 4 + Math.min(n.deg, 10) * 0.8 : 5 + Math.min(n.deg, 12) * 1.2;
         const match = qn && normalize(n.label).includes(qn);
@@ -271,7 +320,7 @@ export function Graph() {
     };
     raf = requestAnimationFrame(tick);
     return () => (cancelAnimationFrame(raf), ro.disconnect());
-  }, [theme, q, colorBy]);
+  }, [theme, q, colorBy, gc]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toWorld = (cx: number, cy: number) => {
     const r = canvas.current!.getBoundingClientRect();
@@ -337,6 +386,23 @@ export function Graph() {
           <button className={colorBy === 'type' ? 'on' : ''} onClick={() => setColorBy('type')}><Palette size={13} /> {t('graph.byType')}</button>
           <button className={colorBy === 'group' ? 'on' : ''} onClick={() => setColorBy('group')}>{t('graph.byGroup')}</button>
         </div>
+        <button ref={colorsRef} className="btn ghost sm" onClick={() => setColorsOpen(!colorsOpen)}><Palette size={14} /> {t('graph.colors')}</button>
+        <Popover anchor={colorsRef.current} open={colorsOpen} onClose={() => setColorsOpen(false)}>
+          <div className="stack pad graph-colors" style={{ width: 260 }}>
+            {(['link', 'board', 'child', 'suggestion'] as const).map((k) => (
+              <label key={k} className="row">
+                <input type="color" className="color-input" value={gc[k] || '#8b5cf6'} onChange={(e) => setPrefs({ graphColors: { ...gc, [k]: e.target.value } })} />
+                <span className="grow">{t(`graph.kind.${k}` as TKey)}</span>
+                {gc[k] && <button className="icon-btn xs" onClick={() => { const n = { ...gc }; delete n[k]; setPrefs({ graphColors: n }); }}><X size={12} /></button>}
+              </label>
+            ))}
+            <div className="field-label">{t('graph.thickness')}</div>
+            <div className="seg sm">
+              {[1, 1.6, 2.4].map((w) => <button key={w} className={(gc.width || 1) === w ? 'on' : ''} onClick={() => setPrefs({ graphColors: { ...gc, width: w } })}>{w === 1 ? t('graph.thin') : w === 1.6 ? t('graph.medium') : t('graph.thick')}</button>)}
+            </div>
+            <button className="btn ghost sm" onClick={() => setPrefs({ graphColors: {} })}>{t('graph.themeColors')}</button>
+          </div>
+        </Popover>
         <div className="grow" />
         <div className="graph-stats muted small">{t('graph.stats', { n: stats.nodes, l: stats.links, s: stats.suggestions, g: stats.groups })}</div>
       </div>
@@ -382,10 +448,10 @@ export function Graph() {
         {!nodes.length && <div className="canvas-hint">{t('graph.empty')}</div>}
         <div className="graph-help muted small">{t('graph.help')}</div>
         <div className="graph-legend">
-          <span><i className="lg-line" /> {t('graph.kind.link')}</span>
-          <span><i className="lg-line board" /> {t('graph.kind.board')}</span>
-          <span><i className="lg-line dash" /> {t('graph.kind.child')}</span>
-          <span><i className="lg-line dot" /> {t('graph.kind.suggestion')}</span>
+          <span><i className="lg-line" style={gc.link ? { borderTopColor: gc.link } : undefined} /> {t('graph.kind.link')}</span>
+          <span><i className="lg-line board" style={gc.board ? { borderTopColor: gc.board } : undefined} /> {t('graph.kind.board')}</span>
+          <span><i className="lg-line dash" style={gc.child ? { borderTopColor: gc.child } : undefined} /> {t('graph.kind.child')}</span>
+          <span><i className="lg-line dot" style={gc.suggestion ? { borderTopColor: gc.suggestion } : undefined} /> {t('graph.kind.suggestion')}</span>
         </div>
         {focus && (
           <div className="graph-focus">

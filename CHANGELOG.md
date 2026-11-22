@@ -1,5 +1,23 @@
 # Histórico de versões
 
+## 1.3.0 — Componentes e quadro estilo Figma
+
+### Componentes estilo site
+- Bloco **Botões** (comando `/botões`): texto, ícone, estilo (degradê, sólido, suave, contorno, transparente, vidro), formato (pílula, arredondado, quadrado), tamanho, cor, largura total, alinhamento e efeitos animados (pulsar, brilho, pular, aura).
+- Bloco **Cartões** (comando `/cartões`): seções estilo site com ícone, título, descrição, chamada e cor; 1 a 4 colunas; estilos vidro, sólido, contorno e degradê; efeito ao passar o mouse (elevar, inclinar 3D, aura).
+- Botões e cartões levam para uma **página ou nota**, um **site** ou um **e-mail** — e os links internos aparecem no Grafo.
+
+### Quadro estilo Figma
+- **Link em qualquer elemento** (página, nota, site ou e-mail): selo de link, Ctrl+clique para abrir e clique durante a apresentação.
+- Elemento **Botão** e elemento **Gráfico** (traz um gráfico dos Relatórios BI para o quadro).
+- **Animações de entrada** por elemento (surgir, subir, deslizar, zoom, saltar, girar) e em loop (pulsar, flutuar, balançar), tocadas em ordem a cada slide.
+- **Transições** entre slides: zoom suave, esmaecer, deslizar ou corte seco, com duração ajustável.
+- Preenchimento degradê ou vidro em formas e notas.
+
+### Grafo de ideias
+- Linhas bem mais visíveis, com cores derivadas do tema; escolha das cores por tipo de ligação e da espessura.
+- O grafo abre já organizado e centralizado, com as conexões à vista (no celular começa só com as páginas ligadas).
+
 ## 1.2.0 — GCP-Neuro Notas
 
 O app passa a se chamar **GCP-Neuro Notas**, com novo ícone e o tema **Neuro**. Seus dados, a senha e as atualizações continuam os mesmos.

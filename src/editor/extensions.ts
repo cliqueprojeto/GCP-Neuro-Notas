@@ -26,6 +26,7 @@ import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import { common, createLowlight } from 'lowlight';
 import { CalloutView, FormView, GalleryView, PollView, RaffleView, ToggleView } from './blocks';
+import { ButtonsBlockView, CardsBlockView } from './components';
 import type { SuggestItem } from './suggest';
 import { moveCurrentBlock } from './BlockHandle';
 
@@ -101,6 +102,8 @@ export const Raffle = atomBlock(
 );
 export const Form = atomBlock('form', { title: '', description: '', fields: [], responses: [] }, FormView);
 export const Gallery = atomBlock('gallery', { images: [], columns: 3 }, GalleryView);
+export const Buttons = atomBlock('buttons', { items: [], align: 'left' }, ButtonsBlockView);
+export const Cards = atomBlock('cards', { items: [], columns: 3, style: 'glass', hover: 'lift' }, CardsBlockView);
 
 /** Links entre páginas no estilo [[Obsidian]]. */
 export function pageLinkExtension(suggestion?: Partial<SuggestionOptions<any>>) {
@@ -186,6 +189,8 @@ function base(placeholder?: string): AnyExtension[] {
     Raffle,
     Form,
     Gallery,
+    Buttons,
+    Cards,
     ...(placeholder !== undefined ? [Placeholder.configure({ placeholder, includeChildren: false }), CharacterCount] : []),
   ];
 }

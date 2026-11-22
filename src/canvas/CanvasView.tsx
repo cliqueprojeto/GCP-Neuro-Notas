@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
-  Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag,
+  Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle,
 } from 'lucide-react';
 import { Presenter } from './Presenter';
+import { ButtonView, LinkPicker, followLink, linkLabel, newButton, type ButtonItem } from '../editor/components';
+import { Chart } from '../reports/ReportView';
+import { Select } from '../components/ui';
 import type { CanvasData, CanvasEdge, CanvasNode, Page, Side } from '../lib/types';
 import { useT } from '../i18n';
 import { useVault, livePages } from '../store/vault';
@@ -22,6 +25,17 @@ const INK = ['#1f2937', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '
 const EMPTY: CanvasData = { nodes: [], edges: [], view: { x: 0, y: 0, zoom: 1 } };
 
 type Snap = { id: string; side: Side; x: number; y: number };
+
+const nodeButton = (n: CanvasNode): ButtonItem => ({
+  ...newButton(n.text || ''),
+  id: n.id,
+  color: n.color && n.color !== '#ffffff' ? n.color : '#7c3aed',
+  variant: (n.button?.variant as ButtonItem['variant']) || 'gradient',
+  shape: (n.button?.shape as ButtonItem['shape']) || 'pill',
+  size: 'md',
+  full: true,
+  link: n.link || { type: 'none', target: '' },
+});
 const SIDES: Side[] = ['t', 'r', 'b', 'l'];
 const DIR: Record<Side, { x: number; y: number }> = { t: { x: 0, y: -1 }, r: { x: 1, y: 0 }, b: { x: 0, y: 1 }, l: { x: -1, y: 0 } };
 
@@ -103,6 +117,10 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   const savedView = useRef<CanvasData['view'] | null>(null);
   const shell = useRef<HTMLDivElement>(null);
   const [pickOpen, setPickOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [chartOpen, setChartOpen] = useState(false);
+  const linkRef = useRef<HTMLButtonElement>(null);
+  const chartRef = useRef<HTMLButtonElement>(null);
   const [q, setQ] = useState('');
   const box = useRef<HTMLDivElement>(null);
   const pickRef = useRef<HTMLButtonElement>(null);
@@ -499,8 +517,17 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
       const maxX = Math.max(...nodes.map((n) => n.x + n.w)), maxY = Math.max(...nodes.map((n) => n.y + n.h));
       const pad = target ? 24 : 80;
       const z = Math.min(4, Math.max(0.05, Math.min((r.width - pad * 2) / (maxX - minX), (r.height - pad * 2 - 40) / (maxY - minY))));
-      setLocal((l) => ({ ...l, view: { zoom: z, x: (r.width - (maxX - minX) * z) / 2 - minX * z, y: (r.height - 40 - (maxY - minY) * z) / 2 - minY * z } }));
+      const view = { zoom: z, x: (r.width - (maxX - minX) * z) / 2 - minX * z, y: (r.height - 40 - (maxY - minY) * z) / 2 - minY * z };
+      if ((local.present?.transition || 'smooth') === 'fade' && !first) {
+        shell.current?.classList.add('fading');
+        setTimeout(() => {
+          setLocal((l) => ({ ...l, view }));
+          requestAnimationFrame(() => shell.current?.classList.remove('fading'));
+        }, (local.present?.duration || 0.7) * 500);
+      } else setLocal((l) => ({ ...l, view }));
+      first = false;
     };
+    let first = true;
     go();
     const t2 = setTimeout(go, 250); // após entrar em tela cheia
     window.addEventListener('resize', go);
@@ -521,7 +548,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   );
 
   return (
-    <div ref={shell} className={"canvas-shell" + (presenting ? " presenting" : "")}>
+    <div ref={shell} className={"canvas-shell" + (presenting ? " presenting tr-" + (local.present?.transition || "smooth") : "")} style={{ ["--tr-dur" as any]: `${local.present?.duration || 0.7}s` }}>
       <div
         ref={box}
         className={`canvas-area tool-${tool}`}
@@ -537,17 +564,27 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
         <div className="canvas-world" style={{ transform: `translate(${vx}px, ${vy}px) scale(${zoom})` }}>
           {ordered.map((n) => {
             const target = n.pageId ? pages[n.pageId] : undefined;
+            const fr = presenting ? frames[slide] : null;
+            const onSlide = presenting && n.kind !== 'frame' && (!fr || (n.x + n.w / 2 >= fr.x && n.x + n.w / 2 <= fr.x + fr.w && n.y + n.h / 2 >= fr.y && n.y + n.h / 2 <= fr.y + fr.h));
+            const animCls = presenting && n.anim && n.anim !== 'none' ? (onSlide ? ` pa pa-${n.anim}` : ' pa-wait') : '';
+            const order = onSlide ? ordered.filter((x) => x.kind !== 'frame' && x.anim && x.anim !== 'none').sort((a, b) => a.y - b.y || a.x - b.x).findIndex((x) => x.id === n.id) : 0;
             return (
               <div
-                key={n.id}
+                key={presenting && onSlide ? `${n.id}-s${slide}` : n.id}
                 data-node={n.id}
-                className={`cnode k-${n.kind} ${n.shape ? 's-' + n.shape : ''} ${sel === n.id ? 'sel' : ''} ${n.color === '#1e293b' ? 'dark' : ''} ${(draft?.kind === 'link' || draft?.kind === 'relink') && draft.snap?.id === n.id ? 'snap' : ''}`}
-                style={{ left: n.x, top: n.y, width: n.w, height: n.h, ['--node' as any]: n.color }}
-                onPointerDown={(e) => dragNode(e, n, 'move')}
+                className={`cnode k-${n.kind} ${n.shape ? 's-' + n.shape : ''} ${sel === n.id ? 'sel' : ''} ${n.color === '#1e293b' ? 'dark' : ''} ${(draft?.kind === 'link' || draft?.kind === 'relink') && draft.snap?.id === n.id ? 'snap' : ''}${n.fill && n.fill !== 'solid' ? ' fill-' + n.fill : ''}${n.link && n.link.type !== 'none' && n.link.target ? ' has-link' : ''}${animCls}`}
+                style={{ left: n.x, top: n.y, width: n.w, height: n.h, ['--node' as any]: n.color, ['--delay' as any]: `${Math.max(0, order) * 140 + 250}ms` }}
+                onPointerDown={(e) => {
+                  if (presenting) return;
+                  if ((e.ctrlKey || e.metaKey) && n.link && followLink(n.link)) return e.stopPropagation();
+                  dragNode(e, n, 'move');
+                }}
+                onClick={(e) => presenting && n.link && followLink(n.link) && (e.stopPropagation(), stopPresenting())}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   if (n.kind === 'page' && target) useUi.getState().go({ name: 'page', id: target.id });
-                  else if (['note', 'shape', 'text', 'frame'].includes(n.kind)) setEdit(n.id);
+                  else if (n.kind === 'chart' && n.chart) useUi.getState().go({ name: 'page', id: n.chart.reportId });
+                  else if (['note', 'shape', 'text', 'frame', 'button'].includes(n.kind)) setEdit(n.id);
                 }}
               >
                 {n.kind === 'frame' && (
@@ -560,7 +597,15 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                   </div>
                 )}
                 {n.kind === 'shape' && (
-                  <svg className="shape-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <svg className="shape-svg" viewBox="0 0 100 100" preserveAspectRatio="none" style={n.fill === 'gradient' ? { fill: `url(#gr-${n.id})` } : undefined}>
+                    {n.fill === 'gradient' && (
+                      <defs>
+                        <linearGradient id={`gr-${n.id}`} x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0" stopColor={n.color} />
+                          <stop offset="1" stopColor="#22d3ee" />
+                        </linearGradient>
+                      </defs>
+                    )}
                     {n.shape === 'ellipse' ? <ellipse cx="50" cy="50" rx="49" ry="49" /> : n.shape === 'diamond' ? <polygon points="50,1 99,50 50,99 1,50" /> : n.shape === 'triangle' ? <polygon points="50,2 98,98 2,98" /> : <rect x="1" y="1" width="98" height="98" rx="6" />}
                   </svg>
                 )}
@@ -582,6 +627,28 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                   </div>
                 )}
                 {n.kind === 'image' && n.src && <img src={n.src} alt="" draggable={false} />}
+                {n.kind === 'button' && (
+                  <div className="cnode-button">
+                    {edit === n.id ? (
+                      <input autoFocus className="input" value={n.text || ''} onChange={(e) => patchNode(n.id, { text: e.target.value })} onBlur={() => setEdit(null)} onKeyDown={(e) => (e.key === 'Enter' || e.key === 'Escape') && setEdit(null)} onPointerDown={(e) => e.stopPropagation()} />
+                    ) : (
+                      <ButtonView b={nodeButton(n)} onClick={() => (presenting ? followLink(n.link) && stopPresenting() : undefined)} />
+                    )}
+                  </div>
+                )}
+                {n.kind === 'chart' && (() => {
+                  const rep = n.chart ? pages[n.chart.reportId] : undefined;
+                  const w = rep?.report?.widgets.find((x) => x.id === n.chart!.widgetId);
+                  return (
+                    <div className="cnode-chart">
+                      <b className="ellipsis">{w?.title || rep?.title || t('canvas.chart')}</b>
+                      {rep?.report && w ? <Chart w={w} report={rep.report} height={Math.max(80, n.h - 52)} /> : <p className="muted small">{t('editor.brokenLink')}</p>}
+                    </div>
+                  );
+                })()}
+                {n.link && n.link.type !== 'none' && n.link.target && !presenting && (
+                  <button className="cnode-linkbadge" title={`${t('canvas.followLink')}: ${linkLabel(n.link)}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => (e.stopPropagation(), followLink(n.link))}><Link2 size={12} /></button>
+                )}
                 {n.kind !== 'draw' && SIDES.map((sd) => (
                   <span
                     key={sd}
@@ -642,14 +709,37 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
 
         {(selNode || selEdge) && (
           <div className="canvas-props" onPointerDown={(e) => e.stopPropagation()}>
-            {selNode && !['image', 'page', 'frame'].includes(selNode.kind) &&
-              (selNode.kind === 'draw' || selNode.kind === 'text' ? INK : NOTE_COLORS).map((c) => (
+            {selNode && !['image', 'page', 'frame', 'chart'].includes(selNode.kind) &&
+              (selNode.kind === 'draw' || selNode.kind === 'text' || selNode.kind === 'button' ? INK : NOTE_COLORS).map((c) => (
                 <button key={c} className={'color-dot sm' + (selNode.color === c ? ' on' : '')} style={{ background: c }} onClick={() => patchNode(selNode.id, { color: c }, true)} />
               ))}
             {selNode?.kind === 'text' && (
               <>
                 <button className="tb" onClick={() => patchNode(selNode.id, { fontSize: Math.max(12, (selNode.fontSize || 22) - 4) }, true)}>A−</button>
                 <button className="tb" onClick={() => patchNode(selNode.id, { fontSize: Math.min(96, (selNode.fontSize || 22) + 4) }, true)}>A+</button>
+              </>
+            )}
+            {selNode?.kind === 'button' && (
+              <>
+                <span className="tb-sep" />
+                <Select value={selNode.button?.variant || 'gradient'} options={(['gradient', 'solid', 'soft', 'outline', 'ghost', 'glass'] as const).map((v) => ({ value: v, label: t(`comp.variant.${v}` as any) }))} onChange={(variant) => patchNode(selNode.id, { button: { ...(selNode.button || { shape: 'pill', size: 'md' }), variant } as any }, true)} />
+                <Select value={selNode.button?.shape || 'pill'} options={(['pill', 'rounded', 'square'] as const).map((v) => ({ value: v, label: t(`comp.shape.${v}` as any) }))} onChange={(shape) => patchNode(selNode.id, { button: { ...(selNode.button || { variant: 'gradient', size: 'md' }), shape } as any }, true)} />
+              </>
+            )}
+            {selNode && (selNode.kind === 'shape' || selNode.kind === 'note') && (
+              <Select value={selNode.fill || 'solid'} options={(['solid', 'gradient', 'glass'] as const).map((v) => ({ value: v, label: t(`canvas.fill.${v}` as any) }))} onChange={(fill) => patchNode(selNode.id, { fill: fill as any }, true)} />
+            )}
+            {selNode && selNode.kind !== 'draw' && selNode.kind !== 'frame' && (
+              <>
+                <span className="tb-sep" />
+                <button ref={linkRef} className={'tb' + (selNode.link && selNode.link.type !== 'none' && selNode.link.target ? ' on' : '')} title={t('canvas.link')} onClick={() => setLinkOpen(!linkOpen)}><Link2 size={15} /></button>
+                <Select value={selNode.anim || 'none'} options={(['none', 'fade', 'slide-up', 'slide-left', 'zoom', 'pop', 'spin', 'pulse', 'float', 'wiggle'] as const).map((v) => ({ value: v, label: '✨ ' + t(`canvas.anim.${v}` as any) }))} onChange={(anim) => patchNode(selNode.id, { anim: anim as any }, true)} />
+                <Popover anchor={linkRef.current} open={linkOpen} onClose={() => setLinkOpen(false)}>
+                  <div className="pad" style={{ width: 300 }}>
+                    <div className="field-label"><Link2 size={12} /> {t('canvas.linkHint')}</div>
+                    <LinkPicker value={selNode.link || { type: 'none', target: '' }} onChange={(link) => patchNode(selNode.id, { link }, true)} />
+                  </div>
+                </Popover>
               </>
             )}
             {selEdge && (
@@ -697,6 +787,8 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           <T id="text" icon={<Type size={19} />} label={`${t('canvas.text')} (T)`} />
           <T id="note" icon={<StickyNote size={19} />} label={`${t('canvas.note')} (N)`} />
           <button ref={pickRef} className="dock-btn" onClick={() => setPickOpen(true)} title={t('canvas.page')}><FileText size={19} /></button>
+          <button className="dock-btn" onClick={() => addNode({ kind: 'button', text: t('comp.newButton'), w: 200, h: 56, color: '#7c3aed', button: { variant: 'gradient', shape: 'pill', size: 'md' }, link: { type: 'none', target: '' } })} title={t('canvas.button')}><MousePointerClick size={19} /></button>
+          <button ref={chartRef} className="dock-btn" onClick={() => setChartOpen(true)} title={t('canvas.chart')}><BarChart3 size={19} /></button>
           <button className="dock-btn" onClick={async () => { const [src] = await pickImages(false, 1400); if (src) addNode({ kind: 'image', src, w: 320, h: 220, color: '#ffffff' }); }} title={t('canvas.image')}><ImagePlus size={19} /></button>
           {(tool === 'pen' || tool === 'connector' || tool === 'text') && (
             <div className="dock-sub">
@@ -721,6 +813,9 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
       {presenting && (
         <Presenter
           frames={frames}
+          transition={local.present?.transition || 'smooth'}
+          duration={local.present?.duration || 0.7}
+          onSettings={(present) => commit({ ...local, present }, true)}
           index={slide}
           setIndex={setSlide}
           onClose={stopPresenting}
@@ -732,6 +827,18 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           }}
         />
       )}
+      <Popover anchor={chartRef.current} open={chartOpen} onClose={() => setChartOpen(false)}>
+        <div className="menu" style={{ width: 300, maxHeight: 360, overflow: 'auto' }}>
+          {livePages(pages).filter((p) => p.type === 'report' && p.report?.widgets.length).flatMap((p) =>
+            p.report!.widgets.map((w) => (
+              <button key={p.id + w.id} className="menu-item" onClick={() => (addNode({ kind: 'chart', chart: { reportId: p.id, widgetId: w.id }, w: 420, h: 300, color: '#ffffff' }), setChartOpen(false))}>
+                <BarChart3 size={15} /> <span className="grow ellipsis">{w.title || p.title}</span> <small className="muted">{p.title}</small>
+              </button>
+            )),
+          )}
+          {!livePages(pages).some((p) => p.type === 'report' && p.report?.widgets.length) && <p className="muted small pad">{t('canvas.noCharts')}</p>}
+        </div>
+      </Popover>
       <Popover anchor={pickRef.current} open={pickOpen} onClose={() => setPickOpen(false)}>
         <div className="stack pad" style={{ width: 300 }}>
           <input className="input" autoFocus placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />

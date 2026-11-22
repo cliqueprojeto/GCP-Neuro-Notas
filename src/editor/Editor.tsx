@@ -4,7 +4,7 @@ import {
   AlignCenter, AlignLeft, AlignRight, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
   FileText, Heading1, Heading2, Heading3, Highlighter, ImageIcon, Images, Italic, Link2, List, ListOrdered, ListTree, Minus, MessageSquareQuote,
   PieChart, Plus, Quote, Redo2, Rows3, SmilePlus, Sparkles, Sticker, Strikethrough, Table2, Text, Trash2, Underline as UIcon, Undo2, Play,
-  CalendarDays, Lightbulb, Wand2, Link as LinkIcon,
+  CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid,
 } from 'lucide-react';
 import { editorExtensions } from './extensions';
 import { suggestRender, type SuggestItem } from './suggest';
@@ -283,6 +283,8 @@ function buildSlash() {
       { id: 'sticker', tone: 'amber', group: g.media, title: t('slash.sticker'), icon: <Sticker size={18} />, run: () => ctx.sticker() },
       { id: 'poll', tone: 'violet', group: g.adv, title: t('slash.poll'), subtitle: t('slash.poll.sub'), icon: <BarChart3 size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'poll', attrs: { options: [{ id: 'a', label: '', votes: 0 }, { id: 'b', label: '', votes: 0 }] } }).run() },
       { id: 'raffle', tone: 'orange', group: g.adv, title: t('slash.raffle'), subtitle: t('slash.raffle.sub'), icon: <Dices size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'raffle' }).run() },
+      { id: 'buttons', tone: 'violet', group: g.adv, title: t('comp.buttons'), subtitle: t('comp.buttons.sub'), icon: <MousePointerClick size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'buttons', attrs: { items: [], align: 'left' } }).run() },
+      { id: 'cards', tone: 'blue', group: g.adv, title: t('comp.cards'), subtitle: t('comp.cards.sub'), icon: <LayoutGrid size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'cards', attrs: { items: [], columns: 3, style: 'glass', hover: 'lift' } }).run() },
       { id: 'form', tone: 'teal', group: g.adv, title: t('slash.form'), subtitle: t('slash.form.sub'), icon: <FileSpreadsheet size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'form' }).run() },
       { id: 'link', tone: 'blue', group: g.pages, title: t('slash.pageLink'), subtitle: '[[ ]]', icon: <LinkIcon size={18} />, run: ({ editor }) => editor.chain().focus().insertContent('[[').run() },
       { id: 'subpage', tone: 'violet', group: g.pages, title: t('slash.subpage'), icon: <FileText size={18} />, run: ({ editor }) => childPage('page', editor) },

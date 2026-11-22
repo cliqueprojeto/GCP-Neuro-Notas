@@ -35,6 +35,15 @@ Tudo fica **no seu computador**, em um banco de dados interno (SQLite embutido),
 
 ## ✨ Recursos
 
+### 🆕 Novidades da 1.3
+
+| | Recurso | Detalhes |
+|---|---|---|
+| 🔘 | **Botões** | Estilos premium, ícones, formas, cores e efeitos animados, com link para páginas, notas, sites ou e-mail (`/botões`) |
+| 🧩 | **Cartões** | Seções estilo site com ícone, título, texto e chamada, em 1 a 4 colunas e efeitos de hover (`/cartões`) |
+| 🎬 | **Quadro estilo Figma** | Link em qualquer elemento, elementos botão e gráfico, animações de entrada e em loop, transições entre slides |
+| 🕸️ | **Grafo mais claro** | Linhas destacadas conforme o tema, cores e espessura escolhidas por você, layout pronto ao abrir |
+
 ### 🆕 Novidades da 1.2
 
 | | Recurso | Detalhes |
@@ -183,6 +192,14 @@ sha256sum -c gcp-notas_*_amd64.deb.sha256
 O instalador já traz o núcleo nativo (Rust), o banco de dados SQLite, as fontes e todas as bibliotecas. No Windows, o WebView2 (já presente no Windows 10/11 atualizados) é instalado automaticamente se faltar; no Linux, o gerenciador de pacotes resolve as dependências do sistema sozinho.
 
 ## 🖼️ Telas
+
+### Novidades da 1.3
+
+| | |
+|---|---|
+| <img src="docs/screenshots/v1.3/01-botoes-edicao.png" alt="Botões" /> | <img src="docs/screenshots/v1.3/02-cartoes.png" alt="Cartões" /> |
+| <img src="docs/screenshots/v1.3/03-quadro-botao.png" alt="Botão no quadro" /> | <img src="docs/screenshots/v1.3/04-quadro-grafico.png" alt="Gráfico no quadro" /> |
+| <img src="docs/screenshots/v1.3/05-grafo.png" alt="Grafo" /> | <img src="docs/screenshots/v1.3/06-grafo-cores.png" alt="Cores do grafo" /> |
 
 ### Novidades da 1.2
 
