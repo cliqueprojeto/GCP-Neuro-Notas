@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.4.1 — Visões sem duplicar e mapas mentais em tópicos
+
+- **Gerenciador de visões** nas bases: cada tipo (Tabela, Quadro, Gantt, Anexos…) liga e desliga com um clique, sem criar cópias; ocultar sem perder filtros, renomear, duplicar, excluir, reordenar com setas ou arrastando (também pelas abas) e escolher a **visão padrão** (estrela) que abre primeiro.
+- **Diagramas e mapas mentais** preenchidos num **editor em tópicos**: cada item com a cor do seu ramo, Enter cria, Tab/Shift+Tab mudam o nível, Alt+↑↓ reordena, botões para recuar, mover e apagar; modo Texto continua disponível para colar listas. A prévia fica fixa enquanto você edita.
+
 ## 1.4.0 — Apresentações premium, PowerPoint, diagramas e novas visões de bases
 
 ### Apresentação
