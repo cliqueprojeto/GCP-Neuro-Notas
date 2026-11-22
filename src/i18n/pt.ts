@@ -639,6 +639,20 @@ export const pt = {
   'present.autoSlides': 'Automático (pela moldura onde está)',
   'present.showOnHint': 'Marque um ou mais slides: o elemento só aparece neles, com o efeito, e fica escondido nos outros. Ele precisa estar dentro da área da moldura para ser visto.',
   'present.noFramesShort': 'Crie molduras (F) para ter slides.',
+  'present.overview': 'Visão geral',
+  'present.tr.fly': 'Voo contínuo',
+  'present.timer': 'Cronômetro',
+  'present.timer.off': 'Desligado',
+  'present.timer.up': 'Progressivo',
+  'present.timer.down': 'Regressivo',
+  'present.timer.reset': 'Reiniciar',
+  'present.minutes': 'Tempo',
+  'present.autoNote': 'Sem molduras: os slides foram montados automaticamente pelos grupos de elementos. Crie molduras (F) para controlar a ordem.',
+  'present.back': 'Voltar à apresentação',
+  'present.slideTransition': 'Transição para este slide',
+  'present.deckDefault': 'Padrão',
+  'present.showTitle': 'Mostrar título do slide',
+  'present.slideHint': 'Cada moldura é um slide. Os elementos dentro dela podem ter efeitos próprios.',
 };
 
 export type Dict = Record<keyof typeof pt, string>;

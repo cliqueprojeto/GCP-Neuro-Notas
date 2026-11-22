@@ -211,7 +211,7 @@ tr:hover .row-grip .grip-ic { display: block; }
 .canvas-shell.presenting { position: fixed; inset: 0; z-index: 2000; background: var(--bg); }
 .canvas-shell.presenting .dock, .canvas-shell.presenting .canvas-zoom, .canvas-shell.presenting .canvas-props, .canvas-shell.presenting .canvas-present,
 .canvas-shell.presenting .canvas-hint, .canvas-shell.presenting .anchor, .canvas-shell.presenting .cnode-resize { display: none !important; }
-.canvas-shell.presenting .canvas-world { transition: transform .7s cubic-bezier(.65, 0, .35, 1); pointer-events: none; }
+.canvas-shell.presenting .canvas-world { transition: none; pointer-events: none; }
 .canvas-shell.presenting .canvas-area { background-image: none !important; }
 .canvas-shell.presenting .cnode.k-frame { border-color: transparent; background: transparent; }
 .canvas-shell.presenting .frame-label { display: none; }
@@ -524,8 +524,8 @@ tr:hover .row-grip .grip-ic { display: block; }
 .cnode.k-note.fill-gradient { background: linear-gradient(135deg, var(--node), color-mix(in srgb, var(--node) 40%, #22d3ee)); }
 
 /* transições entre slides */
-.canvas-shell.presenting.tr-smooth .canvas-world { transition: transform var(--tr-dur, .7s) cubic-bezier(.65, 0, .35, 1); }
-.canvas-shell.presenting.tr-slide .canvas-world { transition: transform var(--tr-dur, .7s) cubic-bezier(.22, 1, .36, 1); }
+.canvas-shell.presenting.tr-smooth .canvas-world, .canvas-shell.presenting.tr-fly .canvas-world { transition: none; }
+
 .canvas-shell.presenting.tr-none .canvas-world { transition: none; }
 .canvas-shell.presenting.tr-fade .canvas-world { transition: opacity calc(var(--tr-dur, .7s) / 2) ease; }
 .canvas-shell.presenting.fading .canvas-world { opacity: 0; }
@@ -670,3 +670,46 @@ tfoot:hover .calc-cell.empty .calc-hint, .calc-cell.empty:focus .calc-hint { opa
 .ps-slide:hover { background: var(--hover); }
 .ps-slide.on { background: var(--accent-soft); }
 .ps-slide input { accent-color: var(--accent); }
+
+/* ===== Apresentação premium (1.4.0) ===== */
+.canvas-shell.presenting { background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--accent) 7%, var(--bg)) 0%, var(--bg) 60%); }
+.presenter-vignette { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 160px rgba(0, 0, 0, .10); }
+.canvas-shell.presenting .cnode.pe-hidden, .canvas-shell.presenting .edge.pe-hidden { opacity: 0 !important; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
+.canvas-shell.presenting .pe-draw .edge-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: edgedraw .9s cubic-bezier(.65, 0, .35, 1) forwards; animation-delay: var(--edelay, 0s); }
+.canvas-shell.presenting .pe-draw [marker-end] { animation-fill-mode: forwards; }
+.canvas-shell.presenting .pe-draw .edge-label { opacity: 0; animation: fadein .4s ease forwards; animation-delay: calc(var(--edelay, 0s) + .7s); }
+@keyframes edgedraw { to { stroke-dashoffset: 0; } }
+@keyframes fadein { to { opacity: 1; } }
+.presenter-title { position: absolute; left: 28px; top: calc(24px + var(--safe-t, 0px)); display: flex; align-items: center; gap: 12px; padding: 10px 18px 10px 12px; border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(14px); box-shadow: 0 10px 30px rgba(0, 0, 0, .12); border: 1px solid var(--border);
+  animation: ptitle .7s cubic-bezier(.22, 1, .36, 1) both; animation-delay: .25s; max-width: min(70vw, 640px); }
+.presenter-title b { font-size: 17px; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.presenter-title .pt-num { font: 700 12px/1 var(--font-mono, monospace); color: #fff; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #000)); padding: 6px 7px; border-radius: 8px; }
+@keyframes ptitle { from { opacity: 0; transform: translateY(-10px) scale(.97); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.presenter.idle .presenter-title { opacity: .55; transition: opacity .6s; }
+.presenter-timer { position: absolute; right: 28px; top: calc(24px + var(--safe-t, 0px)); display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; font: 600 15px/1 var(--font-mono, monospace);
+  background: color-mix(in srgb, var(--surface) 85%, transparent); backdrop-filter: blur(12px); border: 1px solid var(--border); box-shadow: 0 6px 20px rgba(0, 0, 0, .1); font-variant-numeric: tabular-nums; }
+.presenter-timer.warn { color: #b45309; border-color: #f59e0b; background: color-mix(in srgb, #f59e0b 14%, var(--surface)); }
+.presenter-timer.over { color: #fff; border-color: #dc2626; background: #dc2626; animation: tpulse 1s ease-in-out infinite; }
+@keyframes tpulse { 50% { transform: scale(1.05); } }
+.presenter-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: transparent; }
+.presenter-progress span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #fff)); transition: width .6s cubic-bezier(.22, 1, .36, 1); }
+.presenter-dots { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; pointer-events: auto; transition: opacity .4s; }
+.presenter-dots button { width: 8px; height: 8px; border-radius: 99px; border: 0; padding: 0; background: color-mix(in srgb, var(--text) 22%, transparent); cursor: pointer; transition: all .3s; }
+.presenter-dots button.done { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.presenter-dots button.on { height: 22px; background: var(--accent); }
+.presenter.idle .presenter-dots { opacity: 0; }
+.presenter-list .seg.wrap { flex-wrap: wrap; }
+.presenter-list .ps-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.presenter-list .ps-row input { flex: 1; }
+.present-page { position: fixed; inset: 0; z-index: 2100; background: color-mix(in srgb, var(--bg) 92%, #000); overflow: auto; animation: ppin .45s cubic-bezier(.22, 1, .36, 1); padding: calc(70px + var(--safe-t, 0px)) 16px calc(40px + var(--safe-b, 0px)); }
+@keyframes ppin { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
+.present-page .pp-back { position: fixed; left: 50%; transform: translateX(-50%); top: calc(16px + var(--safe-t, 0px)); z-index: 2; box-shadow: 0 10px 30px rgba(0, 0, 0, .2); border-radius: 999px; padding: 10px 20px; }
+.present-page .pp-sheet { max-width: 860px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: clamp(20px, 5vw, 56px); box-shadow: 0 30px 80px rgba(0, 0, 0, .12); }
+.present-page .pp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.present-page .pp-head h1 { margin: 0; font-size: clamp(24px, 4vw, 36px); letter-spacing: -.02em; }
+.present-page [data-type="pageLink"] { cursor: pointer; color: var(--accent); text-decoration: underline; }
+.present-page .pp-table { overflow: auto; }
+.present-page .pp-charts { display: grid; gap: 18px; }
+.present-page .pp-chart { border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.canvas-shell.presenting .cnode-text .ph { visibility: hidden; }

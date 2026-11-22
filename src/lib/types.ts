@@ -262,6 +262,9 @@ export interface CanvasNode {
   animDur?: number; // duração do efeito (s)
   animDelay?: number; // atraso de entrada (s); vazio = automático em ordem
   slides?: string[]; // ids das molduras (slides) em que o elemento aparece; vazio = pela posição
+  slideTr?: 'fly' | 'smooth' | 'fade' | 'none'; // (moldura) transição ao chegar neste slide
+  slideDur?: number; // (moldura) duração da transição (s)
+  hideTitle?: boolean; // (moldura) não mostrar o título na apresentação
   button?: { variant: string; shape: string; size: string; icon?: string };
   chart?: { reportId: string; widgetId: string };
   fill?: 'solid' | 'gradient' | 'glass';
@@ -286,5 +289,5 @@ export interface CanvasData {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   view: { x: number; y: number; zoom: number };
-  present?: { transition: 'smooth' | 'fade' | 'slide' | 'none'; duration: number };
+  present?: { transition: 'fly' | 'smooth' | 'fade' | 'slide' | 'none'; duration: number; timer?: { mode: 'off' | 'up' | 'down'; minutes: number } };
 }

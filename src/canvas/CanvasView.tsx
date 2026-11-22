@@ -3,7 +3,7 @@ import {
   Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
   Trash2, Triangle, Type, Undo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle,
 } from 'lucide-react';
-import { Presenter, PresentSettings } from './Presenter';
+import { Presenter, PresentSettings, PresentPage } from './Presenter';
 import { ButtonView, LinkPicker, followLink, linkLabel, newButton, type ButtonItem } from '../editor/components';
 import { Chart } from '../reports/ReportView';
 import { Select } from '../components/ui';
@@ -26,6 +26,32 @@ const INK = ['#1f2937', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '
 const EMPTY: CanvasData = { nodes: [], edges: [], view: { x: 0, y: 0, zoom: 1 } };
 
 type Snap = { id: string; side: Side; x: number; y: number };
+
+/** Sem molduras: visão geral + um enquadramento para cada grupo de elementos ligados ou próximos. */
+function autoSlides(nodes: CanvasNode[], edges: CanvasEdge[], overview: string): CanvasNode[] {
+  const items = nodes.filter((n) => n.kind !== 'frame');
+  if (!items.length) return [];
+  const parent = new Map(items.map((n) => [n.id, n.id]));
+  const find = (x: string): string => (parent.get(x) === x ? x : (parent.set(x, find(parent.get(x)!)), parent.get(x)!));
+  const join = (a: string, b: string) => parent.has(a) && parent.has(b) && parent.set(find(a), find(b));
+  for (const e of edges) join(e.from, e.to);
+  const gap = 60;
+  for (let i = 0; i < items.length; i++)
+    for (let j = i + 1; j < items.length; j++) {
+      const a = items[i], b = items[j];
+      if (a.x - gap < b.x + b.w && b.x - gap < a.x + a.w && a.y - gap < b.y + b.h && b.y - gap < a.y + a.h) join(a.id, b.id);
+    }
+  const groups = new Map<string, CanvasNode[]>();
+  for (const n of items) groups.set(find(n.id), [...(groups.get(find(n.id)) || []), n]);
+  const box = (list: CanvasNode[], id: string, text: string): CanvasNode => {
+    const x = Math.min(...list.map((n) => n.x)), y = Math.min(...list.map((n) => n.y));
+    return { id, kind: 'frame', x: x - 30, y: y - 30, w: Math.max(...list.map((n) => n.x + n.w)) - x + 60, h: Math.max(...list.map((n) => n.y + n.h)) - y + 60, color: 'transparent', text };
+  };
+  const clusters = [...groups.values()].sort((a, b) => Math.min(...a.map((n) => n.y)) - Math.min(...b.map((n) => n.y)) || Math.min(...a.map((n) => n.x)) - Math.min(...b.map((n) => n.x)));
+  const out = [box(items, 'auto-0', overview)];
+  if (clusters.length > 1) clusters.forEach((c, i) => out.push(box(c, `auto-${i + 1}`, c.find((n) => n.text)?.text?.split('\n')[0].slice(0, 40) || '')));
+  return out;
+}
 
 const nodeButton = (n: CanvasNode): ButtonItem => ({
   ...newButton(n.text || ''),
@@ -497,8 +523,26 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     const maxX = Math.max(...local.nodes.map((n) => n.x + n.w)) + pad, maxY = Math.max(...local.nodes.map((n) => n.y + n.h)) + pad;
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
   })();
-  const frames = local.nodes.filter((n) => n.kind === 'frame');
+  const realFrames = local.nodes.filter((n) => n.kind === 'frame');
+  /** Slides: as molduras ou, sem molduras, enquadramentos automáticos (visão geral + cada grupo de ideias). */
+  const frames = useMemo(() => (realFrames.length ? realFrames : autoSlides(local.nodes, local.edges, t('present.overview'))), [local.nodes, local.edges]); // eslint-disable-line react-hooks/exhaustive-deps
+  const autoFrames = !realFrames.length;
 
+  const [viewPage, setViewPage] = useState<string | null>(null);
+  /** Na apresentação, links para páginas abrem numa tela limpa com botão de voltar. */
+  const presentFollow = (l?: CanvasNode['link']) => {
+    if (!l || l.type === 'none' || !l.target) return false;
+    if (l.type === 'page') return setViewPage(l.target), true;
+    return followLink(l);
+  };
+  /** Situação do elemento no slide atual da apresentação. */
+  const presentState = (n: CanvasNode) => {
+    const fr = frames[slide];
+    const assigned = n.slides?.length ? n.slides.filter((id) => frames.some((f) => f.id === id)) : [];
+    const inFrame = !fr || (n.x + n.w / 2 >= fr.x && n.x + n.w / 2 <= fr.x + fr.w && n.y + n.h / 2 >= fr.y && n.y + n.h / 2 <= fr.y + fr.h);
+    const onSlide = n.kind !== 'frame' && (assigned.length ? !!fr && assigned.includes(fr.id) : inFrame);
+    return { onSlide, hidden: assigned.length > 0 && !onSlide };
+  };
   const startPresenting = () => {
     savedView.current = local.view;
     setSel(null);
@@ -509,38 +553,75 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     shell.current?.requestFullscreen?.().catch(() => undefined);
   };
   const stopPresenting = () => {
+    cancelAnimationFrame(flight.current);
+    setViewPage(null);
     setPresenting(false);
     if (savedView.current) setLocal((l) => ({ ...l, view: savedView.current! }));
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => undefined);
   };
+  const viewRef = useRef(local.view);
+  viewRef.current = local.view;
+  const flight = useRef(0);
+  /** Enquadramento de um slide: cabe na tela, com respiro, descontando a barra de controles. */
+  const viewFor = (f: { x: number; y: number; w: number; h: number }, r: DOMRect, pad = 28) => {
+    const z = Math.min(4, Math.max(0.05, Math.min((r.width - pad * 2) / Math.max(1, f.w), (r.height - pad * 2 - 56) / Math.max(1, f.h))));
+    return { zoom: z, x: (r.width - f.w * z) / 2 - f.x * z, y: (r.height - 56 - f.h * z) / 2 - f.y * z };
+  };
   useEffect(() => {
     if (!presenting) return;
-    const go = () => {
+    const go = (instant = false) => {
       const r = box.current?.getBoundingClientRect();
-      if (!r) return;
-      const target = frames[slide];
-      const nodes = target ? [target] : local.nodes;
-      if (!nodes.length) return;
-      const minX = Math.min(...nodes.map((n) => n.x)), minY = Math.min(...nodes.map((n) => n.y));
-      const maxX = Math.max(...nodes.map((n) => n.x + n.w)), maxY = Math.max(...nodes.map((n) => n.y + n.h));
-      const pad = target ? 24 : 80;
-      const z = Math.min(4, Math.max(0.05, Math.min((r.width - pad * 2) / (maxX - minX), (r.height - pad * 2 - 40) / (maxY - minY))));
-      const view = { zoom: z, x: (r.width - (maxX - minX) * z) / 2 - minX * z, y: (r.height - 40 - (maxY - minY) * z) / 2 - minY * z };
-      if ((local.present?.transition || 'smooth') === 'fade' && !first) {
+      const f = frames[slide];
+      if (!r || !f) return;
+      const to = viewFor(f, r, f.id.startsWith('auto-0') ? 70 : 28);
+      const tr = instant ? 'none' : f.slideTr || (local.present?.transition === 'slide' ? 'smooth' : local.present?.transition) || 'fly';
+      const dur = (f.slideDur || local.present?.duration || 1.1) * 1000;
+      cancelAnimationFrame(flight.current);
+      if (tr === 'none') return setLocal((l) => ({ ...l, view: to }));
+      if (tr === 'fade') {
         shell.current?.classList.add('fading');
         setTimeout(() => {
-          setLocal((l) => ({ ...l, view }));
+          setLocal((l) => ({ ...l, view: to }));
           requestAnimationFrame(() => shell.current?.classList.remove('fading'));
-        }, (local.present?.duration || 0.7) * 500);
-      } else setLocal((l) => ({ ...l, view }));
-      first = false;
+        }, dur / 2);
+        return;
+      }
+      // Voo contínuo pelo quadro: centro e zoom interpolados; no "fly" a câmera se afasta no meio do caminho.
+      const from = viewRef.current;
+      const W = r.width, H = r.height - 56;
+      const c0 = { x: (W / 2 - from.x) / from.zoom, y: (H / 2 - from.y) / from.zoom };
+      const c1 = { x: (W / 2 - to.x) / to.zoom, y: (H / 2 - to.y) / to.zoom };
+      const dist = Math.hypot(c1.x - c0.x, c1.y - c0.y);
+      const zFitBoth = Math.min(W / (dist + f.w + 200), H / (dist + f.h + 200));
+      const l0 = Math.log(from.zoom), l1 = Math.log(to.zoom);
+      const dip = tr === 'fly' ? Math.max(0, Math.min(l0, l1) - Math.log(Math.max(0.04, zFitBoth))) : 0;
+      const t0 = performance.now();
+      const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+      const tick = (now: number) => {
+        const k = Math.min(1, (now - t0) / dur);
+        const e = ease(k);
+        const z = Math.exp(l0 + (l1 - l0) * e - dip * Math.sin(Math.PI * e));
+        const cx = c0.x + (c1.x - c0.x) * e, cy = c0.y + (c1.y - c0.y) * e;
+        setLocal((l) => ({ ...l, view: { zoom: z, x: W / 2 - cx * z, y: H / 2 - cy * z } }));
+        if (k < 1) flight.current = requestAnimationFrame(tick);
+      };
+      flight.current = requestAnimationFrame(tick);
     };
-    let first = true;
     go();
-    const t2 = setTimeout(go, 250); // após entrar em tela cheia
-    window.addEventListener('resize', go);
-    return () => (clearTimeout(t2), window.removeEventListener('resize', go));
+    const onResize = () => go(true);
+    window.addEventListener('resize', onResize);
+    return () => (cancelAnimationFrame(flight.current), window.removeEventListener('resize', onResize));
   }, [presenting, slide, frames.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Ao entrar: começa pela visão geral e voa até o primeiro slide.
+  useEffect(() => {
+    if (!presenting) return;
+    const r = box.current?.getBoundingClientRect();
+    if (!r || !local.nodes.length) return;
+    const xs = local.nodes.map((n) => n.x), ys = local.nodes.map((n) => n.y);
+    const all = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...local.nodes.map((n) => n.x + n.w)) - Math.min(...xs), h: Math.max(...local.nodes.map((n) => n.y + n.h)) - Math.min(...ys) };
+    setLocal((l) => ({ ...l, view: viewFor(all, r, 80) }));
+  }, [presenting]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const f = () => !document.fullscreenElement && presenting && stopPresenting();
     document.addEventListener('fullscreenchange', f);
@@ -568,7 +649,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
   );
 
   return (
-    <div ref={shell} className={"canvas-shell" + (presenting ? " presenting tr-" + (local.present?.transition || "smooth") : "")} style={{ ["--tr-dur" as any]: `${local.present?.duration || 0.7}s` }}>
+    <div ref={shell} className={"canvas-shell" + (presenting ? " presenting tr-" + (frames[slide]?.slideTr || local.present?.transition || "fly") : "")} style={{ ["--tr-dur" as any]: `${local.present?.duration || 0.7}s` }}>
       <div
         ref={box}
         className={`canvas-area tool-${tool}`}
@@ -584,12 +665,10 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
         <div className="canvas-world" style={{ transform: `translate(${vx}px, ${vy}px) scale(${zoom})` }}>
           {ordered.map((n) => {
             const target = n.pageId ? pages[n.pageId] : undefined;
-            const fr = presenting ? frames[slide] : null;
-            const assigned = n.slides?.length ? n.slides.filter((id) => frames.some((f) => f.id === id)) : [];
-            const inFrame = !fr || (n.x + n.w / 2 >= fr.x && n.x + n.w / 2 <= fr.x + fr.w && n.y + n.h / 2 >= fr.y && n.y + n.h / 2 <= fr.y + fr.h);
             // Com slides escolhidos, o elemento só aparece neles; sem escolha, vale a posição dentro da moldura.
-            const onSlide = presenting && n.kind !== 'frame' && (assigned.length ? !!fr && assigned.includes(fr.id) : inFrame);
-            const hiddenHere = presenting && assigned.length > 0 && !onSlide;
+            const ps = presenting ? presentState(n) : { onSlide: false, hidden: false };
+            const onSlide = presenting && ps.onSlide;
+            const hiddenHere = presenting && ps.hidden;
             const animCls = (presenting && n.anim && n.anim !== 'none' ? (onSlide ? ` pa pa-${n.anim}` : ' pa-wait') : '') + (hiddenHere ? ' pa-hidden' : '');
             const order = onSlide ? ordered.filter((x) => x.kind !== 'frame' && x.anim && x.anim !== 'none').sort((a, b) => a.y - b.y || a.x - b.x).findIndex((x) => x.id === n.id) : 0;
             return (
@@ -603,7 +682,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                   if ((e.ctrlKey || e.metaKey) && n.link && followLink(n.link)) return e.stopPropagation();
                   dragNode(e, n, 'move');
                 }}
-                onClick={(e) => presenting && n.link && followLink(n.link) && (e.stopPropagation(), stopPresenting())}
+                onClick={(e) => presenting && n.link && presentFollow(n.link) && e.stopPropagation()}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   if (n.kind === 'page' && target) useUi.getState().go({ name: 'page', id: target.id });
@@ -656,7 +735,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                     {edit === n.id ? (
                       <input autoFocus className="input" value={n.text || ''} onChange={(e) => patchNode(n.id, { text: e.target.value })} onBlur={() => setEdit(null)} onKeyDown={(e) => (e.key === 'Enter' || e.key === 'Escape') && setEdit(null)} onPointerDown={(e) => e.stopPropagation()} />
                     ) : (
-                      <ButtonView b={nodeButton(n)} onClick={() => (presenting ? followLink(n.link) && stopPresenting() : undefined)} />
+                      <ButtonView b={nodeButton(n)} onClick={() => (presenting ? void presentFollow(n.link) : undefined)} />
                     )}
                   </div>
                 )}
@@ -703,12 +782,23 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               }
               const arrow = e.arrow || 'end';
               const on = sel === e.id;
+              let pe = '';
+              let edelay = 0;
+              if (presenting) {
+                const sa = presentState(a), sb = presentState(b);
+                if (sa.hidden || sb.hidden) pe = ' pe-hidden';
+                else if (sa.onSlide && sb.onSlide) {
+                  pe = ' pe-draw';
+                  const nd = (n: CanvasNode) => (n.anim && n.anim !== 'none' ? (n.animDelay ?? 0.25) + (n.animDur || 0.7) : 0.2);
+                  edelay = Math.max(nd(a), nd(b)) + 0.15;
+                }
+              }
               return (
-                <g key={e.id} className={'edge' + (on ? ' on' : '')} style={{ ['--edge' as any]: e.color || 'var(--muted)' }}
+                <g key={presenting && pe === ' pe-draw' ? `${e.id}-s${slide}` : e.id} className={'edge' + (on ? ' on' : '') + pe} style={{ ['--edge' as any]: e.color || 'var(--muted)', ['--edelay' as any]: `${edelay}s` }}
                   onPointerDown={(ev) => (ev.stopPropagation(), setSel(e.id), setEdit(null))}
                   onDoubleClick={(ev) => { ev.stopPropagation(); editLabel(e); }}>
                   <path d={d} className="edge-hit" />
-                  <path d={d} className="edge-line" markerEnd={arrow !== 'none' ? 'url(#arrow)' : undefined} markerStart={arrow === 'both' ? 'url(#arrow)' : undefined} />
+                  <path d={d} pathLength={1} className="edge-line" markerEnd={arrow !== 'none' ? 'url(#arrow)' : undefined} markerStart={arrow === 'both' ? 'url(#arrow)' : undefined} />
                   {e.label && <text x={(p1.x + p2.x) / 2} y={(p1.y + p2.y) / 2 - 8} textAnchor="middle">{e.label}</text>}
                   {on && (
                     <>
@@ -761,7 +851,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                   <Sparkle size={15} /> <span className="hide-xs">{selNode.anim && selNode.anim !== 'none' ? t(`canvas.anim.${selNode.anim}` as any) : t('present.elButton')}</span>
                 </button>
                 <Popover anchor={animRef.current} open={animOpen} onClose={() => setAnimOpen(false)}>
-                  <PresentSettings node={selNode} frames={frames} onChange={(p) => patchNode(selNode.id, p, true)} onPreview={() => previewAnim(selNode.id)} />
+                  <PresentSettings node={selNode} frames={realFrames} onChange={(p) => patchNode(selNode.id, p, true)} onPreview={() => previewAnim(selNode.id)} />
                 </Popover>
                 <Popover anchor={linkRef.current} open={linkOpen} onClose={() => setLinkOpen(false)}>
                   <div className="pad" style={{ width: 300 }}>
@@ -842,20 +932,24 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
       {presenting && (
         <Presenter
           frames={frames}
-          transition={local.present?.transition || 'smooth'}
-          duration={local.present?.duration || 0.7}
+          auto={autoFrames}
+          transition={local.present?.transition || 'fly'}
+          duration={local.present?.duration || 1.1}
+          timer={local.present?.timer}
+          paused={!!viewPage}
           onSettings={(present) => commit({ ...local, present }, true)}
           index={slide}
           setIndex={setSlide}
           onClose={stopPresenting}
           onReorder={(ids) => {
-            const order = new Map(ids.map((id, i) => [id, i]));
+            const order = new Map(ids.map((id: string, i: number) => [id, i]));
             const fr = local.nodes.filter((n) => n.kind === 'frame').sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
             let k = 0;
             commit({ ...local, nodes: local.nodes.map((n) => (n.kind === 'frame' ? fr[k++] : n)) }, true);
           }}
         />
       )}
+      {presenting && viewPage && pages[viewPage] && <PresentPage page={pages[viewPage]} onBack={() => setViewPage(null)} onOpen={(id) => setViewPage(id)} />}
       <Popover anchor={chartRef.current} open={chartOpen} onClose={() => setChartOpen(false)}>
         <div className="menu" style={{ width: 300, maxHeight: 360, overflow: 'auto' }}>
           {livePages(pages).filter((p) => p.type === 'report' && p.report?.widgets.length).flatMap((p) =>
