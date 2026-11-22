@@ -1,8 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   CalendarHeart, ChevronRight, Copy, Database, ExternalLink, FileText, Heart, Home, Info, LayoutTemplate, ListTodo, MoreHorizontal, Network,
-  PanelLeftClose, PieChart, Plus, Search, Settings, Sparkles, Star, StarOff, Trash2, Palette, Lock, Upload, PenTool,
-} from 'lucide-react';
+  PanelLeftClose, PieChart, Plus, Search, Settings, Sparkles, Star, StarOff, Trash2, Palette, Lock, Upload, PenTool, Presentation } from 'lucide-react';
 import { useT } from '../i18n';
 import { useVault, childrenOf, livePages } from '../store/vault';
 import { useUi, type Route } from '../store/ui';
@@ -68,6 +67,7 @@ export function Sidebar() {
         <button className="nav" onClick={() => openDaily()}><CalendarHeart size={17} /><span className="grow">{t('nav.today')}</span></button>
         <Nav r={{ name: 'tasks' }} icon={<ListTodo size={17} />} label={t('nav.tasks')} />
         <Nav r={{ name: 'boards' }} icon={<PenTool size={17} />} label={t('nav.boards')} />
+        <Nav r={{ name: 'presentations' }} icon={<Presentation size={17} />} label={t('nav.presentations')} />
         <Nav r={{ name: 'graph' }} icon={<Network size={17} />} label={t('nav.graph')} />
         <button className="nav" onClick={() => setUi({ aiPanel: true })}><Sparkles size={17} /><span className="grow">{t('nav.brain')}</span></button>
         <Nav r={{ name: 'templates' }} icon={<LayoutTemplate size={17} />} label={t('nav.templates')} />

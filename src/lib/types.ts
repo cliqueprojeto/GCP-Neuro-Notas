@@ -18,6 +18,8 @@ export interface Page {
   fullWidth?: boolean;
   journalDate?: string;
   mode?: 'doc' | 'edgeless';
+  presentation?: boolean; // aparece em Apresentações
+  presFolders?: string[]; // pastas de apresentações (pode estar em várias)
   chat?: { messages: { role: 'user' | 'assistant'; content: string; sources?: string[] }[]; provider?: string; contextId?: string };
   createdAt: number;
   updatedAt: number;
@@ -231,7 +233,10 @@ export interface VaultSettings {
   chartPalettes: { id: string; name: string; colors: string[] }[];
   templates?: UserTemplate[];
   notion?: { token: string; lastSync?: number; links?: Record<string, string> };
+  presFolders?: PresFolder[];
 }
+
+export interface PresFolder { id: string; name: string; icon: string; color: string }
 
 export const DEFAULT_SETTINGS: VaultSettings = {
   ai: { providers: [], brain: true },

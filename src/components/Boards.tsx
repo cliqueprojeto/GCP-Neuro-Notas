@@ -7,7 +7,7 @@ import { PageIcon, Empty } from './ui';
 import type { Page } from '../lib/types';
 
 /** Miniatura vetorial do quadro (molduras, notas, formas, conectores). */
-function BoardThumb({ page }: { page: Page }) {
+export function BoardThumb({ page }: { page: Page }) {
   const c = page.canvas;
   if (!c || !c.nodes.length) return <div className="board-thumb empty"><PenTool size={28} /></div>;
   const minX = Math.min(...c.nodes.map((n) => n.x)), minY = Math.min(...c.nodes.map((n) => n.y));
@@ -28,7 +28,9 @@ function BoardThumb({ page }: { page: Page }) {
         if (n.kind === 'frame') return <rect key={n.id} x={n.x} y={n.y} width={n.w} height={n.h} rx={8} fill="none" stroke="#94a3b8" strokeWidth={4} strokeDasharray="12 8" />;
         if (n.kind === 'draw') return <rect key={n.id} x={n.x} y={n.y} width={n.w} height={n.h} fill="none" stroke={n.color} strokeWidth={3} opacity={0.5} />;
         if (n.kind === 'shape' && n.shape === 'ellipse') return <ellipse key={n.id} cx={n.x + n.w / 2} cy={n.y + n.h / 2} rx={n.w / 2} ry={n.h / 2} fill={n.color} />;
-        const fill = n.kind === 'page' ? '#ffffff' : n.kind === 'image' ? '#cbd5e1' : n.kind === 'text' ? 'transparent' : n.color;
+        if (n.kind === 'text') { const fh = Math.min(n.h, (n.fontSize || 16) * 0.9); return <rect key={n.id} x={n.x} y={n.y + (n.h - fh) / 2} width={Math.min(n.w, (n.text || '').length * (n.fontSize || 16) * 0.55)} height={fh} rx={fh / 4} fill={n.color || '#94a3b8'} opacity={0.7} />; }
+        if (n.kind === 'shape' && n.shape === 'poly' && n.poly) return <polygon key={n.id} points={n.poly.split(' ').map((q) => { const [px, py] = q.split(',').map(Number); return `${n.x + (px / 100) * n.w},${n.y + (py / 100) * n.h}`; }).join(' ')} fill={n.color} />;
+        const fill = n.kind === 'page' ? '#ffffff' : n.kind === 'image' ? '#cbd5e1' : n.color;
         return <rect key={n.id} x={n.x} y={n.y} width={n.w} height={n.h} rx={n.kind === 'note' ? 4 : 12} fill={fill} stroke={n.kind === 'page' ? '#c4b5fd' : 'none'} strokeWidth={3} />;
       })}
     </svg>

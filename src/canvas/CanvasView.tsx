@@ -595,6 +595,12 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     setPresenting(true);
     shell.current?.requestFullscreen?.().catch(() => undefined);
   };
+  useEffect(() => {
+    if (useUi.getState().presentNow !== page.id) return;
+    useUi.getState().set({ presentNow: null });
+    const id = setTimeout(startPresenting, 250);
+    return () => clearTimeout(id);
+  }, [page.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const stopPresenting = () => {
     cancelAnimationFrame(flight.current);
     setViewPage(null);

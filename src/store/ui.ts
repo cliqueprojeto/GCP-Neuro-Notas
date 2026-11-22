@@ -7,6 +7,7 @@ export type Route =
   | { name: 'graph' }
   | { name: 'calendar'; date?: string; mode?: 'month' | 'week' | 'day' }
   | { name: 'boards' }
+  | { name: 'presentations' }
   | { name: 'trash' }
   | { name: 'journal' }
   | { name: 'tasks' }
@@ -28,10 +29,11 @@ interface UiState {
   aiPanel: boolean;
   mobileNav: boolean;
   toasts: Toast[];
+  presentNow: string | null;
   go(r: Route): void;
   back(): void;
   forward(): void;
-  set(p: Partial<Pick<UiState, 'palette' | 'aiPanel' | 'mobileNav'>>): void;
+  set(p: Partial<Pick<UiState, 'palette' | 'aiPanel' | 'mobileNav' | 'presentNow'>>): void;
   toast(text: string, kind?: Toast['kind']): void;
   dismiss(id: number): void;
 }
@@ -74,6 +76,7 @@ export const useUi = create<UiState>((set, get) => ({
   aiPanel: false,
   mobileNav: false,
   toasts: [],
+  presentNow: null,
   go(r) {
     const cur = get().route;
     if (JSON.stringify(cur) === JSON.stringify(r)) return set({ mobileNav: false });
