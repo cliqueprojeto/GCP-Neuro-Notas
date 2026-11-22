@@ -142,7 +142,6 @@ jobs:
     timeout-minutes: 90
     env:
       VERSION: ${{ needs.draft.outputs.version }}
-      NDK_VERSION: 27.2.12479018
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -153,12 +152,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
-      - name: SDK, NDK e build-tools do Android
+      - name: SDK e NDK do Android (já instalados no runner)
         run: |
-          sdkmanager --install "ndk;${NDK_VERSION}" "build-tools;34.0.0" "platforms;android-34" > /dev/null
-          echo "NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
-          echo "$ANDROID_HOME/build-tools/34.0.0" >> "$GITHUB_PATH"
+          echo "ANDROID_HOME=${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          NDK="${ANDROID_NDK_LATEST_HOME:-$(ls -d "$ANDROID_HOME"/ndk/* | sort -V | tail -1)}"
+          test -d "$NDK"
+          echo "NDK_HOME=$NDK" >> "$GITHUB_ENV"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          echo "$BT" >> "$GITHUB_PATH"
+          echo "NDK: $NDK"; echo "build-tools: $BT"
+          ls "$ANDROID_HOME/platforms"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
