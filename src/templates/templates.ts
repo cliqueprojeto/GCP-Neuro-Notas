@@ -298,7 +298,7 @@ export const TEMPLATES: Template[] = [
       { key: 'rating', name: l('Relevância', 'Relevance', 'Relevancia'), type: 'rating' },
     ], [
       { name: 'Gestão Cultural Pro', url: 'https://www.gestaoculturalpro.com.br', tags: [l('Referência', 'Reference', 'Referencia'), l('Editais', 'Grants', 'Convocatorias')], rating: 5 },
-      { name: 'GitHub — GCP-Neuro Notas', url: 'https://github.com/cliqueprojeto/GCP-Notas', tags: [l('Ferramenta', 'Tool', 'Herramienta')], rating: 4 },
+      { name: 'GitHub — GCP-Neuro Notas', url: 'https://github.com/cliqueprojeto/GCP-Neuro-Notas', tags: [l('Ferramenta', 'Tool', 'Herramienta')], rating: 4 },
     ], [{ type: 'gallery' }, { type: 'table' }])],
   },
   {

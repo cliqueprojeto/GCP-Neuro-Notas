@@ -8,8 +8,8 @@
 
 Livre · Gratuito · Sem cadastro · Android, Linux, Windows e macOS (Intel e Apple Silicon)
 
-[![Última versão](https://img.shields.io/github/v/release/cliqueprojeto/GCP-Notas?label=vers%C3%A3o&color=8b5cf6)](https://github.com/cliqueprojeto/GCP-Notas/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/cliqueprojeto/GCP-Notas/total?color=4cc3f5)](https://github.com/cliqueprojeto/GCP-Notas/releases)
+[![Última versão](https://img.shields.io/github/v/release/cliqueprojeto/GCP-Neuro-Notas?label=vers%C3%A3o&color=8b5cf6)](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/cliqueprojeto/GCP-Neuro-Notas/total?color=4cc3f5)](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-34d399)](LICENSE)
 ![Plataformas](https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-ec4899)
 
@@ -128,7 +128,7 @@ Páginas aninhadas com arrastar e soltar, favoritos, lixeira com restauração, 
 
 ### 🔄 Atualizações automáticas
 
-Novas versões chegam direto das [Releases do GitHub](https://github.com/cliqueprojeto/GCP-Notas/releases). Em **Configurações → Atualizações** você escolhe quando verificar:
+Novas versões chegam direto das [Releases do GitHub](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases). Em **Configurações → Atualizações** você escolhe quando verificar:
 
 > Sempre que abrir o programa · Todos os dias · A cada semana · A cada duas semanas · A cada mês · Nunca
 
@@ -136,7 +136,7 @@ Quando há novidade, aparece o botão **Atualizar para x.y.z** no topo: o app mo
 
 ## ⬇️ Download e instalação
 
-Baixe o arquivo do seu sistema na [página da última versão](https://github.com/cliqueprojeto/GCP-Notas/releases/latest). **Dois cliques e pronto** — nada mais precisa ser instalado.
+Baixe o arquivo do seu sistema na [página da última versão](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest). **Dois cliques e pronto** — nada mais precisa ser instalado.
 
 | Sistema | Arquivo | Como instalar |
 |---|---|---|
@@ -325,7 +325,7 @@ O apoio é voluntário: todas as funções estão disponíveis sem contribuiçã
 - **Security:** Argon2id + XChaCha20-Poly1305, recovery key, auto-lock. No account, no tracking, no ads.
 - **12 premium themes**, Portuguese/English/Spanish auto-detected, in-app updates with SHA-256 verification.
 
-Download the installer for your system from the [latest release](https://github.com/cliqueprojeto/GCP-Notas/releases/latest) — two clicks, nothing else to install. Developed by **Bruno Albertini** · [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). License: GPL-3.0.
+Download the installer for your system from the [latest release](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest) — two clicks, nothing else to install. Developed by **Bruno Albertini** · [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). License: GPL-3.0.
 
 ## 🇪🇸 Español
 
@@ -340,4 +340,4 @@ Download the installer for your system from the [latest release](https://github.
 - **Copia y sincronización** en Google Drive y OneDrive, cifradas de extremo a extremo.
 - **12 temas premium**, portugués/inglés/español detectados automáticamente, actualizaciones dentro de la app.
 
-Descarga el instalador de tu sistema en la [última versión](https://github.com/cliqueprojeto/GCP-Notas/releases/latest). Desarrollado por **Bruno Albertini** · [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). Licencia: GPL-3.0.
+Descarga el instalador de tu sistema en la [última versión](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest). Desarrollado por **Bruno Albertini** · [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). Licencia: GPL-3.0.

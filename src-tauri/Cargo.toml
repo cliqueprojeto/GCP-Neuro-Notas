@@ -4,7 +4,7 @@ version = "1.3.1"
 description = "GCP Notas"
 authors = ["Bruno Albertini | Gestão Cultural Pro"]
 license = "GPL-3.0-or-later"
-repository = "https://github.com/cliqueprojeto/GCP-Notas"
+repository = "https://github.com/cliqueprojeto/GCP-Neuro-Notas"
 edition = "2021"
 rust-version = "1.77"
 

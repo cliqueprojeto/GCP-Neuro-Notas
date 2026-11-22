@@ -234,7 +234,7 @@ export async function chat(p: AiProvider, system: string, messages: ChatMessage[
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (p.apiKey) headers.Authorization = `Bearer ${p.apiKey}`;
       if (p.kind === 'openrouter') {
-        headers['HTTP-Referer'] = 'https://github.com/cliqueprojeto/GCP-Notas';
+        headers['HTTP-Referer'] = 'https://github.com/cliqueprojeto/GCP-Neuro-Notas';
         headers['X-Title'] = 'GCP-Neuro Notas';
       }
       const data = await json(

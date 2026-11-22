@@ -3,7 +3,7 @@ import { APP_VERSION, isDesktop, netFetch, platformInfo } from './platform';
 import { usePrefs } from '../store/prefs';
 import type { UpdateFrequency } from './types';
 
-export const REPO = 'cliqueprojeto/GCP-Notas';
+export const REPO = 'cliqueprojeto/GCP-Neuro-Notas';
 export const RELEASES_URL = `https://github.com/${REPO}/releases`;
 
 export interface ReleaseInfo {

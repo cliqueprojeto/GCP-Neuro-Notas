@@ -296,7 +296,7 @@ function Backup() {
           <Field label="Google Client ID"><input className="input mono" value={cloud.googleClientId || ''} placeholder={clientConfig('gdrive').clientId || '…apps.googleusercontent.com'} onChange={(e) => v.updateSettings((s) => ((s.cloud.googleClientId = e.target.value.trim()), s))} /></Field>
           <Field label="Google Client Secret"><input className="input mono" value={cloud.googleClientSecret || ''} onChange={(e) => v.updateSettings((s) => ((s.cloud.googleClientSecret = e.target.value.trim()), s))} /></Field>
           <Field label="Microsoft Application (client) ID"><input className="input mono" value={cloud.microsoftClientId || ''} placeholder={clientConfig('onedrive').clientId || '00000000-0000-0000-0000-000000000000'} onChange={(e) => v.updateSettings((s) => ((s.cloud.microsoftClientId = e.target.value.trim()), s))} /></Field>
-          <button className="link-btn" onClick={() => openUrl('https://github.com/cliqueprojeto/GCP-Notas/blob/main/docs/CLOUD-SETUP.md')}><ExternalLink size={13} /> {t('cloud.guide')}</button>
+          <button className="link-btn" onClick={() => openUrl('https://github.com/cliqueprojeto/GCP-Neuro-Notas/blob/main/docs/CLOUD-SETUP.md')}><ExternalLink size={13} /> {t('cloud.guide')}</button>
         </details>
       </Card>
 

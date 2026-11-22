@@ -13,7 +13,7 @@ O app Android é **nativo**: gerado pelo Tauri 2 a partir do mesmo núcleo Rust 
 
 ### Instalar
 
-Baixe `GCP-Notas-x.y.z-Android.apk` na [última versão](https://github.com/cliqueprojeto/GCP-Notas/releases/latest), toque no arquivo, permita **Instalar apps desconhecidos** para o navegador e confirme. Requer Android 7.0 (API 24) ou superior; o APK inclui arm64, armv7 e x86_64.
+Baixe `GCP-Notas-x.y.z-Android.apk` na [última versão](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest), toque no arquivo, permita **Instalar apps desconhecidos** para o navegador e confirme. Requer Android 7.0 (API 24) ou superior; o APK inclui arm64, armv7 e x86_64.
 
 ### Chave de assinatura (importante para as atualizações)
 

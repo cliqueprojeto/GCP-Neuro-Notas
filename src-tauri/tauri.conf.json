@@ -40,7 +40,7 @@
     "category": "Productivity",
     "shortDescription": "Notas, bases de dados, relatórios e segundo cérebro — offline e criptografado.",
     "longDescription": "GCP-Neuro Notas reúne editor completo, páginas aninhadas, bases de dados, quadros, calendário, relatórios com gráficos, grafo de ideias, templates, IA opcional e backup criptografado no Google Drive e OneDrive.",
-    "homepage": "https://github.com/cliqueprojeto/GCP-Notas",
+    "homepage": "https://github.com/cliqueprojeto/GCP-Neuro-Notas",
     "license": "GPL-3.0-or-later",
     "licenseFile": "../LICENSE",
     "icon": [
