@@ -173,6 +173,9 @@ export function Editor({ page, editable = true }: Props) {
   useEffect(() => {
     editor?.setEditable(editable);
   }, [editor, editable]);
+  useEffect(() => {
+    if (editor && (editor.storage as any).dbView) (editor.storage as any).dbView.hostPageId = page.id;
+  }, [editor, page.id]);
 
   // Conteúdo trocado por fora (histórico de versões, IA, sincronização).
   useEffect(() => {
@@ -326,6 +329,7 @@ function buildSlash() {
       { id: 'form', tone: 'teal', group: g.adv, title: t('slash.form'), subtitle: t('slash.form.sub'), icon: <FileSpreadsheet size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'form' }).run() },
       { id: 'link', tone: 'blue', group: g.pages, title: t('slash.pageLink'), subtitle: '[[ ]]', icon: <LinkIcon size={18} />, run: ({ editor }) => editor.chain().focus().insertContent('[[').run() },
       { id: 'subpage', tone: 'violet', group: g.pages, title: t('slash.subpage'), icon: <FileText size={18} />, run: ({ editor }) => childPage('page', editor) },
+      { id: 'dbInline', tone: 'teal', group: g.pages, title: t('slash.dbInline'), subtitle: t('slash.dbInline.sub'), icon: <Database size={18} />, run: ({ editor }) => editor.chain().focus().insertContent({ type: 'dbView', attrs: { pageId: '' } }).run() },
       { id: 'database', tone: 'teal', group: g.pages, title: t('slash.database'), icon: <Database size={18} />, run: ({ editor }) => childPage('database', editor) },
       { id: 'report', tone: 'pink', group: g.pages, title: t('slash.report'), icon: <PieChart size={18} />, run: ({ editor }) => childPage('report', editor) },
       ...templateItems(t, ctx.page),

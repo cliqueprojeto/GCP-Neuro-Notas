@@ -11,6 +11,7 @@ import { checkFormula, FUNCTION_HELP } from './formula';
 import { CURRENCIES, systemCurrency } from './masks';
 import { Select } from '../components/ui';
 import { DateInput } from '../components/DateInput';
+import { NeuroIcon } from '../components/NeuroIcon';
 import { uid } from '../lib/crypto';
 import { normalize } from '../lib/doc';
 
@@ -42,6 +43,7 @@ export const TYPE_META: Record<PropType, { icon: any; tone: string }> = {
   items: { icon: ShoppingCart, tone: 'pink' },
   checklist: { icon: ListTodo, tone: 'pink' },
   timer: { icon: Timer, tone: 'red' },
+  relation: { icon: NeuroIcon, tone: 'teal' },
 };
 
 export function TypeIcon({ type, size = 15 }: { type: PropType; size?: number }) {

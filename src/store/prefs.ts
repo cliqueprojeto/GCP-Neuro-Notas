@@ -6,13 +6,14 @@ export type Lang = 'pt' | 'en' | 'es';
 interface Prefs {
   lang: Lang | 'auto';
   theme: string;
+  customTheme?: Partial<import('../lib/themes').CustomTheme>;
   updateFrequency: UpdateFrequency;
   lastUpdateCheck: number;
   skippedVersion: string;
   sidebarCollapsed: boolean;
   sidebarWidth: number;
   miniCalendar: boolean;
-  graphColors: { link?: string; board?: string; child?: string; suggestion?: string; width?: number };
+  graphColors: { link?: string; board?: string; child?: string; suggestion?: string; synapse?: string; width?: number };
   set: (p: Partial<Omit<Prefs, 'set'>>) => void;
 }
 

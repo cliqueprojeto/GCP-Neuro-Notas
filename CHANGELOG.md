@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1.6.0 — Bases de dados dentro da página, Neuro Links neural e temas premium
+
+- **Base de dados na página** (`/base de dados na página`): escolha a visão com prévia ilustrada (Tabela, Quadro, Galeria, Lista, Calendário, Cronograma, Gantt, Mapa ou Anexos) ou mostre uma base que já existe; os dados ficam editáveis ali mesmo, com abas de visões, filtros, Kanban e cartões completos.
+- **Menu de opções da base** (estilo Notion): transformar em página, editar ícone, favoritar, **bloquear base de dados**, renomear, mesclar com CSV/planilha, abrir como página, copiar link, duplicar, mover para outra página, mover para a lixeira, pedir à IA e data da última edição.
+- **Gerenciador de visões** com miniaturas de cada tipo.
+- **Neuro Links** com visual de rede neural: páginas são neurônios com dendritos e brilho, ligações são axônios curvos com botões sinápticos e impulsos elétricos que percorrem as conexões (respeita "reduzir movimento" do sistema).
+- **Sinapses (conexões livres)**: ligue qualquer página a qualquer outra, fora da hierarquia — inclusive projetos de raízes diferentes —, pelo painel ("Conectar", "Conectar a…") ou com Shift + arrastar entre neurônios; desfaça quando quiser.
+- **Campo Neuro Links nas bases**: cada tarefa ou registro pode apontar para páginas e projetos, e essas ligações aparecem no grafo.
+- **Temas premium** com estrutura própria, não só cores: Nebula Glass, Carbon Flat, Emerald Soft, Noir Editorial e Cyber Mesh (escuros); Cloud Glass, Swiss Flat, Porcelain Soft, Paper Editorial e Peach Mesh (claros) — vidro fosco, plano de alto contraste, suave com sombras, editorial com títulos serifados e malha vibrante.
+- **Tema personalizado**: base clara ou escura, cores de fundo, painéis, texto e destaques, cantos e estrutura.
+
 ## 1.5.0 — Kanban completo, datas no padrão do idioma, mais contraste e novo ícone
 
 - **Kanban**: arraste cartões entre colunas e dentro delas com o mouse ou, no celular e no tablet, segurando o cartão; o status muda sozinho. Um clique em qualquer parte do cartão abre o registro, sem a sensação de "duro".

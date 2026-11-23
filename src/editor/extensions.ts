@@ -1,6 +1,7 @@
 import { AttachmentView, MapBlockView } from './geoBlocks';
 import { Column, Columns } from './columns';
 import { QrBlock } from './qrBlock';
+import { DbViewNode } from '../database/dbViewNode';
 import { Extension, Node, mergeAttributes, type AnyExtension } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
@@ -300,6 +301,7 @@ function base(placeholder?: string): AnyExtension[] {
     Columns,
     Column,
     QrBlock,
+    DbViewNode,
     ...(placeholder !== undefined ? [Placeholder.configure({ placeholder, includeChildren: false }), CharacterCount] : []),
   ];
 }

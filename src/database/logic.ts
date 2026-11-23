@@ -10,13 +10,13 @@ export const OPTION_COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'tea
 export const PROP_TYPES: PropType[] = [
   'text', 'number', 'currency', 'formula', 'conditional', 'select', 'multi', 'status', 'date', 'checkbox', 'url', 'email', 'phone',
   'cpf', 'cnpj', 'cep', 'password', 'rating', 'progress', 'created', 'files', 'location',
-  'longtext', 'items', 'checklist', 'timer',
+  'longtext', 'items', 'checklist', 'timer', 'relation',
 ];
 
 /** Grupos do menu "tipo de campo" (com cor e ícone, como no Notion). */
 export const PROP_GROUPS: { key: 'basic' | 'choice' | 'media' | 'docs' | 'system' | 'work'; types: PropType[] }[] = [
   { key: 'basic', types: ['text', 'longtext', 'number', 'currency', 'formula', 'conditional', 'rating', 'progress'] },
-  { key: 'work', types: ['items', 'checklist', 'timer'] },
+  { key: 'work', types: ['items', 'checklist', 'timer', 'relation'] },
   { key: 'choice', types: ['select', 'multi', 'status', 'checkbox', 'date'] },
   { key: 'media', types: ['files', 'location'] },
   { key: 'docs', types: ['phone', 'email', 'cpf', 'cnpj', 'cep', 'url', 'password'] },
@@ -74,6 +74,8 @@ export function cellText(prop: Property, v: any, locale?: string): string {
     }
     case 'timer':
       return typeof v === 'object' ? fmtDuration(timerElapsed(v)) : '';
+    case 'relation':
+      return (Array.isArray(v) ? v : []).map((id: string) => relationTitle(id)).filter(Boolean).join(', ');
     case 'currency':
       return formatCurrency(v, prop.currency, prop.locale, prop.decimals);
     case 'number':
@@ -626,3 +628,9 @@ export function logChange(db: DatabaseData, prev: Row, next: Row, words: { edite
   }
   return { ...next, activity: acts.slice(-200) };
 }
+
+
+/** Título de uma página ligada (campo Neuro Links); o resolvedor é registrado pelo app. */
+let titleResolver: (id: string) => string = () => '';
+export function setRelationResolver(fn: (id: string) => string) { titleResolver = fn; }
+export function relationTitle(id: string) { return titleResolver(id); }

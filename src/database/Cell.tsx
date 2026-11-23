@@ -14,7 +14,7 @@ import { fileKind, fmtSize, openFile, pickFiles, toFileRef } from '../lib/files'
 import { geocode, osmLink } from '../lib/geo';
 import { MapPin, Paperclip, Search as SearchIcon } from 'lucide-react';
 import { DateInput } from '../components/DateInput';
-import { ChecklistCell, ItemsCell, LongTextCell, TimerCell } from './workCells';
+import { ChecklistCell, ItemsCell, LongTextCell, RelationCell, TimerCell } from './workCells';
 
 export function OptionPill({ label, color }: { label: string; color: string }) {
   return <span className={`pill c-${color}`}>{label}</span>;
@@ -112,6 +112,8 @@ export function Cell({ prop, row, onChange, onPropChange, readOnly, compact }: C
       return <ItemsCell prop={prop} value={Array.isArray(v) ? v : []} onChange={onChange} readOnly={readOnly} compact={compact} />;
     case 'checklist':
       return <ChecklistCell value={Array.isArray(v) ? v : []} onChange={onChange} readOnly={readOnly} compact={compact} />;
+    case 'relation':
+      return <RelationCell value={Array.isArray(v) ? v : []} onChange={onChange} readOnly={readOnly} compact={compact} />;
     case 'timer':
       return <TimerCell prop={prop} row={row} value={v} onChange={onChange} readOnly={readOnly} compact={compact} />;
     case 'files':

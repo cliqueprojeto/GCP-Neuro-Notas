@@ -1,9 +1,20 @@
+import { usePrefs } from '../store/prefs';
+/** Estrutura visual do tema: muda formas, sombras, transparências e tipografia (não só as cores). */
+export type Structure = 'classic' | 'glass' | 'flat' | 'soft' | 'editorial' | 'mesh';
+export const STRUCTURES: Structure[] = ['classic', 'glass', 'flat', 'soft', 'editorial', 'mesh'];
+
 export interface Theme {
   id: string;
   name: string;
   dark: boolean;
   vars: Record<string, string>;
+  structure?: Structure;
+  premium?: boolean;
 }
+
+/** Tema personalizado criado pelo usuário. */
+export interface CustomTheme { dark: boolean; bg: string; panel: string; text: string; accent: string; accent2: string; structure: Structure; radius: number }
+export const DEFAULT_CUSTOM: CustomTheme = { dark: true, bg: '#0f1226', panel: '#171b38', text: '#eef0ff', accent: '#8b5cf6', accent2: '#22d3ee', structure: 'glass', radius: 14 };
 
 /** Monta um tema a partir de poucas cores-base. */
 function theme(
@@ -107,9 +118,69 @@ export const THEMES: Theme[] = [
     bg: '#f9f7ff', side: '#f0ecfd', panel: '#ffffff', panel2: '#f4f1fe', border: '#e2dcf7',
     text: '#271f45', muted: '#7a70a0', accent: '#7c3aed', accent2: '#2563eb',
   }),
+  // ---------- premium: cores e estrutura próprias ----------
+  premium(theme('nebula', 'Nebula Glass', true, {
+    bg: '#070616', side: '#0c0a24', panel: '#141133', panel2: '#1c1844', border: '#2d2866',
+    text: '#f1efff', muted: '#a49fd6', accent: '#a855f7', accent2: '#22d3ee',
+  }), 'glass', 'radial-gradient(900px 600px at 12% 8%, rgba(168,85,247,.35), transparent 60%), radial-gradient(800px 600px at 92% 90%, rgba(34,211,238,.25), transparent 60%), radial-gradient(600px 400px at 70% 20%, rgba(236,72,153,.18), transparent 60%), #070616'),
+  premium(theme('carbon', 'Carbon Flat', true, {
+    bg: '#0e0e10', side: '#0a0a0b', panel: '#161618', panel2: '#1d1d20', border: '#2f2f34',
+    text: '#f4f4f5', muted: '#a1a1aa', accent: '#f59e0b', accent2: '#f97316', accentText: '#1c1305',
+  }), 'flat'),
+  premium(theme('emerald-night', 'Emerald Soft', true, {
+    bg: '#06130f', side: '#081a14', panel: '#0d221b', panel2: '#122c23', border: '#1c3d31',
+    text: '#e6fbf2', muted: '#8fc2ad', accent: '#10b981', accent2: '#84cc16', accentText: '#022c1e',
+  }), 'soft'),
+  premium(theme('noir', 'Noir Editorial', true, {
+    bg: '#0c0b0a', side: '#100f0d', panel: '#161412', panel2: '#1e1b18', border: '#34302a',
+    text: '#f5efe6', muted: '#b3a998', accent: '#d4a64a', accent2: '#e8d5a8', accentText: '#1a1204',
+  }), 'editorial'),
+  premium(theme('cyber', 'Cyber Mesh', true, {
+    bg: '#05060f', side: '#080a18', panel: '#0e1124', panel2: '#141834', border: '#252c5a',
+    text: '#eaf6ff', muted: '#93a7d8', accent: '#00e5ff', accent2: '#ff2bd6', accentText: '#001318',
+  }), 'mesh', 'conic-gradient(from 210deg at 70% 30%, rgba(0,229,255,.22), rgba(255,43,214,.2), rgba(124,58,237,.22), rgba(0,229,255,.22)), radial-gradient(700px 500px at 15% 85%, rgba(255,43,214,.18), transparent 60%), #05060f'),
+  premium(theme('cloud', 'Cloud Glass', false, {
+    bg: '#eef3fb', side: '#f6f9ff', panel: '#ffffff', panel2: '#f2f6fd', border: '#d8e1f0',
+    text: '#14213d', muted: '#5a6b8c', accent: '#2563eb', accent2: '#06b6d4',
+  }), 'glass', 'radial-gradient(900px 600px at 10% 0%, rgba(37,99,235,.16), transparent 60%), radial-gradient(800px 600px at 95% 100%, rgba(6,182,212,.18), transparent 60%), radial-gradient(600px 500px at 60% 40%, rgba(236,72,153,.08), transparent 60%), #eef3fb'),
+  premium(theme('swiss', 'Swiss Flat', false, {
+    bg: '#ffffff', side: '#f4f4f4', panel: '#ffffff', panel2: '#f6f6f6', border: '#d4d4d4',
+    text: '#0a0a0a', muted: '#4a4a4a', accent: '#e11d2a', accent2: '#111111',
+  }), 'flat'),
+  premium(theme('porcelain', 'Porcelain Soft', false, {
+    bg: '#f3f1ee', side: '#f7f5f2', panel: '#fbfaf8', panel2: '#f2efea', border: '#e4dfd7',
+    text: '#2b2724', muted: '#6e665e', accent: '#0f766e', accent2: '#b45309',
+  }), 'soft'),
+  premium(theme('editorial', 'Paper Editorial', false, {
+    bg: '#fbf8f1', side: '#f5f0e4', panel: '#fffdf8', panel2: '#f7f1e3', border: '#e2d8c3',
+    text: '#1f1a12', muted: '#5d5444', accent: '#9a3412', accent2: '#1e3a8a',
+  }), 'editorial'),
+  premium(theme('peach', 'Peach Mesh', false, {
+    bg: '#fff6f0', side: '#fff9f5', panel: '#ffffff', panel2: '#fff3ea', border: '#f5dccb',
+    text: '#3b1d10', muted: '#7d5543', accent: '#ea580c', accent2: '#db2777',
+  }), 'mesh', 'radial-gradient(800px 600px at 0% 0%, rgba(251,146,60,.30), transparent 60%), radial-gradient(800px 600px at 100% 30%, rgba(219,39,119,.20), transparent 60%), radial-gradient(700px 500px at 40% 100%, rgba(250,204,21,.22), transparent 60%), #fff6f0'),
 ];
 
+function premium(t: Theme, structure: Structure, appBg?: string): Theme {
+  return { ...t, structure, premium: true, vars: { ...t.vars, ...(appBg ? { '--app-bg': appBg } : {}) } };
+}
+
+/** Monta o tema personalizado a partir das escolhas do usuário (as demais cores são derivadas). */
+export function customTheme(c: CustomTheme): Theme {
+  const mix = (a: string, b: string, p: number) => `color-mix(in srgb, ${a} ${p}%, ${b})`;
+  const th = theme('custom', 'Personalizado', c.dark, {
+    bg: c.bg, side: mix(c.bg, c.dark ? '#000' : '#fff', 70), panel: c.panel, panel2: mix(c.panel, c.text, 94), border: mix(c.panel, c.text, 82),
+    text: c.text, muted: mix(c.text, c.bg, 62), accent: c.accent, accent2: c.accent2,
+  });
+  th.vars['--radius'] = c.radius + 'px';
+  th.vars['--radius-sm'] = Math.max(4, c.radius - 4) + 'px';
+  if (c.structure === 'glass' || c.structure === 'mesh')
+    th.vars['--app-bg'] = `radial-gradient(900px 600px at 10% 5%, ${mix(c.accent, 'transparent', 30)}, transparent 60%), radial-gradient(800px 600px at 95% 95%, ${mix(c.accent2, 'transparent', 26)}, transparent 60%), ${c.bg}`;
+  return { ...th, structure: c.structure, premium: true };
+}
+
 export function getTheme(id: string): Theme {
+  if (id === 'custom') return customTheme({ ...DEFAULT_CUSTOM, ...(usePrefs.getState().customTheme || {}) });
   if (id === 'system-dark' || id === 'system') {
     const dark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true;
     return dark ? THEMES[0] : THEMES.find((t) => t.id === 'snow')!;
@@ -120,8 +191,10 @@ export function getTheme(id: string): Theme {
 export function applyTheme(id: string) {
   const t = getTheme(id);
   const root = document.documentElement;
+  ['--app-bg', '--radius', '--radius-sm'].forEach((k) => root.style.removeProperty(k));
   Object.entries(t.vars).forEach(([k, v]) => root.style.setProperty(k, v));
   root.dataset.theme = t.dark ? 'dark' : 'light';
+  root.dataset.structure = t.structure || 'classic';
   root.style.colorScheme = t.dark ? 'dark' : 'light';
   (window as any).GcpNative?.setLightBars?.(!t.dark); // ícones da barra de status no Android
 }

@@ -19,6 +19,8 @@ export interface Page {
   journalDate?: string;
   mode?: 'doc' | 'edgeless';
   presentation?: boolean; // aparece em Apresentações
+  locked?: boolean; // base/página bloqueada para edição
+  synapses?: Synapse[]; // Neuro Links: conexões livres, fora da hierarquia
   presFolders?: string[]; // pastas de apresentações (pode estar em várias)
   chat?: { messages: { role: 'user' | 'assistant'; content: string; sources?: string[] }[]; provider?: string; contextId?: string };
   createdAt: number;
@@ -26,6 +28,9 @@ export interface Page {
   deletedAt?: number | null;
   purged?: boolean;
 }
+
+/** Conexão livre do Neuro Links (página → página, em qualquer ponto da árvore). */
+export interface Synapse { to: string; label?: string; at: number }
 
 export type PropType =
   | 'title'
@@ -54,7 +59,8 @@ export type PropType =
   | 'longtext'
   | 'items'
   | 'checklist'
-  | 'timer';
+  | 'timer'
+  | 'relation';
 
 export type CondOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'empty' | 'notEmpty';
 

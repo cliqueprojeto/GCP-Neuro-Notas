@@ -18,13 +18,14 @@ import { uid } from '../lib/crypto';
 import { normalize } from '../lib/doc';
 import { FilesView, GanttView, MapDbView, TimelineView } from './views2';
 import { BoardView, RowModal } from './board';
+import { ViewPreview } from './viewPreview';
 import { fmtDate } from '../lib/dates';
 
 const VIEW_ICONS: Record<ViewType, any> = { table: Table2, board: Columns3, gallery: GalleryVerticalEnd, calendar: CalendarDays, list: LayoutList, gantt: GanttChart, timeline: CalendarRange, map: MapIcon, files: Paperclip };
 
 type Ctx = { x: number; y: number; items: MenuEntry[] } | null;
 
-export function DatabaseView({ page }: { page: Page }) {
+export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolean }) {
   const t = useT();
   const lang = useLang();
   const update = useVault((s) => s.updatePage);
@@ -47,6 +48,10 @@ export function DatabaseView({ page }: { page: Page }) {
   const lastPush = useRef(0);
   const [, bump] = useState(0);
   const save = (next: DatabaseData, record = true) => {
+    if (useVault.getState().pages[page.id]?.locked && record) {
+      toast(t('embed.lockedMsg'), 'info');
+      return;
+    }
     if (record) {
       const now = Date.now();
       // digitação contínua vira um único passo de desfazer
@@ -192,6 +197,11 @@ export function DatabaseView({ page }: { page: Page }) {
       toast(t('export.error') + ' ' + String((e as Error).message || e), 'error');
     }
   };
+  useEffect(() => {
+    const h = (e: Event) => { if ((e as CustomEvent).detail === page.id) void doImport(); };
+    window.addEventListener('gcp-db-import', h);
+    return () => window.removeEventListener('gcp-db-import', h);
+  });
   const doImport = async () => {
     try {
       const book = await readSpreadsheet();
@@ -202,7 +212,7 @@ export function DatabaseView({ page }: { page: Page }) {
   };
 
   return (
-    <div ref={rootRef} className={'db' + (full ? ' db-full' : '')}>
+    <div ref={rootRef} className={'db' + (full ? ' db-full' : '') + (embedded ? ' db-embedded' : '') + (page.locked ? ' db-locked' : '')}>
       {full && <div className="db-full-head"><b>{page.title || t('page.untitled')}</b><span className="grow" /><button className="btn ghost sm" onClick={() => setFull(false)}><Minimize2 size={15} /> {t('db.exitFull')}</button></div>}
       <div className="db-bar">
         <div className="db-views">
@@ -228,7 +238,8 @@ export function DatabaseView({ page }: { page: Page }) {
                   const on = same.some((x) => !x.hiddenTab);
                   return (
                     <button key={ty} className={'vm-type' + (on ? ' on' : '')} onClick={() => addView(ty)} title={on ? t('db.views.hideType') : t('db.views.showType')}>
-                      <span className="vm-check">{on && <Check size={12} />}</span><Icon size={16} /> <span>{t(`db.view.${ty}` as TKey)}</span>
+                      <span className="vm-prev"><ViewPreview type={ty} /></span>
+                      <span className="vm-label"><span className="vm-check">{on && <Check size={12} />}</span><Icon size={15} /> <span>{t(`db.view.${ty}` as TKey)}</span></span>
                     </button>
                   );
                 })}

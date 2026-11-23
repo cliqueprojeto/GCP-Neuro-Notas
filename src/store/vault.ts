@@ -13,6 +13,7 @@ import {
   type VaultHeader,
 } from '../lib/crypto';
 import { storage, type DbRecord } from '../lib/platform';
+import { setRelationResolver } from '../database/logic';
 import { DEFAULT_SETTINGS, type Page, type PageType, type Snapshot, type VaultSettings } from '../lib/types';
 
 export type VaultStatus = 'loading' | 'new' | 'locked' | 'unlocked';
@@ -543,3 +544,6 @@ export async function wipeEverything(): Promise<void> {
   }
   location.reload();
 }
+
+// títulos para o campo Neuro Links das bases
+setRelationResolver((id) => useVault.getState().pages[id]?.title || '');

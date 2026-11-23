@@ -52,6 +52,7 @@ export function outgoingLinks(p: Page): string[] {
   const walk = (n: any) => {
     if (!n) return;
     if (n.type === 'pageLink' && n.attrs?.id) set.add(n.attrs.id);
+    if (n.type === 'dbView' && n.attrs?.pageId) set.add(n.attrs.pageId);
     if (n.marks) for (const m of n.marks) if (m.type === 'link' && m.attrs?.href?.startsWith('gcp://page/')) set.add(m.attrs.href.slice(11));
     // Botões e cartões com link para outra página também contam como ligação.
     if ((n.type === 'buttons' || n.type === 'cards') && Array.isArray(n.attrs?.items))
@@ -59,6 +60,8 @@ export function outgoingLinks(p: Page): string[] {
     n.content?.forEach(walk);
   };
   walk(p.content);
+  // tarefas/registros com campo Neuro Links apontam para outras páginas
+  if (p.db) for (const pr of p.db.properties) if (pr.type === 'relation') for (const r of p.db.rows) for (const id of r.cells[pr.id] || []) set.add(id);
   if (p.canvas) for (const n of p.canvas.nodes) {
     if (n.pageId) set.add(n.pageId);
     if (n.link?.type === 'page' && n.link.target) set.add(n.link.target);

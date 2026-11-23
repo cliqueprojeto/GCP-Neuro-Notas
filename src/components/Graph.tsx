@@ -13,15 +13,17 @@ import { PageIcon, Popover, Switch } from './ui';
 import type { Page } from '../lib/types';
 
 // Valores estáveis: um [] ou {} novo a cada leitura faria a tela redesenhar sem parar.
-const NO_COLORS: { link?: string; board?: string; child?: string; suggestion?: string; width?: number } = {};
+const NO_COLORS: { link?: string; board?: string; child?: string; suggestion?: string; synapse?: string; width?: number } = {};
 
-type Kind = 'link' | 'board' | 'child' | 'related' | 'mention' | 'tag' | 'data';
+type Kind = 'link' | 'board' | 'child' | 'related' | 'mention' | 'tag' | 'data' | 'synapse';
 interface N { id: string; page?: Page; tag?: string; label: string; x: number; y: number; vx: number; vy: number; deg: number; group: number }
 interface E { a: string; b: string; kind: Kind; both?: boolean }
 
 const TYPE_COLORS: Record<string, string> = { page: '#8b5cf6', database: '#14b8a6', report: '#ec4899', canvas: '#3b82f6', tag: '#f59e0b' };
 const GROUP_COLORS = ['#8b5cf6', '#14b8a6', '#f59e0b', '#ec4899', '#3b82f6', '#22c55e', '#ef4444', '#06b6d4', '#a855f7', '#eab308', '#64748b'];
-const PRIORITY: Record<Kind, number> = { link: 6, board: 5, data: 4, child: 3, mention: 2, related: 1, tag: 0 };
+const PRIORITY: Record<Kind, number> = { synapse: 7, link: 6, board: 5, data: 4, child: 3, mention: 2, related: 1, tag: 0 };
+/** Número estável a partir de um texto (forma dos dendritos, curvatura e fase dos impulsos). */
+function hashOf(s: string) { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return ((h >>> 0) % 10000) / 10000; }
 
 /** Comunidades por propagação de rótulos (agrupa ideias muito ligadas entre si). */
 function communities(ids: string[], edges: E[]): Map<string, number> {
@@ -115,6 +117,11 @@ export function Graph() {
   const [colorBy, setColorBy] = useState<'type' | 'group'>('type');
   const [focus, setFocus] = useState<{ id: string; depth: number } | null>(null);
   const [selId, setSelId] = useState<string | null>(null);
+  const [linkFrom, setLinkFrom] = useState<string | null>(null);
+  const linkFromRef = useRef<string | null>(null);
+  useEffect(() => void (linkFromRef.current = linkFrom), [linkFrom]);
+  const [pickOpen, setPickOpen] = useState(false);
+  const [pq, setPq] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
   const settled = useRef(false);
   const gc = usePrefs((s) => s.graphColors) ?? NO_COLORS;
@@ -143,6 +150,7 @@ export function Graph() {
       for (const [a, b] of boardLinks(p)) add(a, b, 'board');
       if (p.report) for (const w of p.report.widgets) if (w.source) add(p.id, w.source, 'data');
       if (hier && p.parentId) add(p.parentId, p.id, 'child');
+      for (const sy of p.synapses || []) add(p.id, sy.to, 'synapse');
       if (tags) for (const tg of p.tags || []) add(p.id, 'tag:' + normalize(tg), 'tag');
     }
     if (mentions) for (const p of all.filter((x) => (x.title || '').length >= 3).slice(0, 400)) for (const m of unlinkedMentions(all, p)) add(m.id, p.id, 'mention');
@@ -188,7 +196,7 @@ export function Graph() {
       for (let i = 0; i < Math.min(400, 60000 / Math.max(1, nodes.length)); i++) (step(nodes, edges, byId, a, null), (a *= 0.985));
       settled.current = true;
     }
-    const stats = { nodes: nodes.length, links: edges.filter((e) => e.kind === 'link' || e.kind === 'board').length, suggestions: edges.filter((e) => e.kind === 'mention').length, groups: new Set([...groups.values()].filter((g) => g >= 0)).size };
+    const stats = { nodes: nodes.length, links: edges.filter((e) => e.kind === 'link' || e.kind === 'board' || e.kind === 'synapse').length, suggestions: edges.filter((e) => e.kind === 'mention').length, groups: new Set([...groups.values()].filter((g) => g >= 0)).size };
     return { nodes, edges, stats };
   }, [pages, hier, similar, orphans, mentions, tags, focus]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -219,6 +227,8 @@ export function Graph() {
     const colBoard = gc.board || (dark ? mixHex(accent2, '#ffffff', 0.2) : mixHex(accent2, '#000000', 0.25));
     const colChild = gc.child || (dark ? mixHex(muted, '#ffffff', 0.15) : mixHex(muted, '#000000', 0.1));
     const colSug = gc.suggestion || (dark ? '#fbbf24' : '#d97706');
+    const colSyn = gc.synapse || (dark ? '#22d3ee' : '#0891b2');
+    const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const lw = gc.width || 1;
     const resize = () => {
       const r = cv.parentElement!.getBoundingClientRect();
@@ -249,69 +259,113 @@ export function Graph() {
       const neighbors = new Set<string>();
       if (hot) edges.forEach((e) => (e.a === hot.id ? neighbors.add(e.b) : e.b === hot.id ? neighbors.add(e.a) : 0));
       const k = s.view.k;
+      const now = performance.now();
+      const rOf = (n: N) => (n.tag ? 4 + Math.min(n.deg, 10) * 0.8 : 6 + Math.min(n.deg, 12) * 1.3);
       for (const e of edges) {
         const a = byId.get(e.a), b = byId.get(e.b);
         if (!a || !b) continue;
         const on = hot && (e.a === hot.id || e.b === hot.id);
         const sug = e.kind === 'mention' || e.kind === 'related';
-        const base = e.kind === 'board' ? colBoard : e.kind === 'child' || e.kind === 'tag' || e.kind === 'data' ? colChild : sug ? colSug : colLink;
-        ctx.strokeStyle = on ? (sug ? colSug : accent) : base;
-        ctx.globalAlpha = hot && !on ? 0.35 : sug ? 0.75 : 0.9;
-        ctx.lineWidth = Math.max(0.6, ((on ? 2.6 : e.kind === 'link' || e.kind === 'board' ? 1.8 : 1.3) * lw) / k);
+        const base = e.kind === 'synapse' ? colSyn : e.kind === 'board' ? colBoard : e.kind === 'child' || e.kind === 'tag' || e.kind === 'data' ? colChild : sug ? colSug : colLink;
+        const col = on ? (sug ? colSug : accent) : base;
+        // axônio curvo: ponto de controle perpendicular, curvatura estável por ligação
+        const hh = hashOf(e.a + e.b);
+        const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+        const bend = (hh - 0.5) * 0.5 * len;
+        const cx = (a.x + b.x) / 2 - (dy / len) * bend, cy = (a.y + b.y) / 2 + (dx / len) * bend;
+        ctx.strokeStyle = col;
+        ctx.globalAlpha = hot && !on ? 0.22 : sug ? 0.7 : 0.85;
+        const strong = e.kind === 'link' || e.kind === 'board' || e.kind === 'synapse';
+        ctx.lineWidth = Math.max(0.6, ((on ? 2.8 : e.kind === 'synapse' ? 2.4 : strong ? 1.8 : 1.2) * lw) / k);
         ctx.setLineDash(e.kind === 'child' ? [4 / k, 4 / k] : sug ? [2 / k, 4 / k] : e.kind === 'tag' ? [1 / k, 3 / k] : []);
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
+        ctx.quadraticCurveTo(cx, cy, b.x, b.y);
         ctx.stroke();
-        ctx.globalAlpha = hot && !on ? 0.35 : 1;
-        // seta de direção nos links
-        if ((e.kind === 'link' || e.kind === 'board' || e.kind === 'data') && k > 0.45) {
-          const ang = Math.atan2(b.y - a.y, b.x - a.x);
-          const rb = 6 + Math.min(b.deg, 12) * 1.2 + 3;
-          const tx = b.x - Math.cos(ang) * rb, ty = b.y - Math.sin(ang) * rb;
-          const sz = 6 / k;
-          ctx.setLineDash([]);
-          ctx.fillStyle = ctx.strokeStyle as string;
-          ctx.beginPath();
-          ctx.moveTo(tx, ty);
-          ctx.lineTo(tx - Math.cos(ang - 0.45) * sz, ty - Math.sin(ang - 0.45) * sz);
-          ctx.lineTo(tx - Math.cos(ang + 0.45) * sz, ty - Math.sin(ang + 0.45) * sz);
-          ctx.closePath();
-          ctx.fill();
-          if (e.both) {
-            const sx2 = a.x + Math.cos(ang) * (6 + Math.min(a.deg, 12) * 1.2 + 3), sy2 = a.y + Math.sin(ang) * (6 + Math.min(a.deg, 12) * 1.2 + 3);
-            ctx.beginPath();
-            ctx.moveTo(sx2, sy2);
-            ctx.lineTo(sx2 + Math.cos(ang - 0.45) * sz, sy2 + Math.sin(ang - 0.45) * sz);
-            ctx.lineTo(sx2 + Math.cos(ang + 0.45) * sz, sy2 + Math.sin(ang + 0.45) * sz);
-            ctx.closePath();
-            ctx.fill();
+        ctx.setLineDash([]);
+        // botão sináptico na chegada (e na saída, se a ligação for nos dois sentidos)
+        const bez = (tt: number) => ({ x: (1 - tt) * (1 - tt) * a.x + 2 * (1 - tt) * tt * cx + tt * tt * b.x, y: (1 - tt) * (1 - tt) * a.y + 2 * (1 - tt) * tt * cy + tt * tt * b.y });
+        if (strong || e.kind === 'data') {
+          const endT = 1 - (rOf(b) + 4) / len;
+          const knob = bez(Math.max(0.5, endT));
+          ctx.fillStyle = col;
+          ctx.beginPath(); ctx.arc(knob.x, knob.y, (on ? 3.6 : 2.8) / Math.max(k, 0.6), 0, Math.PI * 2); ctx.fill();
+          if (e.both) { const k2 = bez(Math.min(0.5, (rOf(a) + 4) / len)); ctx.beginPath(); ctx.arc(k2.x, k2.y, 2.8 / Math.max(k, 0.6), 0, Math.PI * 2); ctx.fill(); }
+          // impulsos elétricos percorrendo o axônio
+          if (!(hot && !on) && animate) {
+            const speed = e.kind === 'synapse' ? 1400 : 2200;
+            const pulses = e.kind === 'synapse' || on ? 2 : 1;
+            for (let i = 0; i < pulses; i++) {
+              const ph = ((now / speed + hh + i / pulses) % 1);
+              const pt = bez(e.both && i % 2 ? 1 - ph : ph);
+              const pr = (on ? 4.2 : 3.2) / Math.max(k, 0.6);
+              const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, pr * 2.6);
+              g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, col); g.addColorStop(1, 'transparent');
+              ctx.globalAlpha = 0.95;
+              ctx.fillStyle = g;
+              ctx.beginPath(); ctx.arc(pt.x, pt.y, pr * 2.6, 0, Math.PI * 2); ctx.fill();
+            }
           }
         }
+        ctx.globalAlpha = 1;
       }
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
       for (const n of nodes) {
-        const r = n.tag ? 4 + Math.min(n.deg, 10) * 0.8 : 5 + Math.min(n.deg, 12) * 1.2;
+        const r = rOf(n);
         const match = qn && normalize(n.label).includes(qn);
         const dim = (hot && n !== hot && !neighbors.has(n.id)) || (qn && !match);
         ctx.globalAlpha = dim ? 0.2 : 1;
         const c = colorOf(n);
-        if (n.id === s.sel) {
+        if (n.id === s.sel || n.id === linkFromRef.current) {
           ctx.fillStyle = c + '33';
           ctx.beginPath();
-          ctx.arc(n.x, n.y, r + 9 / k, 0, Math.PI * 2);
+          ctx.arc(n.x, n.y, r + 12 / k, 0, Math.PI * 2);
           ctx.fill();
         }
-        ctx.fillStyle = c;
-        ctx.beginPath();
         if (n.tag) {
+          ctx.fillStyle = c;
+          ctx.beginPath();
           ctx.moveTo(n.x, n.y - r); ctx.lineTo(n.x + r, n.y); ctx.lineTo(n.x, n.y + r); ctx.lineTo(n.x - r, n.y); ctx.closePath();
-        } else ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fill();
+          ctx.fill();
+        } else {
+          // dendritos: ramificações finas e estáveis em volta do corpo do neurônio
+          const hh = hashOf(n.id);
+          const count = 4 + Math.min(n.deg, 5);
+          ctx.strokeStyle = c;
+          ctx.lineWidth = Math.max(0.5, 1.3 / k);
+          ctx.globalAlpha = (dim ? 0.15 : 0.55);
+          for (let i = 0; i < count; i++) {
+            const ang = hh * Math.PI * 2 + (i / count) * Math.PI * 2 + Math.sin(i * 7.3 + hh * 10) * 0.35;
+            const L = r * (1.55 + ((i * 37 + hh * 100) % 10) / 14);
+            const x1 = n.x + Math.cos(ang) * r * 0.9, y1 = n.y + Math.sin(ang) * r * 0.9;
+            const x2 = n.x + Math.cos(ang) * L, y2 = n.y + Math.sin(ang) * L;
+            const cxp = n.x + Math.cos(ang + 0.4) * L * 0.75, cyp = n.y + Math.sin(ang + 0.4) * L * 0.75;
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(cxp, cyp, x2, y2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 + Math.cos(ang - 0.7) * r * 0.45, y2 + Math.sin(ang - 0.7) * r * 0.45); ctx.stroke();
+          }
+          ctx.globalAlpha = dim ? 0.2 : 1;
+          // corpo (soma) com brilho e núcleo claro
+          const pulse = animate ? 1 + Math.sin(now / 700 + hh * 6.28) * 0.06 : 1;
+          const rr = r * pulse;
+          ctx.save();
+          ctx.shadowColor = c;
+          ctx.shadowBlur = (n === hot || n.id === s.sel ? 22 : 12) * devicePixelRatio;
+          const g = ctx.createRadialGradient(n.x - rr * 0.35, n.y - rr * 0.35, rr * 0.1, n.x, n.y, rr);
+          g.addColorStop(0, mixHex(c, '#ffffff', 0.7));
+          g.addColorStop(0.55, c);
+          g.addColorStop(1, mixHex(c, '#000000', 0.35));
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(n.x, n.y, rr, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+          ctx.fillStyle = '#ffffff';
+          ctx.globalAlpha = dim ? 0.15 : 0.75;
+          ctx.beginPath(); ctx.arc(n.x - rr * 0.3, n.y - rr * 0.3, rr * 0.22, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = dim ? 0.2 : 1;
+        }
         ctx.strokeStyle = match || n === hot ? text : bg;
-        ctx.lineWidth = (match || n === hot ? 2 : 1.5) / k;
-        ctx.stroke();
+        ctx.lineWidth = (match || n === hot ? 2 : 1.2) / k;
+        ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2); if (!n.tag) ctx.stroke();
         if (k > 0.6 || n === hot || n.deg > 3 || match || neighbors.has(n.id)) {
           ctx.fillStyle = n === hot ? text : muted;
           ctx.font = `${n === hot ? 600 : 400} ${12 / Math.max(k, 0.8)}px Inter, system-ui, sans-serif`;
@@ -357,8 +411,8 @@ export function Graph() {
   const selPage = selId && !selId.startsWith('tag:') ? pages[selId] : null;
   const info = useMemo(() => {
     if (!selPage) return null;
-    const out = edges.filter((e) => e.a === selPage.id && (e.kind === 'link' || e.kind === 'board' || e.kind === 'data')).map((e) => pages[e.b]).filter(Boolean);
-    const inc = edges.filter((e) => e.b === selPage.id && (e.kind === 'link' || e.kind === 'board' || e.kind === 'data')).map((e) => pages[e.a]).filter(Boolean);
+    const out = edges.filter((e) => e.a === selPage.id && (e.kind === 'link' || e.kind === 'board' || e.kind === 'data' || e.kind === 'synapse')).map((e) => pages[e.b]).filter(Boolean);
+    const inc = edges.filter((e) => e.b === selPage.id && (e.kind === 'link' || e.kind === 'board' || e.kind === 'data' || e.kind === 'synapse')).map((e) => pages[e.a]).filter(Boolean);
     const linkedIds = new Set([...out, ...inc].map((p) => p.id));
     const sugg = [
       ...unlinkedMentions(all, selPage).map((p) => ({ page: p, why: 'mention' as const })),
@@ -374,6 +428,19 @@ export function Graph() {
     const para = { type: 'paragraph', content: [{ type: 'text', text: '→ ' }, { type: 'pageLink', attrs: { id: to.id, label: to.title || '' } }] };
     updatePage(from.id, { content: { ...content, content: [...(content.content || []), para] } });
     toast(t('graph.connected', { a: from.title || '…', b: to.title || '…' }), 'success');
+  };
+
+  /** Cria uma sinapse (conexão livre) entre duas páginas, em qualquer ponto da hierarquia. */
+  const synapse = (fromId: string, toId: string) => {
+    const from = pages[fromId], to = pages[toId];
+    if (!from || !to || fromId === toId) return;
+    if ((from.synapses || []).some((x) => x.to === toId)) return toast(t('neuro.exists'), 'info');
+    updatePage(fromId, { synapses: [...(from.synapses || []), { to: toId, at: Date.now() }] });
+    toast(t('neuro.linked', { a: from.title || '…', b: to.title || '…' }), 'success');
+  };
+  const unsynapse = (fromId: string, toId: string) => {
+    const from = pages[fromId];
+    if (from) updatePage(fromId, { synapses: (from.synapses || []).filter((x) => x.to !== toId) });
   };
 
   return (
@@ -393,7 +460,7 @@ export function Graph() {
         <button ref={colorsRef} className="btn ghost sm" onClick={() => setColorsOpen(!colorsOpen)}><Palette size={14} /> {t('graph.colors')}</button>
         <Popover anchor={colorsRef.current} open={colorsOpen} onClose={() => setColorsOpen(false)}>
           <div className="stack pad graph-colors" style={{ width: 260 }}>
-            {(['link', 'board', 'child', 'suggestion'] as const).map((k) => (
+            {(['synapse', 'link', 'board', 'child', 'suggestion'] as const).map((k) => (
               <label key={k} className="row">
                 <input type="color" className="color-input" value={gc[k] || '#8b5cf6'} onChange={(e) => setPrefs({ graphColors: { ...gc, [k]: e.target.value } })} />
                 <span className="grow">{t(`graph.kind.${k}` as TKey)}</span>
@@ -416,6 +483,22 @@ export function Graph() {
           onPointerDown={(e) => {
             const n = hit(e.clientX, e.clientY);
             const s = state.current;
+            if (linkFrom) {
+              if (n?.page && n.page.id !== linkFrom) synapse(linkFrom, n.page.id);
+              setLinkFrom(null);
+              return;
+            }
+            if (n?.page && (e.shiftKey || e.altKey)) {
+              // Shift/Alt + arrastar de um neurônio a outro cria a sinapse
+              const fromId = n.page.id;
+              const up2 = (ev: PointerEvent) => {
+                window.removeEventListener('pointerup', up2);
+                const m = hit(ev.clientX, ev.clientY);
+                if (m?.page && m.page.id !== fromId) synapse(fromId, m.page.id);
+              };
+              window.addEventListener('pointerup', up2);
+              return;
+            }
             const sx = e.clientX, sy = e.clientY, ov = { ...s.view };
             let moved = false;
             if (n) s.drag = n;
@@ -450,8 +533,10 @@ export function Graph() {
           onWheel={(e) => zoomAt(e.deltaY < 0 ? 1.12 : 0.89, e.clientX, e.clientY)}
         />
         {!nodes.length && <div className="canvas-hint">{t('graph.empty')}</div>}
+        {linkFrom && <div className="neuro-banner"><NeuroIcon size={15} /> {t('neuro.banner', { p: pages[linkFrom]?.title || '…' })} <button className="btn ghost xs" onClick={() => setLinkFrom(null)}>{t('common.cancel')}</button></div>}
         <div className="graph-help muted small">{t('graph.help')}</div>
         <div className="graph-legend">
+          <span><i className="lg-line syn" style={gc.synapse ? { borderTopColor: gc.synapse } : undefined} /> {t('graph.kind.synapse')}</span>
           <span><i className="lg-line" style={gc.link ? { borderTopColor: gc.link } : undefined} /> {t('graph.kind.link')}</span>
           <span><i className="lg-line board" style={gc.board ? { borderTopColor: gc.board } : undefined} /> {t('graph.kind.board')}</span>
           <span><i className="lg-line dash" style={gc.child ? { borderTopColor: gc.child } : undefined} /> {t('graph.kind.child')}</span>
@@ -477,6 +562,31 @@ export function Graph() {
               <button className="btn primary sm" onClick={() => go({ name: 'page', id: selPage.id })}><ArrowUpRight size={14} /> {t('db.open')}</button>
               <button className="btn ghost sm" onClick={() => setFocus({ id: selPage.id, depth: 1 })}><Crosshair size={14} /> {t('graph.focus')}</button>
             </div>
+            <div className="neuro-actions">
+              <button className={'btn sm ' + (linkFrom ? 'primary' : 'ghost')} onClick={() => setLinkFrom(linkFrom ? null : selPage.id)}><NeuroIcon size={14} /> {linkFrom ? t('neuro.pickTarget') : t('neuro.connect')}</button>
+              <button className="btn ghost sm" onClick={() => setPickOpen(!pickOpen)}><Search size={14} /> {t('neuro.connectTo')}</button>
+            </div>
+            {pickOpen && (
+              <div className="neuro-pick">
+                <input className="input sm" autoFocus placeholder={t('embed.searchPage')} value={pq} onChange={(e) => setPq(e.target.value)} />
+                {all.filter((p) => p.id !== selPage.id && (!pq || normalize(p.title || '').includes(normalize(pq)))).slice(0, 8).map((p) => (
+                  <button key={p.id} className="menu-item" onClick={() => { synapse(selPage.id, p.id); setPickOpen(false); setPq(''); }}><PageIcon icon={p.icon} size={14} /> <span className="ellipsis">{p.title || t('page.untitled')}</span></button>
+                ))}
+              </div>
+            )}
+            {(selPage.synapses || []).length > 0 && (
+              <>
+                <div className="section-label"><NeuroIcon size={11} /> {t('neuro.synapses')}</div>
+                <div className="graph-panel-list">
+                  {(selPage.synapses || []).filter((x) => pages[x.to]).map((x) => (
+                    <div key={x.to} className="graph-sugg">
+                      <button className="grow ellipsis" onClick={() => setSelId(x.to)}><PageIcon icon={pages[x.to].icon} size={14} /> {pages[x.to].title || t('page.untitled')}</button>
+                      <button className="icon-btn xs danger-h" title={t('neuro.remove')} onClick={() => unsynapse(selPage.id, x.to)}><X size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             <div className="graph-panel-stats">
               <span><b>{info.out.length}</b> {t('graph.outgoing')}</span>
               <span><b>{info.inc.length}</b> {t('graph.incoming')}</span>

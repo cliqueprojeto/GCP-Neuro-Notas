@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Check, GripVertical, Pause, Play, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, GripVertical, Pause, Play, Plus, RotateCcw, Trash2, X } from 'lucide-react';
+import { useVault } from '../store/vault';
+import { useUi } from '../store/ui';
+import { PageIcon, Popover } from '../components/ui';
+import { NeuroIcon } from '../components/NeuroIcon';
 import type { CheckItem, LineItem, Property, Row, TimerState } from '../lib/types';
 import { useT } from '../i18n';
 import { DateInput } from '../components/DateInput';
@@ -172,6 +176,40 @@ export function TimerCell({ prop, row, value, onChange, readOnly, compact }: { p
       {!readOnly && !st.frozen && (st.elapsed > 0 || running) && (
         <button className="icon-btn xs" title={t('work.reset')} onClick={(e) => (e.stopPropagation(), onChange({ elapsed: 0, start: null }))}><RotateCcw size={13} /></button>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------- Neuro Links (relação) */
+
+export function RelationCell({ value, onChange, readOnly, compact }: { value: string[]; onChange: (v: string[]) => void; readOnly?: boolean; compact?: boolean }) {
+  const t = useT();
+  const pages = useVault((s) => s.pages);
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const ids = (Array.isArray(value) ? value : []).filter((id) => pages[id] && !pages[id].deletedAt);
+  const opts = Object.values(pages).filter((p) => !p.deletedAt && !ids.includes(p.id) && (!q || (p.title || '').toLowerCase().includes(q.toLowerCase()))).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 12);
+  const chips = ids.map((id) => (
+    <span key={id} className="rel-chip" onClick={(e) => { e.stopPropagation(); useUi.getState().go({ name: 'page', id }); }} title={t('db.open')}>
+      <NeuroIcon size={11} /> {pages[id].title || t('page.untitled')}
+      {!readOnly && !compact && <button className="rel-x" onClick={(e) => { e.stopPropagation(); onChange(ids.filter((x) => x !== id)); }}><X size={11} /></button>}
+    </span>
+  ));
+  if (compact || readOnly) return <span className="rel-list">{chips}</span>;
+  return (
+    <div className="rel-cell" ref={ref}>
+      {chips}
+      <button className="rel-add" onClick={(e) => { e.stopPropagation(); setOpen(true); }}><Plus size={12} /> {t('rel.add')}</button>
+      <Popover anchor={ref.current} open={open} onClose={() => setOpen(false)}>
+        <div className="rel-pop" onClick={(e) => e.stopPropagation()}>
+          <input className="input" autoFocus placeholder={t('embed.searchPage')} value={q} onChange={(e) => setQ(e.target.value)} />
+          {opts.map((p) => (
+            <button key={p.id} className="menu-item" onClick={() => { onChange([...ids, p.id]); setQ(''); }}><PageIcon icon={p.icon} size={14} /> <span className="grow ellipsis">{p.title || t('page.untitled')}</span></button>
+          ))}
+          {!opts.length && <p className="muted small">{t('embed.none')}</p>}
+        </div>
+      </Popover>
     </div>
   );
 }
