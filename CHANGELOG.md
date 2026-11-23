@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.7.2 — E-mail: ajuda clara quando o provedor recusa o envio
+
+- Quando o envio falha, o app explica o motivo e mostra o passo a passo no lugar da mensagem técnica: **senha de app do Gmail** (erro 534/5.7.9), usuário ou senha recusados, bloqueio de SMTP na Microsoft, falha de conexão, erro de TLS e remetente não autorizado — com botão direto para a página certa do Google ou da Microsoft e "Tentar de novo".
+- Com Gmail selecionado, um aviso explica que é preciso usar senha de app e leva à página de criação.
+- Espaços das senhas de app (como o Google exibe, "abcd efgh ijkl mnop") são removidos automaticamente.
+
 ## 1.7.1 — Google Drive passo a passo, sem verificação e sem dividir cota
 
 - **Tutorial ilustrado atualizado** (Configurações → Backup e sincronização → Passo a passo do Google) para a nova Google Auth Platform: novas etapas **Acesso a dados** (escopos não confidenciais) e **Branding** (links de página inicial, Política de Privacidade e Termos, com botões de copiar), publicação "Em produção" sem verificação do Google.

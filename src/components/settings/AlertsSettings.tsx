@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { BellRing, Mail, Send } from 'lucide-react';
+import { AlertTriangle, BellRing, ExternalLink, KeyRound, Mail, RefreshCw, Send } from 'lucide-react';
+import { explainMailError, type MailHelp } from '../../lib/mailHelp';
+import { openUrl } from '../../lib/platform';
 import { useT } from '../../i18n';
 import { useVault } from '../../store/vault';
 import { toast } from '../../store/ui';
@@ -29,13 +31,19 @@ export function AlertsSettings() {
   const setA = (p: Partial<NonNullable<typeof settings.alerts>>) => up((s) => ({ ...s, alerts: { ...(s.alerts || {}), ...p } }));
   const setM = (p: Partial<MailSettings>) => up((s) => ({ ...s, mail: { ...EMPTY, ...(s.mail || {}), ...p } }));
   const [busy, setBusy] = useState(false);
+  const [help, setHelp] = useState<(MailHelp & { raw: string }) | null>(null);
+  const isGmail = /gmail|google/i.test(mail.host);
   const test = async () => {
     setBusy(true);
+    setHelp(null);
     try {
       const how = await sendMail(mail, t('alerts.testSubject'), t('alerts.testBody'));
       toast(how === 'sent' ? t('alerts.mailSent') : t('alerts.mailClient'), 'success');
     } catch (e) {
-      toast(t('alerts.mailError') + ' ' + String((e as Error).message || e), 'error');
+      const raw = String((e as Error).message || e);
+      const h = explainMailError(raw, mail.host);
+      setHelp({ ...h, raw });
+      toast(t(`mailhelp.${h.issue}.title` as any), 'error');
     } finally {
       setBusy(false);
     }
@@ -72,6 +80,13 @@ export function AlertsSettings() {
               </Field>
               <Field label={t('alerts.user')}><input className="input" value={mail.user} autoComplete="off" onChange={(e) => setM({ user: e.target.value.trim() })} /></Field>
               <Field label={t('alerts.password')} hint={t('alerts.passwordHint')}><PasswordInput value={mail.password} onChange={(v: string) => setM({ password: v })} /></Field>
+              {isGmail && (
+                <div className="mail-tip full">
+                  <KeyRound size={16} />
+                  <div className="grow"><b>{t('mailhelp.gmailTip.title')}</b><span>{t('mailhelp.gmailTip.text')}</span></div>
+                  <button className="btn ghost xs" onClick={() => openUrl('https://myaccount.google.com/apppasswords')}><ExternalLink size={13} /> {t('mailhelp.openGoogle')}</button>
+                </div>
+              )}
               <Field label={t('alerts.from')}><input className="input" value={mail.from} placeholder={mail.user} onChange={(e) => setM({ from: e.target.value })} /></Field>
               <Field label={t('alerts.to')}><input className="input" value={mail.to} placeholder={mail.user} onChange={(e) => setM({ to: e.target.value })} /></Field>
             </div>
@@ -79,6 +94,18 @@ export function AlertsSettings() {
             <div className="row gap-sm">
               <button className="btn primary sm" disabled={busy} onClick={test}><Send size={14} /> {t('alerts.sendTest')}</button>
             </div>
+            {help && (
+              <div className="mail-help">
+                <div className="mh-head"><AlertTriangle size={18} /><b>{t(`mailhelp.${help.issue}.title` as any)}</b></div>
+                <p>{t(`mailhelp.${help.issue}.text` as any)}</p>
+                <ol>{String(t(`mailhelp.${help.issue}.steps` as any)).split('|').map((st, i) => <li key={i}>{st}</li>)}</ol>
+                <div className="row gap-sm wrap">
+                  {help.link && <button className="btn primary sm" onClick={() => openUrl(help.link!)}><ExternalLink size={14} /> {help.link.includes('google') ? t('mailhelp.openGoogle') : t('mailhelp.openMicrosoft')}</button>}
+                  <button className="btn ghost sm" disabled={busy} onClick={test}><RefreshCw size={14} /> {t('mailhelp.retry')}</button>
+                </div>
+                <details><summary>{t('mailhelp.details')}</summary><code>{help.raw}</code></details>
+              </div>
+            )}
             <p className="muted small">{t('alerts.privacy')}</p>
           </>
         )}

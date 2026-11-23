@@ -1450,3 +1450,13 @@ input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--mute
 .guide-copy-row code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .guide-share { margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border)); background: var(--accent-soft); display: flex; flex-direction: column; gap: 6px; }
 @media (max-width: 760px) { .guide-copy-row { grid-template-columns: 1fr 16px; } .guide-copy-row small { grid-column: 1 / -1; } }
+/* ===== Ajuda contextual de e-mail ===== */
+.mail-tip { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #f59e0b 12%, var(--panel)); border: 1px solid color-mix(in srgb, #f59e0b 40%, var(--border)); font-size: 12.5px; }
+.mail-tip > svg { color: #d97706; flex-shrink: 0; }
+.mail-tip b { display: block; font-size: 13px; }
+.mail-help { margin-top: 10px; padding: 14px 16px; border-radius: 14px; background: color-mix(in srgb, #ef4444 8%, var(--panel)); border: 1px solid color-mix(in srgb, #ef4444 35%, var(--border)); display: flex; flex-direction: column; gap: 8px; }
+.mail-help .mh-head { display: flex; align-items: center; gap: 8px; color: #dc2626; font-size: 14.5px; }
+.mail-help p { margin: 0; font-size: 13px; }
+.mail-help ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.mail-help details summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+.mail-help code { display: block; margin-top: 6px; font-size: 11px; word-break: break-all; white-space: pre-wrap; color: var(--muted); }

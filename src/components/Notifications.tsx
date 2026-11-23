@@ -1,3 +1,4 @@
+import { explainMailError } from '../lib/mailHelp';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlarmClock, Bell, BellRing, CalendarClock, CheckCircle2, Circle, Clock, Mail, RotateCcw, Settings2, Timer, TriangleAlert } from 'lucide-react';
 import { useT, type TKey } from '../i18n';
@@ -68,7 +69,8 @@ export function NotificationBell() {
       const how = await sendMail(settings.mail, t('alerts.mailSubject', { n: alerts.length }), d.text, d.html);
       toast(how === 'sent' ? t('alerts.mailSent') : t('alerts.mailClient'), 'success');
     } catch (e) {
-      toast(t('alerts.mailError') + ' ' + String((e as Error).message || e), 'error');
+      const h = explainMailError(String((e as Error).message || e), settings.mail?.host || '');
+      toast(`${t(`mailhelp.${h.issue}.title` as any)} — ${t('mailhelp.seeSettings')}`, 'error');
     }
   };
 

@@ -1,3 +1,4 @@
+import { cleanAppPassword } from './mailHelp';
 /**
  * Alertas e notificações (tudo local, sem servidor):
  * prazos vencidos, de hoje e próximos; lembretes de páginas e cartões; temporizadores esgotados.
@@ -109,7 +110,7 @@ export async function sendMail(mail: MailSettings | undefined, subject: string, 
   if (isTauri && mail?.enabled && mail.host && mail.user && mail.password && dest.length) {
     const { invoke } = await import('@tauri-apps/api/core');
     await invoke('send_email', {
-      req: { host: mail.host, port: mail.port, security: mail.security, user: mail.user, password: mail.password, from: mail.from || mail.user, to: dest, subject, text, html: html ?? null },
+      req: { host: mail.host, port: mail.port, security: mail.security, user: mail.user, password: cleanAppPassword(mail.password, mail.host), from: mail.from || mail.user, to: dest, subject, text, html: html ?? null },
     });
     return 'sent';
   }
