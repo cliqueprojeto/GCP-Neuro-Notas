@@ -34,7 +34,9 @@ function theme(
       '--panel-2': c.panel2,
       '--border': c.border,
       '--text': c.text,
-      '--muted': c.muted,
+      // mais contraste para quem tem baixa visão: o cinza secundário puxa para a cor do texto
+      '--muted': `color-mix(in srgb, ${c.muted} ${dark ? 72 : 62}%, ${c.text})`,
+      '--danger': dark ? '#f87171' : '#c81e1e',
       '--accent': c.accent,
       '--accent-2': c.accent2,
       '--accent-text': c.accentText ?? '#ffffff',

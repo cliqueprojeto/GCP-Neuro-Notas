@@ -1,5 +1,19 @@
 # Histórico de versões
 
+## 1.5.0 — Kanban completo, datas no padrão do idioma, mais contraste e novo ícone
+
+- **Kanban**: arraste cartões entre colunas e dentro delas com o mouse ou, no celular e no tablet, segurando o cartão; o status muda sozinho. Um clique em qualquer parte do cartão abre o registro, sem a sensação de "duro".
+- **Novos campos**: Texto longo, **Produtos/serviços** (itens com quantidade, valor unitário, subtotal concluído, subtotal pendente e total geral), **Subtarefas** (com progresso, data de entrega e ordem por arrastar) e **Temporizador** (progressivo ou regressivo por duração ou até uma data; ao concluir a tarefa ele para, registra o tempo e só reabre se a conclusão for desmarcada).
+- **Cartão completo**: atalhos para Subtarefas, Datas, Produtos/serviços, Temporizador, Anexo e Local; "Adicionar campo ao cartão" com todos os tipos; Descrição; **Comentários** (editar e excluir) e **Todas as atividades** (histórico automático de cada mudança), em ordem crescente ou decrescente. Os cartões mostram selos de subtarefas, itens, tempo e comentários.
+- **Datas no padrão do idioma do app**: em português sempre DD/MM/AAAA e 24 h, mesmo com o sistema em inglês; campo de data com digitação mascarada e calendário; "Data de hoje" por extenso; datas de arquivos e tarefas no fuso local (antes podiam virar o dia às 21h). A moeda automática também segue o idioma (PT → R$).
+- **Tabelas**: ao clicar numa tabela, as ferramentas aparecem logo abaixo da barra de formatação: linhas e colunas antes/depois, **mesclar e dividir células**, cabeçalho de linha/coluna, **cor da célula** e excluir. O botão "Escrever com IA" não fica mais cortado.
+- **Menu de contexto** no editor (botão direito; toque longo no celular e tablet): transformar o bloco, recortar, copiar, colar, negrito, itálico, link, melhorar com IA, inserir tabela, colunas, destaque e divisor, mover, duplicar e excluir.
+- **Layouts e colunas**: a barra de opções não aparece mais só por passar o mouse; abre pelo botão "Layout" no canto do bloco e não cobre o texto acima enquanto você edita.
+- **Contraste e acessibilidade**: textos secundários, ícones e botões mais escuros no tema claro e mais claros no escuro; opções com destaque ao passar o mouse; ações perigosas (como "Mover para a lixeira") em vermelho bem visível; foco visível no teclado.
+- **Android em pé**: as barras do quadro (ferramentas, zoom e apresentar) ficam em linhas próprias, sem sobreposição e dentro da tela.
+- **Neuro Links**: o antigo "Grafo de ideias" ganhou o novo nome e um ícone de neurônios ligados.
+- **Novo ícone em todos os sistemas**: fundo branco com uma folha de nota ligada a uma rede neural, legível até em tamanhos pequenos.
+
 ## 1.4.4 — Gerador de QR Code e exportações fiéis à tela, com links clicáveis
 
 - **QR Code** (`/qrcode`): link, texto, e-mail, telefone, SMS, WhatsApp, Wi-Fi, **Pix** (BR Code do Banco Central, com valor e identificador opcionais) e vCard; cor do código e do fundo, degradê, seis estilos de pontos, três estilos de cantos, logo central, três tamanhos, legenda, conteúdo gerado com copiar e download em PNG ou SVG.

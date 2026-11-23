@@ -1,5 +1,6 @@
-import type { CalcKind, CondRule, DatabaseData, Filter, Property, PropType, Row, SelectOption, View } from '../lib/types';
+import type { CalcKind, CondRule, DatabaseData, Filter, LineItem, Property, PropType, Row, SelectOption, TimerState, View } from '../lib/types';
 import { uid } from '../lib/crypto';
+import { appLocale, fmtDate, fmtDateTime, localIso } from '../lib/dates';
 import { normalize } from '../lib/doc';
 import { evaluate, toNumber, toText, type FValue } from './formula';
 import { formatCurrency, maskCep, maskCnpj, maskCpf, maskPhone } from './masks';
@@ -9,11 +10,13 @@ export const OPTION_COLORS = ['gray', 'brown', 'orange', 'yellow', 'green', 'tea
 export const PROP_TYPES: PropType[] = [
   'text', 'number', 'currency', 'formula', 'conditional', 'select', 'multi', 'status', 'date', 'checkbox', 'url', 'email', 'phone',
   'cpf', 'cnpj', 'cep', 'password', 'rating', 'progress', 'created', 'files', 'location',
+  'longtext', 'items', 'checklist', 'timer',
 ];
 
 /** Grupos do menu "tipo de campo" (com cor e ícone, como no Notion). */
-export const PROP_GROUPS: { key: 'basic' | 'choice' | 'media' | 'docs' | 'system'; types: PropType[] }[] = [
-  { key: 'basic', types: ['text', 'number', 'currency', 'formula', 'conditional', 'rating', 'progress'] },
+export const PROP_GROUPS: { key: 'basic' | 'choice' | 'media' | 'docs' | 'system' | 'work'; types: PropType[] }[] = [
+  { key: 'basic', types: ['text', 'longtext', 'number', 'currency', 'formula', 'conditional', 'rating', 'progress'] },
+  { key: 'work', types: ['items', 'checklist', 'timer'] },
   { key: 'choice', types: ['select', 'multi', 'status', 'checkbox', 'date'] },
   { key: 'media', types: ['files', 'location'] },
   { key: 'docs', types: ['phone', 'email', 'cpf', 'cnpj', 'cep', 'url', 'password'] },
@@ -23,7 +26,7 @@ export const PROP_GROUPS: { key: 'basic' | 'choice' | 'media' | 'docs' | 'system
 export const COMPUTED: PropType[] = ['formula', 'conditional', 'created'];
 
 export function isNumericProp(p: Property) {
-  if (['number', 'rating', 'progress', 'currency'].includes(p.type)) return true;
+  if (['number', 'rating', 'progress', 'currency', 'items'].includes(p.type)) return true;
   if (p.type === 'formula' || p.type === 'conditional') return ['number', 'currency', 'percent'].includes(p.resultFormat || '');
   return false;
 }
@@ -44,7 +47,7 @@ function fmtNumber(n: number, format: string | undefined, locale: string, p?: Pr
 
 export function cellText(prop: Property, v: any, locale?: string): string {
   if (v == null || v === '') return '';
-  const loc = locale || (typeof navigator !== 'undefined' ? navigator.language : 'pt-BR');
+  const loc = locale || appLocale();
   switch (prop.type) {
     case 'select':
     case 'status':
@@ -60,7 +63,17 @@ export function cellText(prop: Property, v: any, locale?: string): string {
     case 'location':
       return typeof v === 'object' ? v.label || `${v.lat?.toFixed?.(5)}, ${v.lon?.toFixed?.(5)}` : String(v);
     case 'created':
-      return new Date(v).toLocaleString();
+      return fmtDateTime(v, loc);
+    case 'date':
+      return fmtDate(v, loc);
+    case 'items':
+      return Array.isArray(v) ? formatCurrency(itemsTotal(v).total, prop.currency, prop.locale, prop.decimals) : '';
+    case 'checklist': {
+      if (!Array.isArray(v) || !v.length) return '';
+      return `${v.filter((c: any) => c?.done).length}/${v.length}`;
+    }
+    case 'timer':
+      return typeof v === 'object' ? fmtDuration(timerElapsed(v)) : '';
     case 'currency':
       return formatCurrency(v, prop.currency, prop.locale, prop.decimals);
     case 'number':
@@ -94,8 +107,11 @@ function formulaInput(p: Property, row: Row, calc: (p: Property) => FValue): FVa
   if (v == null || v === '') return isNumericProp(p) ? 0 : '';
   switch (p.type) {
     case 'number': case 'currency': case 'rating': case 'progress': return Number(v) || 0;
+    case 'items': return Array.isArray(v) ? itemsTotal(v).total : 0;
+    case 'timer': return typeof v === 'object' ? Math.round(timerElapsed(v) / 60000) : 0;
+    case 'checklist': return Array.isArray(v) ? v.filter((c: any) => c?.done).length : 0;
     case 'checkbox': return !!v;
-    case 'created': return new Date(v).toISOString().slice(0, 10);
+    case 'created': return localIso(v);
     case 'select': case 'status': case 'multi': return cellText(p, v);
     default: return String(v);
   }
@@ -222,8 +238,8 @@ export function filterKey(prop: Property, row: Row): string[] {
   }
   if (prop.type === 'checkbox') return [v ? '✔' : '✘'];
   if (prop.type === 'password') return [v ? '••••' : ''];
-  if (prop.type === 'created') return [new Date(v).toLocaleDateString()];
-  if (prop.type === 'date') return [v ? new Date(v + 'T00:00:00').toLocaleDateString() : ''];
+  if (prop.type === 'created') return [fmtDate(v)];
+  if (prop.type === 'date') return [v ? fmtDate(v) : ''];
   return [cellText(prop, v)];
 }
 
@@ -342,6 +358,7 @@ export function makeProperty(type: PropType, name: string, status: [string, stri
   if (type === 'formula') (p.formula = ''), (p.resultFormat = 'auto');
   if (type === 'conditional') (p.rules = []), (p.elseResult = ''), (p.resultFormat = 'text');
   if (type === 'phone') p.phoneFormat = 'br';
+  if (type === 'timer') p.timerMode = 'up';
   return p;
 }
 
@@ -422,7 +439,7 @@ export function importMatrix(db: DatabaseData, aoa: any[][], mode: 'append' | 'r
       if (!p || COMPUTED.includes(p.type)) return;
       let v = r[i];
       if (v == null || v === '') return;
-      if (v instanceof Date) v = v.toISOString().slice(0, 10);
+      if (v instanceof Date) v = localIso(v);
       switch (p.type) {
         case 'number': case 'currency': case 'rating': case 'progress':
           cells[p.id] = typeof v === 'number' ? v : toNumber(String(v).replace(/[^\d,.-]/g, ''));
@@ -515,4 +532,97 @@ export function calcColumn(p: Property, rows: Row[], calc: CalcKind): { value: n
     }
   }
   return null;
+}
+
+
+// ---------------------------------------------------------- tarefas (Kanban)
+
+/** Totais de Produtos/Serviços: concluído, pendente e geral. */
+export function itemsTotal(items: LineItem[]) {
+  let done = 0, pending = 0;
+  for (const it of items || []) {
+    const sub = (Number(it.qty) || 0) * (Number(it.unit) || 0);
+    if (it.done) done += sub; else pending += sub;
+  }
+  return { done, pending, total: done + pending };
+}
+
+/** Tempo decorrido (ms) de um temporizador, contando o trecho em andamento. */
+export function timerElapsed(st: TimerState | null | undefined, now = Date.now()) {
+  if (!st) return 0;
+  return (st.elapsed || 0) + (st.start ? Math.max(0, now - st.start) : 0);
+}
+
+/** Duração total de um temporizador regressivo (ms), ou null se for progressivo. */
+export function timerBudget(p: Property, row: Row): number | null {
+  if (p.timerMode !== 'down') return null;
+  if (p.timerUntil) {
+    const end = new Date(p.timerUntil).getTime();
+    return isNaN(end) ? null : Math.max(0, end - row.createdAt);
+  }
+  return (p.timerMinutes || 0) * 60000;
+}
+
+export function fmtDuration(ms: number) {
+  const neg = ms < 0;
+  let s = Math.floor(Math.abs(ms) / 1000);
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60); s -= m * 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (neg ? '−' : '') + (h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`);
+}
+
+const DONE_RX = /conclu|finaliz|feito|done|complet|finished|hecho|terminad|listo|entregue|resolvid/i;
+
+/** O registro está concluído? (campo de status na opção final ou com rótulo de concluído) */
+export function isRowDone(db: DatabaseData, row: Row): boolean {
+  const st = db.properties.filter((p) => p.type === 'status');
+  if (!st.length) return false;
+  return st.some((p) => {
+    const v = row.cells[p.id];
+    if (!v) return false;
+    const opt = p.options?.find((o) => o.id === v);
+    if (!opt) return false;
+    return DONE_RX.test(opt.label) || (p.options!.length > 1 && p.options![p.options!.length - 1].id === v && !p.options!.some((o) => DONE_RX.test(o.label)));
+  });
+}
+
+/** Congela/descongela temporizadores quando o registro é concluído/reaberto. */
+export function syncTimers(db: DatabaseData, row: Row): Row {
+  const timers = db.properties.filter((p) => p.type === 'timer');
+  if (!timers.length) return row;
+  const done = isRowDone(db, row);
+  let cells = row.cells;
+  for (const p of timers) {
+    const st: TimerState | undefined = cells[p.id];
+    if (done && st && !st.frozen) {
+      cells = { ...cells, [p.id]: { elapsed: timerElapsed(st), start: null, frozen: true } };
+    } else if (!done && st?.frozen) {
+      cells = { ...cells, [p.id]: { ...st, frozen: false } };
+    }
+  }
+  return cells === row.cells ? row : { ...row, cells };
+}
+
+
+/** Registra no histórico do cartão o que mudou entre duas versões do registro. */
+export function logChange(db: DatabaseData, prev: Row, next: Row, words: { edited: string; empty: string }, locale?: string): Row {
+  const acts = [...(next.activity || prev.activity || [])];
+  const now = Date.now();
+  for (const p of db.properties) {
+    if (COMPUTED.includes(p.type) || p.type === 'timer') continue;
+    const a = prev.cells[p.id], b = next.cells[p.id];
+    if (JSON.stringify(a ?? null) === JSON.stringify(b ?? null)) continue;
+    let text: string;
+    if (['select', 'status', 'multi', 'checkbox', 'date', 'rating', 'progress', 'number', 'currency'].includes(p.type))
+      text = `${p.name}: ${cellText(p, a, locale) || words.empty} → ${cellText(p, b, locale) || words.empty}`;
+    else text = `${p.name} ${words.edited}`;
+    const last = acts[acts.length - 1];
+    // edições seguidas do mesmo campo viram uma entrada só
+    if (last && last.prop === p.id && now - last.at < 120000) {
+      const from = last.text.includes('→') && text.includes('→') ? last.text.split(': ')[1]?.split(' → ')[0] : null;
+      acts[acts.length - 1] = { ...last, at: now, text: from != null ? `${p.name}: ${from} → ${text.split(' → ')[1]}` : text };
+    } else acts.push({ id: uid('ac'), at: now, text, prop: p.id });
+  }
+  return { ...next, activity: acts.slice(-200) };
 }

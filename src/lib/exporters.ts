@@ -1,3 +1,4 @@
+import { fmtDate } from './dates';
 /** Impressão e exportação para PDF, Word (.docx), PowerPoint (.pptx) e Excel (.xlsx). */
 import type { Page, Property } from './types';
 import { saveBinaryFile } from './platform';
@@ -348,7 +349,7 @@ export async function exportPptx(page: Page, dark: boolean) {
   const cover = pptx.addSlide({ masterName: 'GCP' });
   cover.addShape('rect' as any, { x: 0, y: 0, w: 13.33, h: 7.5, fill: { type: 'solid', color: dark ? '141733' : 'F5F3FF' } as any });
   cover.addText(iconText(page) + (page.title || ''), { x: 0.8, y: 2.6, w: 11.7, h: 1.4, fontSize: 44, bold: true, color: fg, fontFace: 'Calibri' });
-  cover.addText(new Date().toLocaleDateString(), { x: 0.8, y: 4.0, w: 11, h: 0.5, fontSize: 16, color: muted });
+  cover.addText(fmtDate(Date.now()), { x: 0.8, y: 4.0, w: 11, h: 0.5, fontSize: 16, color: muted });
 
   const addTable = (title: string, head: string[], rows: string[][]) => {
     for (let i = 0; i < Math.max(rows.length, 1); i += 12) {

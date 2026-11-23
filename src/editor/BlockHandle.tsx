@@ -6,7 +6,7 @@ import { useT } from '../i18n';
 import { ContextMenu, type MenuEntry } from '../components/ui';
 
 /** Posição (início) do bloco de primeiro nível que contém `pos`. */
-function topLevelAt(editor: Editor, pos: number): number | null {
+export function topLevelAt(editor: Editor, pos: number): number | null {
   const doc = editor.state.doc;
   if (!doc.content.size) return null;
   const $p = doc.resolve(Math.max(0, Math.min(pos, doc.content.size)));

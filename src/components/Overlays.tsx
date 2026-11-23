@@ -1,3 +1,5 @@
+import { fmtDateTime } from '../lib/dates';
+import { NeuroIcon } from './NeuroIcon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -71,7 +73,7 @@ export function CommandPalette() {
     { id: 'today', label: t('nav.today'), icon: <CalendarHeart size={16} />, run: () => openDaily() },
     { id: 'home', label: t('nav.home'), icon: <Home size={16} />, run: () => ui.go({ name: 'home' }) },
     { id: 'tasks', label: t('nav.tasks'), icon: <ListTodo size={16} />, run: () => ui.go({ name: 'tasks' }) },
-    { id: 'graph', label: t('nav.graph'), icon: <Network size={16} />, run: () => ui.go({ name: 'graph' }) },
+    { id: 'graph', label: t('nav.graph'), icon: <NeuroIcon size={16} />, run: () => ui.go({ name: 'graph' }) },
     { id: 'ai', label: t('nav.askAi'), icon: <Sparkles size={16} />, run: () => ui.set({ aiPanel: true }) },
     { id: 'tpl', label: t('nav.templates'), icon: <LayoutTemplate size={16} />, run: () => ui.go({ name: 'templates' }) },
     { id: 'settings', label: t('nav.settings'), icon: <Settings size={16} />, run: () => ui.go({ name: 'settings' }) },
@@ -294,7 +296,7 @@ export function AIPanel() {
           {!listConversations().length && <p className="muted small">{t('chat.noHistory')}</p>}
           {listConversations().slice(0, 40).map((p) => (
             <div key={p.id} className={'ai-hist-item' + (p.id === convId ? ' on' : '')}>
-              <button className="grow ellipsis" onClick={() => openConv(p)}>{p.title || t('chat.untitled')}<small className="muted block">{new Date(p.updatedAt).toLocaleString()}</small></button>
+              <button className="grow ellipsis" onClick={() => openConv(p)}>{p.title || t('chat.untitled')}<small className="muted block">{fmtDateTime(p.updatedAt)}</small></button>
               <button className="icon-btn xs" title={t('db.open')} onClick={() => (setHistOpen(false), ui.go({ name: 'page', id: p.id }))}><ArrowUpRight size={13} /></button>
               <button className="icon-btn xs" title={t('common.delete')} onClick={() => (useVault.getState().trashPage(p.id), p.id === convId && newConv())}><Trash2 size={13} /></button>
             </div>

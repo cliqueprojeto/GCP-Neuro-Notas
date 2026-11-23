@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   AtSign, Building2, Calculator, Calendar, CheckSquare, CircleDot, Clock, DollarSign, Fingerprint, Gauge, Hash, KeyRound, Link2, ListChecks,
+  AlignLeft, ListTodo, ShoppingCart, Timer,
   MapPin, Map, Paperclip, Phone, Plus, Search, SigmaSquare, Star, Tags, Text, Trash2, Type, X,
 } from 'lucide-react';
 import type { CondOp, CondRule, DatabaseData, Property, PropType } from '../lib/types';
@@ -9,6 +10,7 @@ import { PROP_GROUPS, OPTION_COLORS, recompute } from './logic';
 import { checkFormula, FUNCTION_HELP } from './formula';
 import { CURRENCIES, systemCurrency } from './masks';
 import { Select } from '../components/ui';
+import { DateInput } from '../components/DateInput';
 import { uid } from '../lib/crypto';
 import { normalize } from '../lib/doc';
 
@@ -36,6 +38,10 @@ export const TYPE_META: Record<PropType, { icon: any; tone: string }> = {
   created: { icon: Clock, tone: 'gray' },
   files: { icon: Paperclip, tone: 'teal' },
   location: { icon: Map, tone: 'teal' },
+  longtext: { icon: AlignLeft, tone: 'violet' },
+  items: { icon: ShoppingCart, tone: 'pink' },
+  checklist: { icon: ListTodo, tone: 'pink' },
+  timer: { icon: Timer, tone: 'red' },
 };
 
 export function TypeIcon({ type, size = 15 }: { type: PropType; size?: number }) {
@@ -131,6 +137,27 @@ export function PropConfig({ prop, db, setProp }: { prop: Property; db: Database
   );
 
   switch (prop.type) {
+    case 'items':
+      return <div className="prop-config"><label className="section-label">{t('db.type.currency')}</label>{currencySel}</div>;
+    case 'timer':
+      return (
+        <div className="prop-config">
+          <label className="section-label">{t('work.countKind')}</label>
+          <div className="seg2">
+            <button className={prop.timerMode !== 'down' ? 'on' : ''} onClick={() => setProp({ ...prop, timerMode: 'up' })}><b>{t('work.up')}</b><small>{t('work.upHint')}</small></button>
+            <button className={prop.timerMode === 'down' ? 'on' : ''} onClick={() => setProp({ ...prop, timerMode: 'down', timerMinutes: prop.timerMinutes || 60 })}><b>{t('work.down')}</b><small>{t('work.downHint')}</small></button>
+          </div>
+          {prop.timerMode === 'down' && (
+            <div className="row gap-sm" style={{ marginTop: 8 }}>
+              <label className="small muted">{t('work.minutes')}</label>
+              <input className="input sm" type="number" min={1} style={{ width: 90 }} value={prop.timerUntil ? '' : prop.timerMinutes || ''} onChange={(e) => setProp({ ...prop, timerMinutes: Number(e.target.value) || 0, timerUntil: undefined })} />
+              <label className="small muted">{t('work.orUntil')}</label>
+              <DateInput withTime value={prop.timerUntil || ''} onChange={(v) => setProp({ ...prop, timerUntil: v || undefined })} />
+            </div>
+          )}
+          <p className="muted small" style={{ marginTop: 8 }}>{t('work.timerNote')}</p>
+        </div>
+      );
     case 'currency':
       return (
         <>

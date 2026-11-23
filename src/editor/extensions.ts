@@ -10,6 +10,20 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
+
+/** Cor de fundo por célula de tabela. */
+const cellBg = {
+  addAttributes(this: any) {
+    return {
+      ...this.parent?.(),
+      background: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.style.backgroundColor || null,
+        renderHTML: (a: any) => (a.background ? { style: `background-color:${a.background}` } : {}),
+      },
+    };
+  },
+};
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Image from '@tiptap/extension-image';
@@ -267,8 +281,8 @@ function base(placeholder?: string): AnyExtension[] {
     TaskItem.configure({ nested: true }),
     Table.configure({ resizable: true }),
     TableRow,
-    TableHeader,
-    TableCell,
+    TableHeader.extend(cellBg),
+    TableCell.extend(cellBg),
     CodeBlockLowlight.configure({ lowlight }),
     PremiumYoutube.configure({ nocookie: true, width: 640, height: 360 }),
     Typography,

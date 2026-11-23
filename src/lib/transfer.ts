@@ -1,3 +1,4 @@
+import { localIso } from './dates';
 /** Exportação/importação: backup criptografado, Markdown, HTML e pacote para IA. */
 import { marked } from 'marked';
 import TurndownService from 'turndown';
@@ -12,7 +13,7 @@ import { exportExtensions } from '../editor/extensions';
 export async function exportBackup(password: string): Promise<string | null> {
   const payload = useVault.getState().exportPlain();
   const file = await encryptBackup(payload, password, APP_VERSION);
-  const d = new Date().toISOString().slice(0, 10);
+  const d = localIso();
   return saveTextFile(`GCP-Notas-backup-${d}.gcpnotes`, JSON.stringify(file), [{ name: 'GCP-Neuro Notas backup', extensions: ['gcpnotes'] }]);
 }
 
@@ -150,7 +151,7 @@ function linkByTitle(doc: any, byTitle: Map<string, string>) {
 export async function exportAiContext(selection?: string[]) {
   const pages = useVault.getState().pages;
   const list = livePages(pages).filter((p) => !selection || selection.includes(p.id));
-  const date = new Date().toISOString().slice(0, 10);
+  const date = localIso();
   let out = `# GCP-Neuro Notas — base de conhecimento (${date})\n\n`;
   out += `> ${list.length} notas. Links entre notas aparecem como [[Título]].\n\n## Índice\n\n`;
   out += list.map((p) => `- [[${p.title || 'Sem título'}]]${p.tags?.length ? ' — ' + p.tags.map((t) => '#' + t).join(' ') : ''}`).join('\n');

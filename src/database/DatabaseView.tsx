@@ -10,13 +10,15 @@ import { useVault } from '../store/vault';
 import { toast } from '../store/ui';
 import { ContextMenu, Modal, Popover, Select, longPress, type MenuEntry } from '../components/ui';
 import { Cell, OptionPill } from './Cell';
-import { COMPUTED, calcColumn, calcOptions, defaultCalc, convertType, distinctValues, isNumericProp, importMatrix, makeProperty, newRow, recompute, titleProp, visibleRows } from './logic';
+import { logChange, syncTimers, COMPUTED, calcColumn, calcOptions, defaultCalc, convertType, distinctValues, isNumericProp, importMatrix, makeProperty, newRow, recompute, titleProp, visibleRows } from './logic';
 import { PropConfig, TypeIcon, TypeMenu } from './fields';
 import { printTable, readSpreadsheet, tableCsv, tablePdf, tableXlsx } from './io';
 import { SaveTemplateModal } from '../templates/user';
 import { uid } from '../lib/crypto';
 import { normalize } from '../lib/doc';
 import { FilesView, GanttView, MapDbView, TimelineView } from './views2';
+import { BoardView, RowModal } from './board';
+import { fmtDate } from '../lib/dates';
 
 const VIEW_ICONS: Record<ViewType, any> = { table: Table2, board: Columns3, gallery: GalleryVerticalEnd, calendar: CalendarDays, list: LayoutList, gantt: GanttChart, timeline: CalendarRange, map: MapIcon, files: Paperclip };
 
@@ -24,6 +26,7 @@ type Ctx = { x: number; y: number; items: MenuEntry[] } | null;
 
 export function DatabaseView({ page }: { page: Page }) {
   const t = useT();
+  const lang = useLang();
   const update = useVault((s) => s.updatePage);
   const db = page.db!;
   const view = db.views.find((v) => v.id === db.activeView) || db.views[0];
@@ -83,11 +86,33 @@ export function DatabaseView({ page }: { page: Page }) {
   });
   const rootRef = useRef<HTMLDivElement>(null);
   const setView = (patch: Partial<View>) => { const d = cur(); const vid = d.views.find((v) => v.id === d.activeView)?.id || view.id; save({ ...d, views: d.views.map((v) => (v.id === vid ? { ...v, ...patch } : v)) }); };
-  const setRow = (id: string, cells: Record<string, any>) => { const d = cur(); save({ ...d, rows: d.rows.map((r) => (r.id === id ? { ...r, cells: { ...r.cells, ...cells }, updatedAt: Date.now() } : r)) }); };
+  const words = () => ({ edited: t('work.act.edited'), empty: '—' });
+  const applyCells = (d: DatabaseData, r: Row, cells: Record<string, any>) => logChange(d, r, syncTimers(d, { ...r, cells: { ...r.cells, ...cells }, updatedAt: Date.now() }), words(), LOCALES[lang]);
+  const setRow = (id: string, cells: Record<string, any>) => { const d = cur(); save({ ...d, rows: d.rows.map((r) => (r.id === id ? applyCells(d, r, cells) : r)) }); };
+  const patchRow = (id: string, patch: Partial<Row>) => { const d = cur(); save({ ...d, rows: d.rows.map((r) => (r.id === id ? { ...r, ...patch, updatedAt: Date.now() } : r)) }); };
+  /** Move um cartão para outra coluna/posição (muda o status e a ordem de uma vez). */
+  const moveCard = (id: string, cells: Record<string, any>, beforeId: string | null, groupId: string) => {
+    const d = cur();
+    const rows = [...d.rows];
+    const i = rows.findIndex((r) => r.id === id);
+    if (i < 0) return;
+    const [r] = rows.splice(i, 1);
+    const nr = applyCells(d, r, cells);
+    let j = beforeId ? rows.findIndex((x) => x.id === beforeId) : -1;
+    if (j < 0) {
+      const val = cells[groupId] ?? r.cells[groupId] ?? '';
+      let last = -1;
+      rows.forEach((x, k) => { if ((x.cells[groupId] || '') === val) last = k; });
+      j = last + 1 || rows.length;
+    }
+    rows.splice(j, 0, nr);
+    save({ ...d, rows });
+  };
   const setProp = (p: Property) => { const d = cur(); save({ ...d, properties: d.properties.map((x) => (x.id === p.id ? p : x)) }); };
   const addRow = (cells: Record<string, any> = {}, at?: number) => {
     const d = cur();
     const r = newRow(d, cells);
+    r.activity = [{ id: uid('ac'), at: Date.now(), text: t('work.act.created') }];
     const rows = [...d.rows];
     rows.splice(at ?? rows.length, 0, r);
     save({ ...d, rows });
@@ -348,7 +373,7 @@ export function DatabaseView({ page }: { page: Page }) {
       )}
 
       {view.type === 'table' && <TableView db={db} view={view} setView={setView} props={shown} rows={rows} setRow={setRow} setProp={setProp} addRow={addRow} addProp={addProp} openRow={setOpenRow} save={save} />}
-      {view.type === 'board' && <BoardView db={db} view={view} rows={rows} setRow={setRow} addRow={addRow} openRow={setOpenRow} setProp={setProp} shown={shown} addProp={addProp} />}
+      {view.type === 'board' && <BoardView db={db} view={view} rows={rows} setRow={setRow} addRow={addRow} openRow={setOpenRow} setProp={setProp} shown={shown} addProp={addProp} moveCard={moveCard} />}
       {view.type === 'gallery' && <GalleryView db={db} rows={rows} openRow={setOpenRow} addRow={addRow} shown={shown} setRow={setRow} setProp={setProp} />}
       {view.type === 'calendar' && <CalendarView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} />}
       {view.type === 'list' && <ListView db={db} rows={rows} openRow={setOpenRow} addRow={addRow} shown={shown} setRow={setRow} setProp={setProp} />}
@@ -366,7 +391,10 @@ export function DatabaseView({ page }: { page: Page }) {
           onClose={() => setOpenRow(null)}
           setRow={setRow}
           setProp={setProp}
-          setNotes={(notes) => save({ ...db, rows: db.rows.map((r) => (r.id === openRow ? { ...r, notes, updatedAt: Date.now() } : r)) })}
+          setNotes={(notes) => patchRow(openRow, { notes })}
+          patchRow={(patch) => patchRow(openRow, patch)}
+          addProp={addProp}
+          dbTitle={page.title}
           onDelete={() => (delRow(openRow), setOpenRow(null))}
         />
       )}
@@ -420,7 +448,7 @@ function ImportModal({ book, onClose, onImport }: { book: { name: string; sheets
           <thead><tr>{head.map((h, i) => <th key={i}><span className="th-btn">{String(h || `#${i + 1}`)}</span></th>)}</tr></thead>
           <tbody>
             {aoa.slice(1, 8).map((r, i) => (
-              <tr key={i}>{head.map((_, j) => <td key={j}><div className="td-inner"><span className="cell-text">{r[j] instanceof Date ? r[j].toLocaleDateString() : String(r[j] ?? '')}</span></div></td>)}</tr>
+              <tr key={i}>{head.map((_, j) => <td key={j}><div className="td-inner"><span className="cell-text">{r[j] instanceof Date ? fmtDate(r[j]) : String(r[j] ?? '')}</span></div></td>)}</tr>
             ))}
           </tbody>
         </table>
@@ -852,62 +880,6 @@ function ValueFilter({ db, prop, view, setView, onClose }: { db: DatabaseData; p
 
 // ------------------------------------------------------------------ quadro
 
-function BoardView({ db, view, rows, setRow, addRow, openRow, setProp, shown, addProp }: {
-  db: DatabaseData; view: View; rows: Row[]; setRow: TableProps['setRow']; addRow: (c?: Record<string, any>) => Row; openRow: (id: string) => void;
-  setProp: (p: Property) => void; shown: Property[]; addProp: (t: PropType) => void;
-}) {
-  const t = useT();
-  const group = db.properties.find((p) => p.id === view.groupBy && (p.type === 'select' || p.type === 'status'));
-  const [drag, setDrag] = useState<string | null>(null);
-  const [over, setOver] = useState<string | null>(null);
-  if (!group)
-    return (
-      <div className="db-empty">
-        <p>{t('db.board.needGroup')}</p>
-        <button className="btn primary" onClick={() => addProp('status')}><Plus size={15} /> {t('db.type.status')}</button>
-      </div>
-    );
-  const cols = [{ id: '', label: t('db.board.none'), color: 'gray' }, ...(group.options || [])];
-  const tp = titleProp(db);
-  return (
-    <div className="board">
-      {cols.map((c) => {
-        const items = rows.filter((r) => (r.cells[group.id] || '') === c.id);
-        if (c.id === '' && !items.length) return null;
-        return (
-          <div
-            key={c.id || 'none'}
-            className={'board-col' + (over === c.id ? ' over' : '')}
-            onDragOver={(e) => (e.preventDefault(), setOver(c.id))}
-            onDragLeave={() => setOver(null)}
-            onDrop={() => {
-              if (drag) setRow(drag, { [group.id]: c.id });
-              setDrag(null);
-              setOver(null);
-            }}
-          >
-            <div className="board-col-head">
-              <OptionPill label={c.label} color={c.color} />
-              <span className="muted small">{items.length}</span>
-            </div>
-            {items.map((r) => (
-              <div key={r.id} className="card" draggable onDragStart={() => setDrag(r.id)} onDragEnd={() => setDrag(null)} onClick={() => openRow(r.id)}>
-                <div className="card-title">{r.cells[tp.id] || t('page.untitled')}</div>
-                {shown.filter((p) => p.id !== tp.id && p.id !== group.id && r.cells[p.id] != null && r.cells[p.id] !== '' && !(Array.isArray(r.cells[p.id]) && !r.cells[p.id].length)).slice(0, 4).map((p) => (
-                  <div key={p.id} className="card-prop" onClick={(e) => e.stopPropagation()}>
-                    <Cell prop={p} row={r} compact readOnly={!['checkbox', 'rating'].includes(p.type)} onChange={(v) => setRow(r.id, { [p.id]: v })} onPropChange={setProp} />
-                  </div>
-                ))}
-              </div>
-            ))}
-            <button className="board-add" onClick={() => openRow(addRow({ [group.id]: c.id }).id)}><Plus size={14} /> {t('db.new')}</button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ------------------------------------------------------------- galeria
 
 function GalleryView({ db, rows, openRow, addRow, shown, setRow, setProp }: { db: DatabaseData; rows: Row[]; openRow: (id: string) => void; addRow: () => Row; shown: Property[]; setRow: TableProps['setRow']; setProp: (p: Property) => void }) {
@@ -1013,38 +985,3 @@ function ListView({ db, rows, openRow, addRow, shown, setRow, setProp }: { db: D
 
 // ------------------------------------------------------- registro aberto
 
-function RowModal({ db, row, onClose, setRow, setProp, setNotes, onDelete }: {
-  db: DatabaseData; row: Row; onClose: () => void; setRow: TableProps['setRow']; setProp: (p: Property) => void; setNotes: (n: string) => void; onDelete: () => void;
-}) {
-  const t = useT();
-  const tp = titleProp(db);
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      width={640}
-      title={
-        <input className="row-title" value={row.cells[tp.id] || ''} placeholder={t('page.untitled')} onChange={(e) => setRow(row.id, { [tp.id]: e.target.value })} autoFocus />
-      }
-      footer={
-        <>
-          <button className="btn ghost danger" onClick={onDelete}><Trash2 size={15} /> {t('common.delete')}</button>
-          <div className="grow" />
-          <button className="btn primary" onClick={onClose}>{t('common.done')}</button>
-        </>
-      }
-    >
-      <div className="row-props">
-        {db.properties.filter((p) => p.id !== tp.id).map((p) => (
-          <div className="row-prop" key={p.id}>
-            <span className="row-prop-name">{p.name}</span>
-            <div className="row-prop-val">
-              <Cell prop={p} row={row} onChange={(v) => setRow(row.id, { [p.id]: v })} onPropChange={setProp} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <textarea className="input notes" rows={6} placeholder={t('db.notes')} value={row.notes || ''} onChange={(e) => setNotes(e.target.value)} />
-    </Modal>
-  );
-}

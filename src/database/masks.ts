@@ -1,3 +1,4 @@
+import { usePrefs } from '../store/prefs';
 /** Máscaras automáticas (CPF, CNPJ, CEP, telefone) e moedas por país. */
 
 const digits = (s: string) => String(s ?? '').replace(/\D/g, '');
@@ -110,15 +111,18 @@ const REGION_CURRENCY: Record<string, string> = {
   CH: 'CHF', AO: 'AOA', MZ: 'MZN', IN: 'INR', VE: 'VES', EC: 'USD',
 };
 
-/** Localidade e moeda do sistema (ex.: pt-BR → BRL; es-MX → MXN). */
+/** Localidade e moeda padrão: segue o idioma do app (PT → BRL), usando a região do sistema quando ela fala o mesmo idioma. */
 export function systemCurrency(): { locale: string; code: string } {
   const langs = (typeof navigator !== 'undefined' && (navigator.languages?.length ? navigator.languages : [navigator.language])) || ['pt-BR'];
+  let app = '';
+  try { const pl = usePrefs.getState().lang; app = pl === 'auto' ? '' : pl; } catch { /* fora do app */ }
   for (const l of langs) {
+    if (app && !l.toLowerCase().startsWith(app)) continue;
     const region = l.split('-')[1]?.toUpperCase();
     if (region && REGION_CURRENCY[region]) return { locale: l, code: REGION_CURRENCY[region] };
   }
-  const base = (langs[0] || 'pt').slice(0, 2);
-  return base === 'pt' ? { locale: 'pt-BR', code: 'BRL' } : base === 'es' ? { locale: 'es-ES', code: 'EUR' } : { locale: langs[0] || 'en-US', code: 'USD' };
+  const base = app || (langs[0] || 'pt').slice(0, 2);
+  return base === 'pt' ? { locale: 'pt-BR', code: 'BRL' } : base === 'es' ? { locale: 'es-ES', code: 'EUR' } : { locale: 'en-US', code: 'USD' };
 }
 
 export function currencyDigits(code: string, locale: string): number {

@@ -1,3 +1,4 @@
+import { fmtDate, fmtDateTime } from '../lib/dates';
 /** Imprimir, exportar (PDF/Excel/CSV) e importar planilhas de uma base de dados. */
 import type { DatabaseData, Property, Row } from '../lib/types';
 import { cellText, cellValue, isNumericProp } from './logic';
@@ -20,7 +21,7 @@ const text = (p: Property, r: Row, yes: string) => {
   if (p.type === 'checkbox') return v ? yes : '';
   if (p.type === 'progress') return v === '' || v == null ? '' : `${v}%`;
   if (p.type === 'rating') return v ? '★'.repeat(Number(v)) : '';
-  if (p.type === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return new Date(v.slice(0, 10) + 'T00:00:00').toLocaleDateString();
+  if (p.type === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return fmtDate(v.slice(0, 10));
   return cellText(p, v);
 };
 
@@ -31,7 +32,7 @@ export function printTable(title: string, props: Property[], rows: Row[], yes: s
   host.id = 'print-area';
   host.innerHTML = `<h1>${esc(title)}</h1><table class="print-table"><thead><tr>${cols.map((p) => `<th>${esc(p.name)}</th>`).join('')}</tr></thead><tbody>${rows
     .map((r) => `<tr>${cols.map((p) => `<td class="${isNumericProp(p) ? 'num' : ''}">${esc(text(p, r, yes))}</td>`).join('')}</tr>`)
-    .join('')}</tbody></table><p class="print-foot">${rows.length} · GCP-Neuro Notas · ${new Date().toLocaleString()}</p>`;
+    .join('')}</tbody></table><p class="print-foot">${rows.length} · GCP-Neuro Notas · ${fmtDateTime(Date.now())}</p>`;
   document.body.appendChild(host);
   document.body.classList.add('print-area-mode');
   const done = () => {
@@ -59,7 +60,7 @@ export async function tablePdf(title: string, props: Property[], rows: Row[], ye
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(9);
   pdf.setTextColor(110, 110, 130);
-  pdf.text(`${rows.length} · ${new Date().toLocaleString()}`, 36, 60);
+  pdf.text(`${rows.length} · ${fmtDateTime(Date.now())}`, 36, 60);
   autoTable(pdf, {
     startY: 72,
     head: [cols.map((p) => plain(p.name))],

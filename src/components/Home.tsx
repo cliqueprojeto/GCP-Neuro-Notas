@@ -1,3 +1,4 @@
+import { NeuroIcon } from './NeuroIcon';
 import { useMemo } from 'react';
 import {
   BrainCircuit, CalendarHeart, Clock, Database, FileText, FileUp, LayoutTemplate, Network, Palette, PieChart, Plus, ShieldCheck, Sparkles,
@@ -70,7 +71,7 @@ export function Home() {
         <div className="stat-grid">
           <div className="stat"><span className="stat-icon green"><FileText size={16} /></span><b>{nf.format(stats.pages)}</b><small>{t('home.stat.pages')}</small></div>
           <div className="stat"><span className="stat-icon blue"><Clock size={16} /></span><b>{nf.format(stats.words)}</b><small>{t('home.stat.words')}</small></div>
-          <div className="stat"><span className="stat-icon purple"><Network size={16} /></span><b>{nf.format(stats.links)}</b><small>{t('home.stat.links')}</small></div>
+          <div className="stat"><span className="stat-icon purple"><NeuroIcon size={16} /></span><b>{nf.format(stats.links)}</b><small>{t('home.stat.links')}</small></div>
           <div className="stat"><span className="stat-icon pink"><ShieldCheck size={16} /></span><b>100%</b><small>{lastBackup ? t('home.stat.backup', { d: relativeTime(lastBackup, LOCALES[lang]) }) : t('home.stat.private')}</small></div>
         </div>
       </div>
@@ -112,7 +113,7 @@ export function Home() {
           <p className="muted">{t('home.brainText')}</p>
           <div className="row wrap">
             <button className="btn ai" onClick={() => setUi({ aiPanel: true })}><Sparkles size={15} /> {t('nav.askAi')}</button>
-            <button className="btn ghost" onClick={() => go({ name: 'graph' })}><Network size={15} /> {t('nav.graph')}</button>
+            <button className="btn ghost" onClick={() => go({ name: 'graph' })}><NeuroIcon size={15} /> {t('nav.graph')}</button>
             <button className="btn ghost" onClick={() => go({ name: 'settings', tab: 'backup' })}><Share2 size={15} /> {t('home.share')}</button>
           </div>
           {favs.length > 0 && (

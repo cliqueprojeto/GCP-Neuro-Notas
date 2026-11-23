@@ -1,8 +1,11 @@
+import { fmtDateLong } from '../lib/dates';
+import { EditorContextMenu } from './EditorContextMenu';
 import { useEditor, EditorContent, BubbleMenu, type Editor as TEditor } from '@tiptap/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlignCenter, AlignLeft, AlignRight, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
   FileText, Heading1, Heading2, Heading3, Highlighter, ImageIcon, Images, Italic, Link2, List, ListOrdered, ListTree, Minus, MessageSquareQuote,
+  ArrowUpToLine, ArrowDownToLine, ArrowLeftToLine, ArrowRightToLine, TableCellsMerge, TableCellsSplit, PanelTop, PanelLeft,
   PieChart, Plus, Quote, Redo2, Rows3, SmilePlus, Sparkles, Sticker, Strikethrough, Table2, Text, Trash2, Underline as UIcon, Undo2, Play,
   CalendarDays, Lightbulb, Wand2, Link as LinkIcon, MousePointerClick, LayoutGrid, Mic, Video, Paperclip, Map as MapIcon, QrCode,
 } from 'lucide-react';
@@ -40,6 +43,7 @@ export function Editor({ page, editable = true }: Props) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
   const [ytOpen, setYtOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -210,7 +214,20 @@ export function Editor({ page, editable = true }: Props) {
         </BubbleMenu>
       )}
       {editable && <BlockHandle editor={editor} />}
-      <EditorContent editor={editor} />
+      <div
+        className="editor-ctx-host"
+        onContextMenu={(e) => {
+          if (!editable || (e.target as HTMLElement).closest('input,textarea,select,.cols-bar,.media-bar,.table-bar')) return;
+          e.preventDefault();
+          const hit = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
+          const { from, to } = editor.state.selection;
+          if (hit && (hit.pos < from || hit.pos > to)) editor.chain().focus().setTextSelection(hit.pos).run();
+          setCtx({ x: e.clientX, y: e.clientY });
+        }}
+      >
+        <EditorContent editor={editor} />
+      </div>
+      {ctx && <EditorContextMenu editor={editor} x={ctx.x} y={ctx.y} onClose={() => setCtx(null)} onAi={() => setAiOpen(true)} />}
       {editable && <div className="editor-tail" onMouseDown={(e) => { e.preventDefault(); focusEnd(editor); }} title={t('editor.clickToWrite')} />}
       <div className="editor-foot muted small">
         {t('editor.words', { n: editor.storage.characterCount?.words?.() ?? 0 })} · {t('editor.chars', { n: editor.storage.characterCount?.characters?.() ?? 0 })} ·{' '}
@@ -282,7 +299,7 @@ function buildSlash() {
       { id: 'divider', tone: 'gray', group: g.basic, title: t('slash.divider'), icon: <Minus size={18} />, run: ({ editor }) => editor.chain().focus().setHorizontalRule().run() },
       { id: 'code', tone: 'gray', group: g.basic, title: t('slash.code'), icon: <Code2 size={18} />, run: ({ editor }) => editor.chain().focus().toggleCodeBlock().run() },
       { id: 'table', tone: 'green', group: g.basic, title: t('slash.table'), icon: <Table2 size={18} />, run: ({ editor }) => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-      { id: 'date', tone: 'orange', group: g.basic, title: t('slash.date'), icon: <CalendarDays size={18} />, run: ({ editor }) => editor.chain().focus().insertContent(new Date().toLocaleDateString()).run() },
+      { id: 'date', tone: 'orange', group: g.basic, title: t('slash.date'), icon: <CalendarDays size={18} />, run: ({ editor }) => editor.chain().focus().insertContent(fmtDateLong(Date.now())).run() },
       {
         id: 'image', tone: 'pink', group: g.media, title: t('slash.image'), icon: <ImageIcon size={18} />,
         run: async ({ editor }) => {
@@ -377,6 +394,7 @@ function Toolbar({ editor, onEmoji, onSticker, onAi, busy, page }: { editor: TEd
   const c = () => editor.chain().focus();
   const inTable = editor.isActive('table');
   return (
+    <div className="toolbar-stack">
     <div className="toolbar">
       <B on={() => c().undo().run()} title={t('tb.undo')} disabled={!editor.can().undo()}><Undo2 size={16} /></B>
       <B on={() => c().redo().run()} title={t('tb.redo')} disabled={!editor.can().redo()}><Redo2 size={16} /></B>
@@ -407,20 +425,51 @@ function Toolbar({ editor, onEmoji, onSticker, onAi, busy, page }: { editor: TEd
       <B on={onEmoji} title={t('slash.emoji')}><SmilePlus size={16} /></B>
       <B on={onSticker} title={t('slash.sticker')}><Sticker size={16} /></B>
       <InsertMenu editor={editor} page={page} />
-      {inTable && (
-        <>
-          <span className="tb-sep" />
-          <B on={() => c().addRowAfter().run()} title={t('tb.addRow')}><Rows3 size={16} /></B>
-          <B on={() => c().addColumnAfter().run()} title={t('tb.addCol')}><Columns3 size={16} /></B>
-          <B on={() => c().deleteRow().run()} title={t('tb.delRow')}><Minus size={16} /></B>
-          <B on={() => c().deleteColumn().run()} title={t('tb.delCol')}><Minus size={16} style={{ transform: 'rotate(90deg)' }} /></B>
-          <B on={() => c().deleteTable().run()} title={t('tb.delTable')}><Trash2 size={16} /></B>
-        </>
-      )}
       <div className="grow" />
       <button className="btn ai sm" onMouseDown={(e) => e.preventDefault()} onClick={onAi} disabled={busy}>
         <Sparkles size={15} /> {busy ? t('ai.thinking') : t('ai.write')}
       </button>
+    </div>
+    {inTable && <TableBar editor={editor} />}
+    </div>
+  );
+}
+
+const CELL_COLORS = ['', '#fef3c7', '#dcfce7', '#dbeafe', '#fce7f3', '#ede9fe', '#fee2e2', '#e2e8f0'];
+
+/** Ferramentas da tabela: aparecem logo abaixo da barra de formatação ao clicar numa tabela. */
+function TableBar({ editor }: { editor: TEditor }) {
+  const t = useT();
+  const c = () => editor.chain().focus();
+  const B = ({ on, title, children, disabled, danger }: { on: () => void; title: string; children: React.ReactNode; disabled?: boolean; danger?: boolean }) => (
+    <button className={'tb labeled' + (danger ? ' danger-h' : '')} title={title} onMouseDown={(e) => e.preventDefault()} onClick={on} disabled={disabled}>
+      {children}
+    </button>
+  );
+  const canMerge = editor.can().mergeCells();
+  const canSplit = editor.can().splitCell();
+  return (
+    <div className="table-bar" onMouseDown={(e) => e.preventDefault()}>
+      <span className="table-bar-title"><Table2 size={14} /> {t('tb.table')}</span>
+      <B on={() => c().addRowBefore().run()} title={t('tb.rowAbove')}><ArrowUpToLine size={15} /><span>{t('tb.rowAbove')}</span></B>
+      <B on={() => c().addRowAfter().run()} title={t('tb.rowBelow')}><ArrowDownToLine size={15} /><span>{t('tb.rowBelow')}</span></B>
+      <B on={() => c().addColumnBefore().run()} title={t('tb.colLeft')}><ArrowLeftToLine size={15} /><span>{t('tb.colLeft')}</span></B>
+      <B on={() => c().addColumnAfter().run()} title={t('tb.colRight')}><ArrowRightToLine size={15} /><span>{t('tb.colRight')}</span></B>
+      <span className="tb-sep" />
+      <B on={() => c().mergeCells().run()} title={canMerge ? t('tb.merge') : t('tb.mergeHint')} disabled={!canMerge}><TableCellsMerge size={15} /><span>{t('tb.merge')}</span></B>
+      <B on={() => c().splitCell().run()} title={t('tb.split')} disabled={!canSplit}><TableCellsSplit size={15} /><span>{t('tb.split')}</span></B>
+      <B on={() => c().toggleHeaderRow().run()} title={t('tb.headerRow')}><PanelTop size={15} /></B>
+      <B on={() => c().toggleHeaderColumn().run()} title={t('tb.headerCol')}><PanelLeft size={15} /></B>
+      <span className="tb-sep" />
+      <span className="cell-colors" title={t('tb.cellColor')}>
+        {CELL_COLORS.map((col) => (
+          <button key={col || 'none'} className={'cell-color' + (col ? '' : ' none')} style={{ background: col || undefined }} onMouseDown={(e) => e.preventDefault()} onClick={() => c().setCellAttribute('background', col || null).run()} />
+        ))}
+      </span>
+      <span className="tb-sep" />
+      <B on={() => c().deleteRow().run()} title={t('tb.delRow')} danger><Rows3 size={15} /><Minus size={11} /></B>
+      <B on={() => c().deleteColumn().run()} title={t('tb.delCol')} danger><Columns3 size={15} /><Minus size={11} /></B>
+      <B on={() => c().deleteTable().run()} title={t('tb.delTable')} danger><Trash2 size={15} /></B>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from '@tiptap/react';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Minus, Plus, Trash2, X } from 'lucide-react';
 import { useT } from '../i18n';
 
 /** Proporções disponíveis por quantidade de colunas. */
@@ -53,6 +54,14 @@ function ColumnsView({ node, updateAttributes, deleteNode, editor, getPos, selec
   const cols = layout.split('-').map(Number);
   const n = node.childCount;
   const editable = editor.isEditable;
+  const [barOpen, setBarOpen] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!barOpen) return;
+    const off = (e: MouseEvent) => { const el = e.target as HTMLElement; if (!barRef.current?.contains(el) && !el.closest('.cols-chip')) setBarOpen(false); };
+    document.addEventListener('mousedown', off);
+    return () => document.removeEventListener('mousedown', off);
+  }, [barOpen]);
   const setCount = (k: number) => {
     if (k < 1 || k > 5 || typeof getPos !== 'function') return;
     const pos = getPos();
@@ -84,9 +93,14 @@ function ColumnsView({ node, updateAttributes, deleteNode, editor, getPos, selec
   };
   const template = (cols.length === n ? cols : Array(n).fill(1)).map((c) => `minmax(0, ${c}fr)`).join(' ');
   return (
-    <NodeViewWrapper className={`cols-block cs-${style}` + (selected ? ' sel' : '')} data-layout={layout}>
+    <NodeViewWrapper className={`cols-block cs-${style}` + (selected ? ' sel' : '') + (barOpen ? ' open' : '')} data-layout={layout}>
       {editable && (
-        <div className="cols-bar" contentEditable={false}>
+        <button className="cols-chip" contentEditable={false} onMouseDown={(e) => e.preventDefault()} onClick={() => setBarOpen(!barOpen)} title={t('cols.edit')}>
+          <LayoutIcon cols={cols.length === n ? cols : Array(n).fill(1)} size={14} active /> {t('cols.edit')}
+        </button>
+      )}
+      {editable && (barOpen || selected) && (
+        <div className="cols-bar" contentEditable={false} ref={barRef}>
           {LAYOUTS.map((l) => (
             <button key={l.id} className={'cols-opt' + (l.id === layout ? ' on' : '')} title={l.id.replace(/-/g, ' : ')} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(l.id)}>
               <LayoutIcon cols={l.cols} size={18} active={l.id === layout} />
@@ -100,7 +114,8 @@ function ColumnsView({ node, updateAttributes, deleteNode, editor, getPos, selec
           <select className="cols-style" value={style} onChange={(e) => updateAttributes({ style: e.target.value })}>
             {COL_STYLES.map((s) => <option key={s} value={s}>{t(`cols.style.${s}` as any)}</option>)}
           </select>
-          <button className="icon-btn xs" title={t('common.delete')} onClick={deleteNode}><Trash2 size={13} /></button>
+          <button className="icon-btn xs danger-h" title={t('common.delete')} onClick={deleteNode}><Trash2 size={13} /></button>
+          <button className="icon-btn xs" title={t('common.close')} onClick={() => setBarOpen(false)}><X size={13} /></button>
         </div>
       )}
       <NodeViewContent className="cols-grid" style={{ gridTemplateColumns: template }} />

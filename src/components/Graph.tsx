@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { NeuroIcon } from './NeuroIcon';
 import { ArrowUpRight, Link2, Maximize, Minus, Network, Plus, Search, Sparkles, Tags, X, Palette, Crosshair } from 'lucide-react';
 import { useT, type TKey } from '../i18n';
 import { useVault, livePages } from '../store/vault';
@@ -378,7 +379,7 @@ export function Graph() {
   return (
     <div className="graph-page">
       <div className="graph-bar">
-        <div className="eyebrow"><Network size={13} /> {t('nav.graph')}</div>
+        <div className="eyebrow"><NeuroIcon size={13} /> {t('nav.graph')}</div>
         <div className="db-search"><Search size={15} /><input placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <Switch checked={hier} onChange={setHier} label={t('graph.hierarchy')} />
         <Switch checked={mentions} onChange={setMentions} label={<><Link2 size={13} /> {t('graph.mentions')}</>} />

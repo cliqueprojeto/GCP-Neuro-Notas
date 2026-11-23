@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { NeuroIcon } from './NeuroIcon';
 import {
   ArrowUpRight, Clock, Copy, Download, FileText, History, ImagePlus, Link2, Maximize2, Minimize2, MoreHorizontal, PenTool, Printer, Share2,
   Smile, Sparkles, Star, Tag, Trash2, X, FileType, Presentation, Sheet, FileDown, Network, Type, BookmarkPlus,
@@ -176,7 +177,7 @@ function PageInner({ page }: { page: Page }) {
           <button className="menu-item" onClick={() => (setHistory(true), setMenu(false))}><History size={15} /> {t('page.history')}</button>
           <button className="menu-item" onClick={() => { const c = v.duplicatePage(page.id); setMenu(false); if (c) go({ name: 'page', id: c.id }); }}><Copy size={15} /> {t('common.duplicate')}</button>
           <button className="menu-item" onClick={() => (navigator.clipboard?.writeText(`[[${page.title}]]`), toast(t('common.copied'), 'success'), setMenu(false))}><Link2 size={15} /> {t('page.copyLink')}</button>
-          <button className="menu-item" onClick={() => (go({ name: 'graph' }), setMenu(false))}><Network size={15} /> {t('nav.graph')}</button>
+          <button className="menu-item" onClick={() => (go({ name: 'graph' }), setMenu(false))}><NeuroIcon size={15} /> {t('nav.graph')}</button>
           <div className="menu-sep" />
           <button className="menu-item danger" onClick={() => { v.trashPage(page.id); setMenu(false); go(page.parentId ? { name: 'page', id: page.parentId } : { name: 'home' }); }}><Trash2 size={15} /> {t('page.trash')}</button>
         </div>

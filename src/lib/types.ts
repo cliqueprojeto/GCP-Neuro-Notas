@@ -50,7 +50,11 @@ export type PropType =
   | 'cnpj'
   | 'cep'
   | 'files'
-  | 'location';
+  | 'location'
+  | 'longtext'
+  | 'items'
+  | 'checklist'
+  | 'timer';
 
 export type CondOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains' | 'empty' | 'notEmpty';
 
@@ -86,12 +90,26 @@ export interface Property {
   rules?: CondRule[];
   elseResult?: string;
   phoneFormat?: 'br' | 'intl';
+  timerMode?: 'up' | 'down'; // temporizador: progressivo ou regressivo
+  timerMinutes?: number; // regressivo por duração
+  timerUntil?: string; // regressivo até uma data (AAAA-MM-DDTHH:mm)
 }
+
+/** Item de Produtos/Serviços dentro de um registro. */
+export interface LineItem { id: string; desc: string; qty: number; unit: number; done?: boolean }
+/** Subtarefa (lista de verificação) de um registro. */
+export interface CheckItem { id: string; text: string; done: boolean; due?: string; who?: string }
+/** Estado do temporizador gravado na célula. */
+export interface TimerState { start?: number | null; elapsed: number; frozen?: boolean }
+export interface RowComment { id: string; text: string; at: number; edited?: number }
+export interface RowActivity { id: string; at: number; text: string; prop?: string }
 
 export interface Row {
   id: string;
   cells: Record<string, any>;
   notes?: string;
+  comments?: RowComment[];
+  activity?: RowActivity[];
   createdAt: number;
   updatedAt: number;
 }
