@@ -239,6 +239,16 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
 
   useEffect(() => setLocal(initial), [initial]);
 
+  // Conteúdo novo vindo de outro aparelho (sincronização): adota, se não houver edição pendente aqui.
+  const written = useRef<CanvasData | undefined>(page.canvas);
+  useEffect(() => {
+    if (!page.canvas || page.canvas === written.current) return;
+    written.current = page.canvas;
+    if (saveT.current) return;
+    const remote = page.canvas;
+    setLocal((l) => ({ ...remote, view: l.view })); // mantém o zoom/posição deste aparelho
+  }, [page.canvas]);
+
   // Pinça com dois dedos (celular/tablet): zoom em torno do ponto entre os dedos.
   const pinch = useRef<{ d0: number; z0: number; v0: { x: number; y: number }; m0: { x: number; y: number } } | null>(null);
   useEffect(() => {
@@ -279,7 +289,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
       if (!pts.delete(e.pointerId)) return;
       if (pts.size < 2 && pinch.current) {
         pinch.current = null;
-        setLocal((l) => (update(page.id, { canvas: l }), l));
+        setLocal((l) => ((written.current = l), update(page.id, { canvas: l }), l));
       }
     };
     el.addEventListener('pointerdown', down, true);
@@ -298,7 +308,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
     if (snapshot) (history.current = [...history.current.slice(-40), local]), (future.current = []);
     setLocal(next);
     if (saveT.current) clearTimeout(saveT.current);
-    const run = () => update(page.id, { canvas: next });
+    const run = () => ((saveT.current = undefined), (written.current = next), update(page.id, { canvas: next }));
     if (immediate) run();
     else saveT.current = setTimeout(run, 400);
   };

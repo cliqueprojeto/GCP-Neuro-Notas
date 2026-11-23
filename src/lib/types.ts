@@ -275,7 +275,11 @@ export interface VaultSettings {
     keep: number;
     lastBackup?: number;
     lastSync?: number;
+    /** Espelha os aparelhos sozinho (padrão: ligado). */
+    autoSync?: boolean;
   };
+  /** Quando a parte compartilhada das configurações mudou pela última vez (sincronização). */
+  sharedAt?: number;
   security: { autoLockMinutes: number; lockOnMinimize: boolean };
   editor: { font: 'sans' | 'serif' | 'mono'; width: 'normal' | 'wide'; spellcheck: boolean; fontSize: number };
   snapshots: { enabled: boolean; keep: number };

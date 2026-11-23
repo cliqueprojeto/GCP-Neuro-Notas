@@ -152,7 +152,7 @@ export const pt = {
   'cloud.title': 'Nuvem: Google Drive e OneDrive', 'cloud.subtitle': 'Backup e sincronização criptografados entre seus aparelhos. Os provedores só recebem dados cifrados.',
   'cloud.advanced': 'Configuração avançada (IDs de cliente OAuth)', 'cloud.advancedHint': 'Versões oficiais já vêm configuradas. Se preferir usar seu próprio projeto, informe os IDs abaixo.',
   'cloud.auto': 'Backup automático', 'cloud.auto.off': 'Desligado', 'cloud.auto.daily': 'Todos os dias', 'cloud.auto.weekly': 'Toda semana', 'cloud.backupDone': 'Backup enviado!',
-  'cloud.backupNow': 'Backup agora', 'cloud.backupPassword': 'Senha do cofre usado no backup', 'cloud.backups': 'Backups disponíveis', 'cloud.connect': 'Conectar {p}',
+  'cloud.backupNow': 'Backup agora', 'cloud.backupPassword': "Senha de login do cofre (a mesma que você usa para entrar)", 'cloud.backups': 'Backups disponíveis', 'cloud.connect': 'Conectar {p}',
   'cloud.connectShort': 'Conectar', 'cloud.connected': '{p} conectado!', 'cloud.connectedAs': 'Conectado como', 'cloud.desktopOnly': 'A conexão com a nuvem está disponível no aplicativo instalado.',
   'cloud.disconnect': 'Desconectar', 'cloud.guide': 'Como criar os IDs de cliente', 'cloud.keep': 'Manter últimos backups', 'cloud.lastBackup': 'Último backup', 'cloud.lastSync': 'Última sincronização',
   'cloud.mismatch': 'O arquivo da nuvem pertence a outro cofre. Use "Restaurar da nuvem" para trocar de cofre.', 'cloud.missingClient': 'ID de cliente OAuth não configurado (veja Configuração avançada).',
@@ -1315,6 +1315,18 @@ export const pt = {
   'mailhelp.unknown.title': 'O e-mail não foi enviado',
   'mailhelp.unknown.text': 'O servidor recusou o envio. Veja os detalhes técnicos abaixo.',
   'mailhelp.unknown.steps': 'Confira servidor, porta, usuário e senha de app.|Tente “Preencher com um provedor” e envie o teste de novo.',
+  'sync.syncing': "Sincronizando com a nuvem…",
+  'sync.ok': "Sincronizado {d} — clique para sincronizar agora",
+  'sync.offline': "Sem internet — sincroniza assim que voltar",
+  'sync.mismatch': "A nuvem tem dados de outro cofre — abra Configurações → Backup",
+  'sync.error': "Falha ao sincronizar",
+  'sync.idle': "Sincronização automática ligada",
+  'sync.auto': "Sincronização automática (manter aparelhos espelhados)",
+  'sync.autoHint': "Cada alteração é enviada em segundos e os outros aparelhos conectados à mesma conta recebem sozinhos — ao abrir o app, ao voltar para ele e a cada 30 segundos. Não é preciso fazer backup nem restaurar para isso.",
+  'cloud.otherVault': "Este backup é de outro cofre — digite a senha de login usada nele.",
+  'cloud.needClient': "Para ler o seu Drive neste aparelho, importe primeiro a configuração do Google (o arquivo .json que você baixou ou recebeu).",
+  'cloud.backupPasswordOpt': "Senha de login — só se o backup for de outro cofre",
+  'cloud.restoreInfoSame': "Backups deste mesmo cofre são restaurados sem pedir senha, e sua senha de login continua a mesma.",
 };
 
 export type Dict = Record<keyof typeof pt, string>;

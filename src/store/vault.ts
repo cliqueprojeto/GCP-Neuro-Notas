@@ -57,7 +57,8 @@ interface VaultState {
   importPages(pages: Page[], mode: 'merge' | 'replace'): Promise<void>;
   adoptVault(header: VaultHeader, records: DbRecord[], password: string): Promise<boolean>;
   rawRecords(): Promise<DbRecord[]>;
-  mergeRawRecords(records: DbRecord[]): Promise<number>;
+  mergeRawRecords(records: DbRecord[]): Promise<{ pulled: number; ahead: boolean }>;
+  replaceRecords(records: DbRecord[]): Promise<boolean>;
 }
 
 // --------------------------------------------------- gravação com atraso
@@ -71,9 +72,22 @@ function scheduleFlush() {
   flushTimer = setTimeout(() => void useVault.getState().flush(), 600);
 }
 
-function markDirty(id: string) {
+/** Avisa a sincronização automática de mudanças feitas neste aparelho. */
+export const localChanges = { rev: 0, listeners: new Set<() => void>() };
+
+function markDirty(id: string, local = true) {
   dirty.add(id);
   scheduleFlush();
+  if (local) {
+    localChanges.rev++;
+    localChanges.listeners.forEach((f) => f());
+  }
+}
+
+/** Parte das configurações que vale para todos os aparelhos (contas da nuvem ficam em cada um). */
+export function sharedSettingsJson(s: VaultSettings) {
+  const { cloud: _c, sharedAt: _a, ...rest } = s;
+  return JSON.stringify(rest);
 }
 
 function nextOrder(pages: Record<string, Page>, parentId: string | null) {
@@ -269,7 +283,12 @@ export const useVault = create<VaultState>((set, get) => ({
     const pages = get().pages;
     const cur = pages[id];
     if (!cur) return;
-    const next = { ...cur, ...patch, updatedAt: Date.now() };
+    // Sem mudança real (ex.: o editor só normalizou o conteúdo ao abrir): não marca a página
+    // como editada — senão uma versão antiga "venceria" a mais nova vinda de outro aparelho.
+    const keys = Object.keys(patch) as (keyof Page)[];
+    if (keys.every((k) => k === 'updatedAt' || JSON.stringify(cur[k]) === JSON.stringify(patch[k]))) return;
+    // Sempre mais novo que a versão que este aparelho tem (protege de relógios atrasados).
+    const next = { ...cur, ...patch, updatedAt: Math.max(Date.now(), (cur.updatedAt || 0) + 1) };
     set({ pages: { ...pages, [id]: next } });
     markDirty(id);
   },
@@ -355,8 +374,12 @@ export const useVault = create<VaultState>((set, get) => ({
   },
 
   updateSettings(fn) {
-    set({ settings: fn(structuredClone(get().settings)) });
-    markDirty(SETTINGS_ID);
+    const before = get().settings;
+    const next = fn(structuredClone(before));
+    const changed = sharedSettingsJson(before) !== sharedSettingsJson(next);
+    if (changed) next.sharedAt = Date.now();
+    set({ settings: next });
+    markDirty(SETTINGS_ID, changed);
   },
 
   async snapshots(pageId) {
@@ -440,17 +463,39 @@ export const useVault = create<VaultState>((set, get) => ({
     return recs.filter((r) => r.kind === 'page' || r.kind === 'settings');
   },
 
-  /** Junta registros cifrados vindos da nuvem (mesma chave). O mais recente vence. */
+  /**
+   * Junta registros cifrados vindos da nuvem (mesma chave). O mais recente vence, página a página.
+   * `ahead` diz se este aparelho tem algo que a nuvem ainda não tem.
+   */
   async mergeRawRecords(remote) {
     const key = get().key;
-    if (!key) return 0;
+    if (!key) return { pulled: 0, ahead: false };
     await get().flush();
-    const local = new Map((await storage.list()).map((r) => [r.id, r]));
+    const local = new Map((await storage.list()).filter((r) => r.kind === 'page').map((r) => [r.id, r]));
     const toWrite: DbRecord[] = [];
+    const seen = new Map<string, number>();
+    let remoteSettings: VaultSettings | null = null;
     for (const r of remote) {
+      if (r.kind === 'settings') {
+        try {
+          remoteSettings = open<VaultSettings>(key, r.data);
+        } catch {
+          /* chave diferente */
+        }
+        continue;
+      }
       if (r.kind !== 'page') continue;
+      seen.set(r.id, r.updated);
       const l = local.get(r.id);
       if (!l || r.updated > l.updated) toWrite.push(r);
+    }
+    let ahead = false;
+    for (const [id, l] of local) {
+      const ru = seen.get(id);
+      if (ru == null || l.updated > ru) {
+        ahead = true;
+        break;
+      }
     }
     if (toWrite.length) {
       await storage.put(toWrite);
@@ -465,7 +510,39 @@ export const useVault = create<VaultState>((set, get) => ({
       }
       set({ pages });
     }
-    return toWrite.length;
+    // Configurações compartilhadas (IA, e-mail, modelos, editor…): a mais recente vence;
+    // as contas de nuvem e datas de sincronização continuam as deste aparelho.
+    const mine = get().settings;
+    if (remoteSettings) {
+      const ra = remoteSettings.sharedAt || 0;
+      const la = mine.sharedAt || 0;
+      if (ra > la) {
+        set({ settings: { ...structuredClone(DEFAULT_SETTINGS), ...remoteSettings, cloud: mine.cloud, sharedAt: ra } });
+        markDirty(SETTINGS_ID, false);
+      } else if (la > ra) ahead = true;
+    } else if (mine.sharedAt) ahead = true;
+    return { pulled: toWrite.length, ahead };
+  },
+
+  /** Troca os dados por um backup do mesmo cofre, mantendo a senha de login atual. */
+  async replaceRecords(records) {
+    const { key, header } = get();
+    if (!key || !header) return false;
+    const sample = records.find((r) => r.kind === 'page' || r.kind === 'settings');
+    try {
+      if (sample) open(key, sample.data);
+    } catch {
+      return false;
+    }
+    const cloud = get().settings.cloud;
+    await get().flush();
+    await storage.clear();
+    await storage.put([{ id: HEADER_ID, kind: 'meta', data: JSON.stringify(header), updated: header.updated }, ...records]);
+    const { pages, settings } = await loadAll(key);
+    settings.cloud = cloud;
+    set({ pages, settings });
+    markDirty(SETTINGS_ID, false);
+    return true;
   },
 
   /** Restaura um cofre inteiro (por exemplo, vindo da nuvem em um aparelho novo). */

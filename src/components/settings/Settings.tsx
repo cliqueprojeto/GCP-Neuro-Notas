@@ -25,6 +25,7 @@ import { PROVIDERS, detectBestModel, guessProvider, providerMeta, chat } from '.
 import type { AiProvider, AiProviderId, UpdateFrequency } from '../../lib/types';
 import { uid } from '../../lib/crypto';
 import { formatDate, relativeTime } from '../../lib/doc';
+import { useSync, syncSoon } from '../../cloud/autosync';
 import { ImportShareModal } from '../ShareModal';
 import { askConfirm, askText } from '../PromptHost';
 
@@ -196,6 +197,7 @@ function Backup() {
   const lang = useLang();
   const v = useVault();
   const cloud = v.settings.cloud;
+  const syncState = useSync();
   const [busy, setBusy] = useState<string>('');
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [guide, setGuide] = useState<'' | CloudProvider>('');
@@ -266,7 +268,7 @@ function Backup() {
               ) : (
                 <>
                 {!cfg.clientId && <button className="btn ghost sm" onClick={() => setGuide(p)}><KeyRound size={14} /> {t('guide.setup')}</button>}
-                <button className="btn primary sm" onClick={() => (cfg.clientId ? run('c' + p, () => connect(p), t('cloud.connected', { p: CLOUD_NAMES[p] })) : setGuide(p))} disabled={!!busy || !isTauri}>
+                <button className="btn primary sm" onClick={() => (cfg.clientId ? run('c' + p, async () => { await connect(p); void syncSoon(true); }, t('cloud.connected', { p: CLOUD_NAMES[p] })) : setGuide(p))} disabled={!!busy || !isTauri}>
                   {busy === 'c' + p ? <Spinner /> : <Cloud size={14} />} {t('cloud.connectShort')}
                 </button>
                 </>
@@ -274,6 +276,14 @@ function Backup() {
             </div>
           );
         })}
+        {cloud.accounts.length > 0 && (
+          <div className="sync-auto">
+            <Switch checked={cloud.autoSync !== false} onChange={(x) => { v.updateSettings((s) => ((s.cloud.autoSync = x), s)); if (x) setTimeout(() => void syncSoon(true), 50); }} label={t('sync.auto')} />
+            <small className="muted">{t('sync.autoHint')}</small>
+            {syncState.status === 'mismatch' && <div className="callout-box warn">{t('cloud.mismatch')}</div>}
+            {syncState.status === 'error' && syncState.error && <div className="callout-box warn">{t('sync.error')} — {syncState.error}</div>}
+          </div>
+        )}
         <div className="two">
           <Field label={t('cloud.auto')}>
             <Select

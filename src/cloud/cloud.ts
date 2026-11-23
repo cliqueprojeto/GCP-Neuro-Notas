@@ -221,23 +221,23 @@ export async function listFiles(provider: CloudProvider): Promise<CloudFile[]> {
     .sort((a: CloudFile, b: CloudFile) => b.modified - a.modified);
 }
 
-async function upload(provider: CloudProvider, name: string, content: string, existingId?: string) {
+async function upload(provider: CloudProvider, name: string, content: string, existingId?: string): Promise<number | undefined> {
   if (provider === 'gdrive') {
     if (existingId) {
-      await api(provider, `${GDU}/files/${existingId}?uploadType=media`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: content });
-      return;
+      const r = await api(provider, `${GDU}/files/${existingId}?uploadType=media&fields=id,modifiedTime`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: content });
+      return modTime(await r.json().catch(() => null));
     }
     const boundary = 'gcpnotas' + Math.random().toString(36).slice(2);
     const meta = JSON.stringify({ name, parents: ['appDataFolder'] });
     const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;
-    await api(provider, `${GDU}/files?uploadType=multipart`, { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body });
-    return;
+    const r = await api(provider, `${GDU}/files?uploadType=multipart&fields=id,modifiedTime`, { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body });
+    return modTime(await r.json().catch(() => null));
   }
   const bytes = new TextEncoder().encode(content);
   const path = `${MS}/special/approot:/${encodeURIComponent(name)}:`;
   if (bytes.length < 4 * 1024 * 1024) {
-    await api(provider, `${path}/content`, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes });
-    return;
+    const r = await api(provider, `${path}/content`, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: bytes });
+    return modTime(await r.json().catch(() => null));
   }
   // Arquivos grandes: sessão de upload em partes (múltiplos de 320 KiB).
   const sess = await (
@@ -248,6 +248,7 @@ async function upload(provider: CloudProvider, name: string, content: string, ex
     })
   ).json();
   const chunk = 320 * 1024 * 10;
+  let last: number | undefined;
   for (let i = 0; i < bytes.length; i += chunk) {
     const part = bytes.subarray(i, Math.min(i + chunk, bytes.length));
     const res = await netFetch(sess.uploadUrl, {
@@ -256,7 +257,14 @@ async function upload(provider: CloudProvider, name: string, content: string, ex
       body: part,
     });
     if (!res.ok && res.status !== 202) throw new Error(`OneDrive upload ${res.status}`);
+    if (res.status === 200 || res.status === 201) last = modTime(await res.json().catch(() => null));
   }
+  return last;
+}
+
+function modTime(j: any): number | undefined {
+  const v = j?.modifiedTime || j?.lastModifiedDateTime;
+  return v ? Date.parse(v) : undefined;
 }
 
 export async function download(provider: CloudProvider, id: string): Promise<string> {
@@ -314,19 +322,47 @@ export function parseSnapshot(text: string): CloudSnapshot {
   return s;
 }
 
-/** Restaura um backup da nuvem, substituindo os dados locais. */
-export async function restoreFromCloud(provider: CloudProvider, id: string, password: string): Promise<boolean> {
+/**
+ * Restaura um backup da nuvem, substituindo os dados locais.
+ * Se o backup é do mesmo cofre que está aberto, não pede senha e mantém a senha de login atual.
+ * Num aparelho novo, a senha é a mesma usada para entrar no cofre de origem.
+ */
+export async function restoreFromCloud(provider: CloudProvider, id: string, password?: string): Promise<boolean> {
   const snap = parseSnapshot(await download(provider, id));
-  const accounts = useVault.getState().settings.cloud.accounts;
-  const ok = await useVault.getState().adoptVault(snap.header, snap.records, password);
+  const v = useVault.getState();
+  const cloud = v.settings.cloud;
+  if (v.status === 'unlocked' && sameVault(snap)) return v.replaceRecords(snap.records);
+  if (!password) return false;
+  const ok = await v.adoptVault(snap.header, snap.records, password);
   if (ok) {
-    // Mantém as contas de nuvem conectadas neste aparelho.
+    // Mantém as contas de nuvem (e os IDs de cliente já informados) deste aparelho.
     useVault.getState().updateSettings((s) => {
-      s.cloud.accounts = accounts;
+      s.cloud.accounts = cloud.accounts;
+      if (cloud.googleClientId) (s.cloud.googleClientId = cloud.googleClientId), (s.cloud.googleClientSecret = cloud.googleClientSecret);
+      if (cloud.microsoftClientId) s.cloud.microsoftClientId = cloud.microsoftClientId;
       return s;
     });
   }
   return ok;
+}
+
+/** O arquivo da nuvem foi cifrado com a mesma chave do cofre aberto? */
+export function sameVault(snap: CloudSnapshot) {
+  const key = useVault.getState().key;
+  if (!key) return false;
+  const sample = snap.records.find((r) => r.kind === 'page' || r.kind === 'settings');
+  if (!sample) return snap.header.salt === useVault.getState().header?.salt;
+  try {
+    openSealed(key, sample.data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Baixa só o necessário para saber se um arquivo da nuvem é deste cofre. */
+export async function isSameVaultFile(provider: CloudProvider, id: string) {
+  return sameVault(parseSnapshot(await download(provider, id)));
 }
 
 export class VaultMismatchError extends Error {
@@ -335,31 +371,40 @@ export class VaultMismatchError extends Error {
   }
 }
 
-/** Sincroniza: baixa o arquivo de sincronização, junta (o mais recente vence) e envia de volta. */
-export async function syncNow(provider: CloudProvider): Promise<{ pulled: number }> {
+export interface SyncResult {
+  pulled: number;
+  pushed: boolean;
+  remoteModified?: number;
+}
+
+/**
+ * Sincroniza: baixa o arquivo de sincronização (se mudou desde `known`), junta página a página
+ * (a versão mais recente vence) e envia de volta só se este aparelho tiver algo novo.
+ */
+export async function syncNow(provider: CloudProvider, opts: { known?: number; localChanged?: boolean } = {}): Promise<SyncResult> {
   const files = await listFiles(provider);
   const existing = files.find((f) => f.name === SYNC_NAME);
   let pulled = 0;
-  if (existing) {
+  let ahead = !existing || opts.known === undefined || !!opts.localChanged;
+  if (existing && existing.modified !== opts.known) {
     const remote = parseSnapshot(await download(provider, existing.id));
-    const key = useVault.getState().key!;
-    const sample = remote.records.find((r) => r.kind === 'page' || r.kind === 'settings');
-    if (sample) {
-      try {
-        openSealed(key, sample.data);
-      } catch {
-        throw new VaultMismatchError(remote);
-      }
-    }
-    pulled = await useVault.getState().mergeRawRecords(remote.records);
+    if (!sameVault(remote)) throw new VaultMismatchError(remote);
+    const r = await useVault.getState().mergeRawRecords(remote.records);
+    pulled = r.pulled;
+    ahead = r.ahead || !!opts.localChanged;
   }
-  const snap = await snapshot();
-  await upload(provider, SYNC_NAME, JSON.stringify(snap), provider === 'gdrive' ? existing?.id : undefined);
-  useVault.getState().updateSettings((s) => {
-    s.cloud.lastSync = Date.now();
-    return s;
-  });
-  return { pulled };
+  let remoteModified = existing?.modified;
+  if (ahead) {
+    const snap = await snapshot();
+    remoteModified = (await upload(provider, SYNC_NAME, JSON.stringify(snap), provider === 'gdrive' ? existing?.id : undefined)) ?? Date.now();
+  }
+  if (ahead || pulled || opts.known === undefined) {
+    useVault.getState().updateSettings((s) => {
+      s.cloud.lastSync = Date.now();
+      return s;
+    });
+  }
+  return { pulled, pushed: ahead, remoteModified };
 }
 
 /** Backup automático conforme a frequência escolhida. */

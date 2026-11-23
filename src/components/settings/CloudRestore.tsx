@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Cloud, RefreshCw } from 'lucide-react';
+import { Cloud, FileJson, KeyRound, RefreshCw } from 'lucide-react';
 import { useT, useLang, LOCALES } from '../../i18n';
 import { Modal, Spinner } from '../ui';
-import { CLOUD_NAMES, connect, listFiles, restoreFromCloud, type CloudFile, type CloudProvider } from '../../cloud/cloud';
+import { CLOUD_NAMES, clientConfig, connect, listFiles, restoreFromCloud, type CloudFile, type CloudProvider } from '../../cloud/cloud';
 import { useVault } from '../../store/vault';
 import { toast } from '../../store/ui';
 import { formatDate } from '../../lib/doc';
 import { PasswordInput } from '../Auth';
 import { isTauri } from '../../lib/platform';
-import { askConfirm, askText } from '../PromptHost';
+import { askConfirm } from '../PromptHost';
+import { CloudGuide, importGoogleJson } from './CloudGuide';
 
 export function cloudErrorText(t: (k: any, v?: any) => string, e: unknown) {
   const m = String((e as Error)?.message || e);
@@ -28,6 +29,9 @@ export function CloudRestoreModal({ open, onClose, onDone }: { open: boolean; on
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   const connected = accounts.some((a) => a.provider === provider);
+  const unlocked = useVault((s) => s.status === 'unlocked');
+  const hasClient = !!useVault((s) => (provider === 'gdrive' ? s.settings.cloud.googleClientId : s.settings.cloud.microsoftClientId)) || !!clientConfig(provider).clientId;
+  const [guide, setGuide] = useState(false);
 
   const load = async () => {
     setBusy(true);
@@ -59,12 +63,12 @@ export function CloudRestoreModal({ open, onClose, onDone }: { open: boolean; on
   };
 
   const restore = async () => {
-    if (!sel || !pw) return;
+    if (!sel || (!pw && !unlocked)) return;
     if (!(await askConfirm({ title: t('backup.restoreCloud'), message: t('cloud.restoreConfirm'), okLabel: t('common.done') }))) return;
     setBusy(true);
     try {
-      const ok = await restoreFromCloud(provider, sel, pw);
-      if (!ok) return toast(t('login.wrong'), 'error');
+      const ok = await restoreFromCloud(provider, sel, pw || undefined);
+      if (!ok) return toast(pw ? t('login.wrong') : t('cloud.otherVault'), 'error');
       toast(t('cloud.restored'), 'success');
       onDone?.();
       onClose();
@@ -85,7 +89,7 @@ export function CloudRestoreModal({ open, onClose, onDone }: { open: boolean; on
         <>
           <div className="grow" />
           <button className="btn ghost" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="btn primary" onClick={restore} disabled={busy || !sel || !pw}>{busy ? <Spinner /> : null} {t('cloud.restore')}</button>
+          <button className="btn primary" onClick={restore} disabled={busy || !sel || (!pw && !unlocked)}>{busy ? <Spinner /> : null} {t('cloud.restore')}</button>
         </>
       }
     >
@@ -95,7 +99,15 @@ export function CloudRestoreModal({ open, onClose, onDone }: { open: boolean; on
           <button key={p} className={provider === p ? 'on' : ''} onClick={() => setProvider(p)}>{CLOUD_NAMES[p]}</button>
         ))}
       </div>
-      {!connected ? (
+      {!connected && !hasClient ? (
+        <div className="stack">
+          <div className="callout-box">{t('cloud.needClient')}</div>
+          <div className="row wrap gap-sm">
+            {provider === 'gdrive' && <button className="btn primary" onClick={() => void importGoogleJson(t)}><FileJson size={15} /> {t('guide.shareImport')}</button>}
+            <button className="btn ghost" onClick={() => setGuide(true)}><KeyRound size={15} /> {t('guide.setup')}</button>
+          </div>
+        </div>
+      ) : !connected ? (
         <button className="btn primary block" onClick={doConnect} disabled={busy}>{busy ? <Spinner /> : <Cloud size={16} />} {t('cloud.connect', { p: CLOUD_NAMES[provider] })}</button>
       ) : (
         <div className="stack">
@@ -113,10 +125,11 @@ export function CloudRestoreModal({ open, onClose, onDone }: { open: boolean; on
               </label>
             ))}
           </div>
-          <PasswordInput value={pw} onChange={setPw} placeholder={t('cloud.backupPassword')} />
-          <small className="muted">{t('cloud.restoreInfo')}</small>
+          <PasswordInput value={pw} onChange={setPw} placeholder={unlocked ? t('cloud.backupPasswordOpt') : t('cloud.backupPassword')} />
+          <small className="muted">{unlocked ? t('cloud.restoreInfoSame') : t('cloud.restoreInfo')}</small>
         </div>
       )}
+      <CloudGuide open={guide} onClose={() => setGuide(false)} initial={provider} />
     </Modal>
   );
 }

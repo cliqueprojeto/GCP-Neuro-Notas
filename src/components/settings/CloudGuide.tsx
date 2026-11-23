@@ -48,6 +48,21 @@ const MS_STEPS: { url?: string; key: string }[] = [
   { key: 'm5' },
 ];
 
+/** Lê o arquivo JSON do Google (client_secret… ou a configuração compartilhada) e guarda no app. */
+export async function importGoogleJson(t: (k: any) => string) {
+  const [f] = await pickTextFiles([{ name: 'JSON', extensions: ['json'] }]);
+  if (!f) return false;
+  try {
+    const { clientId, clientSecret } = parseGoogleClientJson(f.text);
+    useVault.getState().updateSettings((s) => ({ ...s, cloud: { ...s.cloud, googleClientId: clientId, googleClientSecret: clientSecret } }));
+    toast(t('guide.jsonOk'), 'success');
+    return true;
+  } catch {
+    toast(t('guide.jsonBad'), 'error');
+    return false;
+  }
+}
+
 /** Passo a passo ilustrado para criar o cadastro OAuth (sem conhecimento técnico). */
 export function CloudGuide({ open, onClose, initial = 'gdrive' }: { open: boolean; onClose: () => void; initial?: 'gdrive' | 'onedrive' }) {
   const t = useT();
@@ -56,17 +71,7 @@ export function CloudGuide({ open, onClose, initial = 'gdrive' }: { open: boolea
   const [tab, setTab] = useState<'gdrive' | 'onedrive'>(initial);
   const [msId, setMsId] = useState(cloud.microsoftClientId || '');
 
-  const importJson = async () => {
-    const [f] = await pickTextFiles([{ name: 'JSON', extensions: ['json'] }]);
-    if (!f) return;
-    try {
-      const { clientId, clientSecret } = parseGoogleClientJson(f.text);
-      v.updateSettings((s) => ({ ...s, cloud: { ...s.cloud, googleClientId: clientId, googleClientSecret: clientSecret } }));
-      toast(t('guide.jsonOk'), 'success');
-    } catch {
-      toast(t('guide.jsonBad'), 'error');
-    }
-  };
+  const importJson = () => importGoogleJson(t);
   const saveMs = () => {
     const id = msId.trim();
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return toast(t('guide.msBad'), 'error');

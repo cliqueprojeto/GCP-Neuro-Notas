@@ -19,3 +19,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 );
+
+// Somente no servidor de desenvolvimento: ganchos para testes automatizados.
+if (import.meta.env.DEV) {
+  void Promise.all([import('./store/vault'), import('./cloud/cloud'), import('./cloud/autosync')]).then(([v, c, a]) => {
+    Object.assign(window, { __vault: v.useVault, __cloud: c, __sync: a });
+  });
+}

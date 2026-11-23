@@ -261,12 +261,14 @@ html.kb-open .content { padding-bottom: calc(var(--kb) + 12px) !important; }
   .canvas-shell .dock {
     left: calc(8px + var(--safe-l)) !important; right: calc(8px + var(--safe-r)) !important; transform: none !important;
     max-width: none !important; width: auto; justify-content: flex-start; padding: 5px; gap: 1px; border-radius: 16px;
-    bottom: var(--dock-b) !important;
+    bottom: var(--dock-b) !important; margin-bottom: 0 !important; height: var(--dock-h); box-sizing: border-box; flex-wrap: nowrap;
   }
   .canvas-shell .dock .dock-btn { width: 38px; height: 38px; flex-shrink: 0; }
   .canvas-shell .dock .dock-sep { flex-shrink: 0; height: 22px; margin: 0 2px; }
-  .canvas-shell .canvas-zoom { left: calc(8px + var(--safe-l)) !important; bottom: calc(var(--dock-b) + 58px) !important; padding: 2px; gap: 0; border-radius: 12px; max-width: calc(100% - 150px); overflow-x: auto; scrollbar-width: none; }
+  .canvas-shell .canvas-zoom { left: calc(8px + var(--safe-l)) !important; bottom: calc(var(--dock-b) + var(--dock-h) + 10px) !important; margin-bottom: 0 !important; padding: 2px; gap: 0; border-radius: 12px; max-width: calc(100% - 150px); overflow-x: auto; scrollbar-width: none; }
   .canvas-shell .canvas-zoom .tb { width: 30px; height: 30px; min-width: 30px; }
-  .canvas-shell .canvas-present { right: calc(8px + var(--safe-r)) !important; bottom: calc(var(--dock-b) + 58px) !important; height: 36px; }
-  .canvas-shell { --dock-b: 10px; }
+  .canvas-shell .canvas-present { right: calc(8px + var(--safe-r)) !important; bottom: calc(var(--dock-b) + var(--dock-h) + 10px) !important; height: 36px; }
+  /* 1.8 — a altura do dock é fixa e o zoom fica sempre 10px acima dele (antes a margem da
+     área segura do Android empurrava o dock para cima, por baixo da barra de zoom). */
+  .canvas-shell { --dock-b: calc(10px + var(--safe-b)); --dock-h: 50px; }
 }

@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1.8.0 — Sincronização automática entre aparelhos
+
+- **Aparelhos espelhados sozinhos**: com o Google Drive (ou OneDrive) conectado, cada alteração é enviada em segundos e os outros aparelhos da mesma conta recebem ao abrir o app, ao voltar para ele, ao reconectar à internet e a cada 30 segundos. Não é mais preciso fazer backup e restaurar para passar do computador para o celular. Pode ser desligado em Configurações → Backup e sincronização.
+- **Tudo sincroniza**: textos, imagens, áudios e vídeos dentro das páginas, quadros, apresentações, bases de dados, conversas da IA, lixeira, e também as configurações compartilhadas (IA, e-mail, modelos, editor). A conexão com a nuvem continua sendo de cada aparelho.
+- **Correção**: alterações dentro de páginas que já existiam (e imagens inseridas nelas) podiam ser perdidas, porque abrir uma página no outro aparelho a marcava como editada e a versão antiga vencia. Agora só edições de verdade contam, e um quadro aberto na tela recebe na hora o que chega do outro aparelho.
+- **Indicador na barra superior**: nuvem verde quando está tudo sincronizado; clique para sincronizar na hora. Sem internet, ele espera e envia quando voltar.
+- **Restaurar sem pedir senha de novo**: backups do mesmo cofre são restaurados sem senha, e a senha de login continua a mesma. Num aparelho novo, a senha pedida é a mesma usada para entrar, e dá para importar a configuração do Google direto na tela de restauração.
+- **Temas escuros**: o dock e o zoom do quadro e da apresentação ficam sempre legíveis, mesmo sobre fundo claro.
+- **Android em pé**: a barra de zoom da apresentação não fica mais por cima da barra de ferramentas.
+
 ## 1.7.2 — E-mail: ajuda clara quando o provedor recusa o envio
 
 - Quando o envio falha, o app explica o motivo e mostra o passo a passo no lugar da mensagem técnica: **senha de app do Gmail** (erro 534/5.7.9), usuário ou senha recusados, bloqueio de SMTP na Microsoft, falha de conexão, erro de TLS e remetente não autorizado — com botão direto para a página certa do Google ou da Microsoft e "Tentar de novo".

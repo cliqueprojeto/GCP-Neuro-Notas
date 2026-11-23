@@ -22,6 +22,7 @@ import { Spinner } from './components/ui';
 import { MobileNav } from './components/MobileNav';
 import { checkForUpdate, isCheckDue, type ReleaseInfo } from './lib/updater';
 import { autoBackupIfDue } from './cloud/cloud';
+import { startAutoSync } from './cloud/autosync';
 
 export default function App() {
   const status = useVault((s) => s.status);
@@ -100,6 +101,9 @@ function Workspace() {
     const i = setInterval(() => Date.now() - last > autoLock * 60_000 && useVault.getState().lock(), 15_000);
     return () => (evs.forEach((e) => window.removeEventListener(e, bump)), clearInterval(i));
   }, [autoLock]);
+
+  // Sincronização automática entre aparelhos (enquanto o cofre está aberto).
+  useEffect(() => startAutoSync(), []);
 
   // Atualizações e backup automático.
   useEffect(() => {

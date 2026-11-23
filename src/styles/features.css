@@ -1460,3 +1460,29 @@ input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--mute
 .mail-help ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .mail-help details summary { cursor: pointer; font-size: 12px; color: var(--muted); }
 .mail-help code { display: block; margin-top: 6px; font-size: 11px; word-break: break-all; white-space: pre-wrap; color: var(--muted); }
+
+/* ============ 1.8 — controles do quadro sempre legíveis ============
+   Em temas escuros com estrutura vidro/mesh, o dock e o zoom ficavam translúcidos: sobre um
+   quadro ou apresentação de fundo claro, viravam uma faixa cinza com ícones apagados. */
+:root .canvas-shell :is(.dock, .canvas-zoom, .canvas-props) {
+  background: color-mix(in srgb, var(--panel) 97%, var(--bg)) !important;
+  border-color: color-mix(in srgb, var(--text) 16%, transparent) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);
+}
+:root .canvas-shell :is(.dock-btn, .canvas-zoom .tb, .canvas-zoom .zoom-label) { color: color-mix(in srgb, var(--text) 82%, transparent); }
+:root .canvas-shell :is(.dock-btn, .canvas-zoom .tb):hover { color: var(--text); }
+:root .canvas-shell .dock-btn.on { color: #fff; }
+:root .canvas-shell .canvas-zoom .tb:disabled { color: color-mix(in srgb, var(--text) 35%, transparent); }
+/* Telas largas, mas com o quadro estreito (barra lateral aberta): o zoom sobe para não cobrir o dock. */
+.canvas-shell { container-type: size; container-name: cshell; }
+@container cshell (max-width: 1320px) and (min-width: 601px) {
+  .canvas-zoom { bottom: 88px; }
+}
+
+/* ============ 1.8 — sincronização automática ============ */
+.sync-auto { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.sync-auto > small { display: block; line-height: 1.45; }
+.sync-badge.s-ok, .sync-badge.s-idle { color: #10b981; }
+.sync-badge.s-syncing { color: var(--accent); }
+.sync-badge.s-offline { color: var(--muted); }
+.sync-badge.s-error, .sync-badge.s-mismatch { color: #f59e0b; border-color: color-mix(in srgb, #f59e0b 45%, var(--border)); }

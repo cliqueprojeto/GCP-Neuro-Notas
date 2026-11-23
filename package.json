@@ -1,7 +1,7 @@
 {
   "name": "gcp-notas",
   "private": true,
-  "version": "1.7.2",
+  "version": "1.8.0",
   "description": "GCP Notas — notas, bases de dados, relatórios e segundo cérebro, offline e criptografado.",
   "author": "Bruno Albertini | Gestão Cultural Pro",
   "license": "GPL-3.0-or-later",
