@@ -1,4 +1,5 @@
 import { PromptHost } from './components/PromptHost';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { CalendarHub } from './components/CalendarHub';
 import { Boards } from './components/Boards';
 import { Presentations } from './components/Presentations';
@@ -134,6 +135,7 @@ function Workspace() {
       <main className="main">
         <Topbar update={update} onUpdate={() => setShowUpdate(true)} />
         <div className="content" key={JSON.stringify(route)}>
+          <ErrorBoundary>
           {route.name === 'home' && <Home />}
           {route.name === 'page' && <PageView id={route.id} />}
           {route.name === 'graph' && <Graph />}
@@ -147,6 +149,7 @@ function Workspace() {
           {route.name === 'settings' && <Settings tab={route.tab} />}
           {route.name === 'support' && <Support />}
           {route.name === 'about' && <About />}
+          </ErrorBoundary>
         </div>
       </main>
       <MobileNav />

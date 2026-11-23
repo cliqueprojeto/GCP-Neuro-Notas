@@ -288,7 +288,7 @@ export interface VaultSettings {
   /** Paleta do designer: cores personalizadas salvas pelo usuário (vão junto na sincronização). */
   designerColors?: string[];
   templates?: UserTemplate[];
-  notion?: { token: string; lastSync?: number; links?: Record<string, string> };
+  notion?: { token: string; workspace?: string; lastSync?: number; links?: Record<string, string> };
   presFolders?: PresFolder[];
   mail?: MailSettings;
   alerts?: { notified?: string[]; resolved?: string[]; enabled?: boolean; desktop?: boolean; daysAhead?: number; lastDigest?: string };

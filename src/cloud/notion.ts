@@ -13,6 +13,33 @@ import { makeProperty, newOption, recompute, titleProp, cellText, cellValue } fr
 const API = 'https://api.notion.com/v1';
 const VERSION = '2022-06-28';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const MAX_EMBED = 20 * 1024 * 1024;
+
+function b64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+/**
+ * Baixa um arquivo do Notion e guarda dentro da página. Os links de arquivos do Notion
+ * expiram em cerca de 1 hora; sem isso as imagens sumiriam depois da importação.
+ */
+async function embed(url: string): Promise<{ data: string; type: string; size: number } | null> {
+  try {
+    const res = await netFetch(url);
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength > MAX_EMBED) return null;
+    const type = (res.headers.get('content-type') || 'application/octet-stream').split(';')[0];
+    return { data: `data:${type};base64,${b64(buf)}`, type, size: buf.byteLength };
+  } catch {
+    return null;
+  }
+}
+const fileUrl = (d: any): string => (d?.type === 'external' ? d.external?.url : d?.file?.url) || '';
+const fileName = (d: any, url: string) => d?.name || plainOf(d?.caption) || decodeURIComponent(url.split('?')[0].split('/').pop() || 'arquivo');
 
 export class NotionError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -139,6 +166,7 @@ async function children(id: string): Promise<any[]> {
 interface Ctx {
   idMap: Map<string, string>; // id Notion → id local
   childPages: { notionId: string; title: string; icon: string }[];
+  childDbs?: { notionId: string; title: string }[];
   depth: number;
 }
 
@@ -151,7 +179,7 @@ async function toDoc(blocks: any[], ctx: Ctx): Promise<any[]> {
   };
   for (const b of blocks) {
     const d = b[b.type] || {};
-    const kids = b.has_children && !['child_page', 'child_database', 'table'].includes(b.type) && ctx.depth < 6 ? await toDoc(await children(b.id), { ...ctx, depth: ctx.depth + 1 }) : [];
+    const kids = b.has_children && !['child_page', 'child_database', 'table', 'column_list'].includes(b.type) && ctx.depth < 6 ? await toDoc(await children(b.id), { ...ctx, depth: ctx.depth + 1 }) : [];
     const para = (content: any[]) => ({ type: 'paragraph', content: content.length ? content : undefined });
     const listType = b.type === 'bulleted_list_item' ? 'bulletList' : b.type === 'numbered_list_item' ? 'orderedList' : b.type === 'to_do' ? 'taskList' : '';
     if (listType) {
@@ -173,22 +201,47 @@ async function toDoc(blocks: any[], ctx: Ctx): Promise<any[]> {
       case 'code': out.push({ type: 'codeBlock', attrs: { language: d.language || null }, content: plainOf(d.rich_text) ? [{ type: 'text', text: plainOf(d.rich_text) }] : undefined }); break;
       case 'divider': out.push({ type: 'horizontalRule' }); break;
       case 'image': {
-        const src = d.type === 'external' ? d.external?.url : d.file?.url;
-        if (src) out.push({ type: 'image', attrs: { src, alt: plainOf(d.caption) } });
+        const url = fileUrl(d);
+        if (!url) break;
+        const src = d.type === 'file' ? (await embed(url))?.data || url : url;
+        out.push({ type: 'image', attrs: { src, alt: plainOf(d.caption) } });
+        if (plainOf(d.caption)) out.push(para(inline(d.caption, ctx.idMap)));
+        break;
+      }
+      case 'file': case 'pdf': case 'audio': {
+        const url = fileUrl(d);
+        if (!url) break;
+        if (d.type === 'external' && b.type !== 'audio') {
+          out.push(para([{ type: 'text', text: fileName(d, url), marks: [{ type: 'link', attrs: { href: url } }] }]));
+          break;
+        }
+        const got = await embed(url);
+        if (!got) {
+          out.push(para([{ type: 'text', text: '📎 ' + fileName(d, url) }]));
+          break;
+        }
+        if (b.type === 'audio') out.push({ type: 'mediaRec', attrs: { kind: 'audio', src: got.data, caption: plainOf(d.caption) } });
+        else out.push({ type: 'attachment', attrs: { files: [{ id: uid('f'), name: fileName(d, url), type: got.type, size: got.size, data: got.data, addedAt: Date.now() }] } });
         break;
       }
       case 'bookmark': case 'embed': case 'link_preview':
         if (d.url) out.push(para([{ type: 'text', text: d.url, marks: [{ type: 'link', attrs: { href: d.url } }] }]));
         break;
-      case 'video':
+      case 'video': {
         if (d.external?.url && /youtu/.test(d.external.url)) out.push({ type: 'youtube', attrs: { src: d.external.url } });
+        else if (d.type === 'file' && d.file?.url) {
+          const got = await embed(d.file.url);
+          if (got) out.push({ type: 'mediaRec', attrs: { kind: 'video', src: got.data, caption: plainOf(d.caption) } });
+        } else if (d.external?.url) out.push(para([{ type: 'text', text: d.external.url, marks: [{ type: 'link', attrs: { href: d.external.url } }] }]));
         break;
+      }
       case 'equation': out.push({ type: 'codeBlock', content: [{ type: 'text', text: d.expression || '' }] }); break;
       case 'child_page':
         ctx.childPages.push({ notionId: b.id, title: d.title || '', icon: '' });
         out.push(para([{ type: 'text', text: '📄 ' + (d.title || '') }]));
         break;
       case 'child_database':
+        (ctx.childDbs ||= []).push({ notionId: b.id, title: d.title || '' });
         out.push(para([{ type: 'text', text: '🗂️ ' + (d.title || '') }]));
         break;
       case 'table': {
@@ -202,7 +255,18 @@ async function toDoc(blocks: any[], ctx: Ctx): Promise<any[]> {
         });
         break;
       }
-      case 'column_list': case 'column': case 'synced_block': out.push(...kids); break;
+      case 'column_list': {
+        const cols = ctx.depth < 6 ? (await children(b.id)).filter((c) => c.type === 'column').slice(0, 5) : [];
+        const content: any[] = [];
+        for (const c of cols) {
+          const inner = await toDoc(await children(c.id), { ...ctx, depth: ctx.depth + 1 });
+          content.push({ type: 'column', content: inner.length ? inner : [{ type: 'paragraph' }] });
+        }
+        if (content.length > 1) out.push({ type: 'columns', attrs: { layout: content.map(() => 1).join('-'), style: 'plain' }, content });
+        else if (content.length === 1) out.push(...content[0].content);
+        break;
+      }
+      case 'column': case 'synced_block': out.push(...kids); break;
       default:
         if (d.rich_text) out.push(para(inline(d.rich_text, ctx.idMap)));
         out.push(...kids);
@@ -228,21 +292,30 @@ async function importPage(notionId: string, parentId: string | null, l: Record<s
   const title = titleOf(meta) || 'Sem título';
   progress(title);
   const idMap = new Map(Object.entries(l));
-  const ctx: Ctx = { idMap, childPages: [], depth: 0 };
+  const ctx: Ctx = { idMap, childPages: [], childDbs: [], depth: 0 };
   const content = { type: 'doc', content: await toDoc(await children(notionId), ctx) };
   if (!content.content.length) content.content.push({ type: 'paragraph' } as any);
   const existing = l[notionId] && v.pages[l[notionId]] && !v.pages[l[notionId]].deletedAt ? v.pages[l[notionId]] : null;
   const icon = iconOf(meta) || '📄';
-  const cover = meta.cover?.type === 'external' ? null : null;
+  const coverUrl = fileUrl(meta.cover);
+  const cover = coverUrl ? (await embed(coverUrl))?.data || null : null;
   let page: Page;
   if (existing) {
-    v.updatePage(existing.id, { title, icon, content });
+    v.updatePage(existing.id, cover ? { title, icon, content, cover } : { title, icon, content });
     page = useVault.getState().pages[existing.id];
   } else {
     page = v.createPage({ type: 'page', title, icon, content, parentId, cover, tags: ['notion'] });
     l[notionId] = page.id;
   }
   if (depth < 4) for (const c of ctx.childPages) await importPage(c.notionId, page.id, l, progress, depth + 1);
+  for (const c of ctx.childDbs || []) {
+    try {
+      await importDatabase(c.notionId, page.id, l, progress);
+    } catch (e) {
+      // Bases ligadas (linked views) de outras áreas podem não estar compartilhadas com a integração.
+      if (!(e instanceof NotionError && (e.status === 404 || e.status === 400))) throw e;
+    }
+  }
   return page;
 }
 
@@ -299,6 +372,22 @@ function propValue(p: Property, v: any): any {
 }
 const NOTION_TO_OPT: Record<string, string> = { default: 'gray', gray: 'gray', brown: 'brown', orange: 'orange', yellow: 'yellow', green: 'green', blue: 'blue', purple: 'purple', pink: 'pink', red: 'red' };
 
+/** Conteúdo de uma página-registro como texto simples (vai para as notas da linha). */
+function blocksText(blocks: any[]): string {
+  const lines: string[] = [];
+  for (const b of blocks) {
+    const d = b[b.type] || {};
+    const txt = plainOf(d.rich_text || d.caption);
+    if (b.type === 'bulleted_list_item') lines.push('• ' + txt);
+    else if (b.type === 'numbered_list_item') lines.push('1. ' + txt);
+    else if (b.type === 'to_do') lines.push((d.checked ? '☑ ' : '☐ ') + txt);
+    else if (b.type.startsWith('heading')) lines.push(txt.toUpperCase());
+    else if (b.type === 'divider') lines.push('———');
+    else if (txt || b.type === 'paragraph') lines.push(txt);
+  }
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /** Importa (ou atualiza) uma base de dados do Notion com todos os registros. */
 async function importDatabase(notionId: string, parentId: string | null, l: Record<string, string>, progress: (s: string) => void): Promise<Page> {
   const v = useVault.getState();
@@ -332,7 +421,14 @@ async function importDatabase(notionId: string, parentId: string | null, l: Reco
         if (val) cells[props[i].id] = propValue(props[i], val);
       });
       const prevRow = old?.rows.find((x) => (x as any).notionId === o.id);
-      rows.push({ id: prevRow?.id || uid('r'), cells, createdAt: Date.parse(o.created_time) || Date.now(), updatedAt: Date.parse(o.last_edited_time) || Date.now(), notionId: o.id } as Row);
+      let notes = prevRow?.notes;
+      if (rows.length < 300) {
+        progress(`${title} · ${rows.length + 1}`);
+        const body = await children(o.id).catch(() => []);
+        const txt = blocksText(body);
+        if (txt) notes = txt;
+      }
+      rows.push({ id: prevRow?.id || uid('r'), notes, cells, createdAt: Date.parse(o.created_time) || Date.now(), updatedAt: Date.parse(o.last_edited_time) || Date.now(), notionId: o.id } as Row);
     }
     cursor = r.has_more ? r.next_cursor : undefined;
   } while (cursor);

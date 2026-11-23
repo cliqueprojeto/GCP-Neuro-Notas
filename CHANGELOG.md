@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.8.3 — Notion: importação completa (API e .zip) e fim da tela branca
+
+- **Correção da tela branca** ao clicar em "Importar do Notion": a lista de páginas era recarregada sem parar até travar o app. Agora carrega uma vez e mostra o erro na própria janela, se houver.
+- **Conectar leva ao próximo passo**: depois de validar o token, a janela para escolher o que importar abre sozinha, e o nome do espaço do Notion fica salvo. "Sincronizar agora" sem nada importado abre essa mesma escolha, com a opção "Selecionar tudo".
+- **Importação e sincronização mais completas pela API**: imagens, PDFs, arquivos, áudios e vídeos enviados ao Notion ficam salvos dentro da página (os links do Notion expiram em 1 hora), além da capa da página, de colunas lado a lado, das bases de dados dentro de páginas e do conteúdo de cada registro das bases (nas notas da linha).
+- **Novo: importar o .zip exportado pelo Notion** (Configurações → Backup → Notion), em HTML ou Markdown e CSV, com subpáginas. Funciona sem conectar. Vêm a árvore de páginas, as bases com colunas e tipos (seleção com cores, múltipla seleção, data, número, caixa de seleção, link e e-mail), o conteúdo de cada registro, imagens, arquivos, capa, ícone, listas de tarefas, destaques, toggles, colunas, tabelas, cores e os links entre páginas. Exportações grandes divididas em vários .zip dentro do .zip também funcionam.
+- **Proteção contra tela branca**: se alguma tela der erro, aparece um aviso com "Tentar de novo" e "Início", e o resto do app continua funcionando.
+
 ## 1.8.2 — Fontes, cores personalizadas, texto justificado e cópia para o Word
 
 - **Android (celular e tablet)**: pressionar e segurar não abre mais o menu do app nas páginas e tabelas. O toque longo volta a ser do sistema, para selecionar, copiar e colar. Os menus continuam no ícone de cada linha. No computador nada muda.

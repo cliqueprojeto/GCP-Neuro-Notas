@@ -1343,6 +1343,16 @@ export const pt = {
   'color.apply': "Aplicar",
   'color.palette': "Minha paleta de designer",
   'color.saved': "Cor {c} salva na sua paleta",
+  'crash.title': "Esta tela encontrou um problema",
+  'crash.text': "Seus dados estão seguros. Tente de novo ou volte ao início; o menu ao lado continua funcionando.",
+  'crash.retry': "Tentar de novo",
+  'notion.selectAll': "Selecionar tudo",
+  'notion.syncFirst': "Primeiro importe páginas ou bases do Notion; depois elas sincronizam por aqui.",
+  'notion.zip': "Importar exportação .zip do Notion",
+  'notion.zipHint': "No Notion: ⋯ → Exportar → HTML (ou Markdown e CSV), com subpáginas. Funciona sem conectar e traz páginas, bases, imagens e arquivos.",
+  'notion.zipDone': "Importado do Notion: {p} página(s), {d} base(s) e {f} arquivo(s)/imagem(ns).",
+  'notion.zipEmpty': "Este .zip não tem páginas do Notion (HTML, Markdown ou CSV).",
+  'notion.zipError': "Não foi possível ler o .zip.",
 };
 
 export type Dict = Record<keyof typeof pt, string>;
