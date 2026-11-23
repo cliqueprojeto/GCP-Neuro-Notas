@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import {
-  Bold, Italic, AlignLeft, AlignCenter, AlignRight, Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
+  Bold, Italic, AlignLeft, AlignCenter, AlignRight, AlignJustify, Circle, Diamond, Eraser, FileText, Frame, Hand, ImagePlus, Maximize, Minus, MousePointer2, PenLine, Plus, Spline, Square, StickyNote,
   Trash2, Triangle, Type, Undo2, Redo2, Waypoints, CornerDownRight, Slash, Presentation, MoveRight, MoveHorizontal, Minus as LineIcon, Tag, Link2, MousePointerClick, BarChart3, Sparkle, Palette, LayoutTemplate, Clapperboard, Play, Music, Film,
 } from 'lucide-react';
 import { Presenter, PresentSettings, PresentPage } from './Presenter';
@@ -23,6 +23,7 @@ import { useUi } from '../store/ui';
 import { uid } from '../lib/crypto';
 import { pickImages } from '../lib/platform';
 import { PageIcon, Popover } from '../components/ui';
+import { CustomColors } from '../components/ColorPicker';
 import { normalize } from '../lib/doc';
 import { pageToHtml } from '../lib/transfer';
 import { askConfirm, askText } from '../components/PromptHost';
@@ -1002,6 +1003,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
               (selNode.kind === 'draw' || selNode.kind === 'text' || selNode.kind === 'button' ? INK : NOTE_COLORS).map((c) => (
                 <button key={c} className={'color-dot sm' + (selNode.color === c ? ' on' : '')} style={{ background: c }} onClick={() => patchNode(selNode.id, { color: c }, true)} />
               ))}
+            {selNode && !['image', 'page', 'frame', 'chart'].includes(selNode.kind) && <CustomColors small value={selNode.color} onPick={(c) => patchNode(selNode.id, { color: c }, true)} />}
             {selNode && ['text', 'shape', 'note'].includes(selNode.kind) && (
               <>
                 <span className="tb-sep" />
@@ -1009,8 +1011,8 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                 <button className="tb" onClick={() => patchNode(selNode.id, { fontSize: Math.min(120, (selNode.fontSize || (selNode.kind === 'text' ? 22 : 15)) + 2) }, true)}>A+</button>
                 <button className={'tb' + (selNode.bold ? ' on' : '')} onClick={() => patchNode(selNode.id, { bold: !selNode.bold }, true)} title={t('tb.bold')}><Bold size={15} /></button>
                 <button className={'tb' + (selNode.italic ? ' on' : '')} onClick={() => patchNode(selNode.id, { italic: !selNode.italic }, true)} title={t('tb.italic')}><Italic size={15} /></button>
-                <button className="tb" onClick={() => patchNode(selNode.id, { align: selNode.align === 'center' ? 'right' : selNode.align === 'right' ? 'left' : 'center' }, true)} title={t('canvas.align')}>
-                  {selNode.align === 'center' ? <AlignCenter size={15} /> : selNode.align === 'right' ? <AlignRight size={15} /> : <AlignLeft size={15} />}
+                <button className="tb" onClick={() => patchNode(selNode.id, { align: selNode.align === 'center' ? 'right' : selNode.align === 'right' ? 'justify' : selNode.align === 'justify' ? 'left' : 'center' }, true)} title={t('canvas.align')}>
+                  {selNode.align === 'center' ? <AlignCenter size={15} /> : selNode.align === 'right' ? <AlignRight size={15} /> : selNode.align === 'justify' ? <AlignJustify size={15} /> : <AlignLeft size={15} />}
                 </button>
               </>
             )}
@@ -1062,6 +1064,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
                 </Popover>
                 <span className="tb-sep" />
                 {INK.slice(0, 8).map((c) => <button key={c} className={'color-dot sm' + (selEdge.color === c ? ' on' : '')} style={{ background: c }} onClick={() => commit({ ...local, edges: local.edges.map((x) => (x.id === selEdge.id ? { ...x, color: c } : x)) }, true)} />)}
+                <CustomColors small value={selEdge.color} onPick={(c) => commit({ ...local, edges: local.edges.map((x) => (x.id === selEdge.id ? { ...x, color: c } : x)) }, true)} />
               </>
             )}
             <button className="tb" onClick={() => (remove(sel!), setSel(null))} title={t('common.delete')}><Trash2 size={16} /></button>
@@ -1128,6 +1131,7 @@ export function CanvasView({ page, embedSelf = false }: { page: Page; embedSelf?
           {(tool === 'pen' || tool === 'connector' || tool === 'text') && (
             <div className="dock-sub">
               {INK.map((c) => <button key={c} className={'color-dot sm' + (ink === c ? ' on' : '')} style={{ background: c }} onClick={() => setInk(c)} />)}
+              <CustomColors small value={ink} onPick={setInk} />
               {tool === 'pen' && [2, 4, 8].map((s) => <button key={s} className={'tb' + (penSize === s ? ' on' : '')} onClick={() => setPenSize(s)}><span className="pen-dot" style={{ width: s + 2, height: s + 2 }} /></button>)}
               {tool === 'connector' && (['straight', 'elbow', 'curve'] as const).map((s) => (
                 <button key={s} className={'tb' + (edgeStyle === s ? ' on' : '')} onClick={() => setEdgeStyle(s)}>{s === 'straight' ? <Slash size={15} /> : s === 'elbow' ? <CornerDownRight size={15} /> : <Spline size={15} />}</button>

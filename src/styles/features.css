@@ -1486,3 +1486,23 @@ input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--mute
 .sync-badge.s-syncing { color: var(--accent); }
 .sync-badge.s-offline { color: var(--muted); }
 .sync-badge.s-error, .sync-badge.s-mismatch { color: #f59e0b; border-color: color-mix(in srgb, #f59e0b 45%, var(--border)); }
+
+/* ---------------------------------------------------- cores personalizadas */
+.color-dot.color-more { display: inline-flex; align-items: center; justify-content: center; color: #fff; border: 0; background: conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444); }
+.color-dot.color-more svg { filter: drop-shadow(0 0 1.5px rgba(0,0,0,.8)); }
+.color-panel { width: 268px; max-width: calc(100vw - 24px); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.color-panel-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.color-panel-row { display: flex; align-items: center; gap: 8px; }
+.color-panel-row .input { flex: 1; min-width: 0; font-family: var(--mono); text-transform: lowercase; }
+.color-panel-row .btn { flex: 1; justify-content: center; }
+.color-input.big { width: 40px; height: 36px; padding: 2px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; flex-shrink: 0; }
+.color-panel-saved { display: flex; flex-wrap: wrap; gap: 8px; }
+.saved-color { position: relative; display: inline-flex; }
+.saved-color .saved-x { position: absolute; top: -6px; right: -6px; width: 15px; height: 15px; border-radius: 50%; display: none; align-items: center; justify-content: center; background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+.saved-color:hover .saved-x, .saved-color:focus-within .saved-x { display: inline-flex; }
+@media (hover: none) { .saved-color .saved-x { display: inline-flex; } }
+.color-menu { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; width: 280px; max-width: calc(100vw - 24px); }
+.color-row.wrap { flex-wrap: wrap; gap: 6px; }
+.eyedrop-layer { position: fixed; inset: 0; z-index: 99999; cursor: crosshair; background: transparent; touch-action: none; }
+.eyedrop-chip { position: fixed; padding: 4px 8px; border-radius: 8px; font: 600 12px var(--mono); color: #fff; text-shadow: 0 0 2px #000; border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,.4); pointer-events: none; }
+.table-bar .color-dot.sm { width: 18px; height: 18px; }

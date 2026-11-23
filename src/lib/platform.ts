@@ -7,6 +7,8 @@ import { invoke } from '@tauri-apps/api/core';
 export const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 /** Celular/tablet (Android ou iOS), no app nativo ou no navegador. */
 export const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+/** Android (celular ou tablet): aqui o toque longo fica com o sistema (selecionar, copiar, colar). */
+export const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 /** App instalado em computador (onde existe o atualizador interno). */
 export const isDesktop = isTauri && !isMobile;
 

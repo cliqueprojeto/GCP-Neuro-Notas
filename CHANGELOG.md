@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 1.8.2 — Fontes, cores personalizadas, texto justificado e cópia para o Word
+
+- **Android (celular e tablet)**: pressionar e segurar não abre mais o menu do app nas páginas e tabelas. O toque longo volta a ser do sistema, para selecionar, copiar e colar. Os menus continuam no ícone de cada linha. No computador nada muda.
+- **25 fontes embutidas** (funcionam sem internet em todos os instaladores): Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito, Source Sans 3, Raleway, Work Sans, Lora, Merriweather, Playfair Display, EB Garamond, Libre Baskerville, Crimson Pro, Atkinson Hyperlegible, Lexend e OpenDyslexic (leitura fácil e dislexia), JetBrains Mono, Fira Code, Source Code Pro, IBM Plex Mono, Caveat e Patrick Hand. A fonte pode ser escolhida em Configurações → Editor e em cada página, no menu "⋯".
+- **Tamanhos de 10 a 36 px** em Configurações → Editor.
+- **Justificar texto**: além de alinhar à esquerda, centralizar e alinhar à direita, agora dá para justificar, inclusive dentro das tabelas. O alinhamento também está na barra fixa do editor.
+- **Cores personalizadas**: no botão "+" colorido dos seletores de cor (cor do texto, marca-texto, cor da célula, quadros e apresentações) dá para digitar o código da cor (#RRGGBB ou rgb), usar o seletor ou o **conta-gotas** para pegar qualquer cor da tela, e salvar na **paleta do designer**. A paleta aparece em todos os seletores e sincroniza entre aparelhos.
+- **Copiar para o Word, Google Docs ou e-mail**: a formatação continua a mesma, mas o texto claro dos temas escuros vira preto e os fundos escuros saem. As cores escolhidas para o texto são mantidas.
+
 ## 1.8.1 — Aviso de atualização sempre com a versão mais nova
 
 - O app procura versão nova ao abrir, **ao voltar para ele** e a cada 3 horas. No Android, onde o app fica aberto em segundo plano por horas, o aviso da versão nova agora aparece sem precisar fechar o app.

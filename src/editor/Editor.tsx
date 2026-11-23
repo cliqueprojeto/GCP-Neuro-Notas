@@ -3,7 +3,7 @@ import { EditorContextMenu } from './EditorContextMenu';
 import { useEditor, EditorContent, BubbleMenu, type Editor as TEditor } from '@tiptap/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlignCenter, AlignLeft, AlignRight, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
+  AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
   FileText, Heading1, Heading2, Heading3, Highlighter, ImageIcon, Images, Italic, Link2, List, ListOrdered, ListTree, Minus, MessageSquareQuote,
   ArrowUpToLine, ArrowDownToLine, ArrowLeftToLine, ArrowRightToLine, TableCellsMerge, TableCellsSplit, PanelTop, PanelLeft,
   PieChart, Plus, Quote, Redo2, Rows3, SmilePlus, Sparkles, Sticker, Strikethrough, Table2, Text, Trash2, Underline as UIcon, Undo2, Play,
@@ -21,7 +21,9 @@ import { usePrefs, detectLang } from '../store/prefs';
 import { useT, useLang, LOCALES } from '../i18n';
 import { useVault, livePages } from '../store/vault';
 import { useUi, toast } from '../store/ui';
-import { pickImages } from '../lib/platform';
+import { pickImages, isAndroid } from '../lib/platform';
+import { fontById } from '../lib/fonts';
+import { CustomColors } from '../components/ColorPicker';
 import { normalize, formatDate } from '../lib/doc';
 import { Modal, Popover, PageIcon } from '../components/ui';
 import { EmojiPicker } from '../components/IconPicker';
@@ -209,10 +211,10 @@ export function Editor({ page, editable = true }: Props) {
   };
 
   return (
-    <div className={`editor-wrap font-${page.font || settings.font}`} style={{ fontSize: settings.fontSize }}>
+    <div className={`editor-wrap font-${fontById(page.font || settings.font).group}`} style={{ fontSize: settings.fontSize, ['--doc-font' as string]: fontById(page.font || settings.font).family }}>
       {editable && <Toolbar editor={editor} onEmoji={() => setEmojiOpen(true)} onSticker={() => setStickerOpen(true)} onAi={() => setAiOpen(true)} busy={busy} page={page} />}
       {editable && (
-        <BubbleMenu editor={editor} tippyOptions={{ duration: 120, maxWidth: 'none' }} shouldShow={({ editor, from, to }) => from !== to && !(editor.state.selection as any).node && !editor.isActive('image') && !editor.isActive('pageLink')}>
+        <BubbleMenu editor={editor} tippyOptions={{ duration: 120, maxWidth: 'none' }} shouldShow={({ editor, from, to }) => !isAndroid && from !== to && !(editor.state.selection as any).node && !editor.isActive('image') && !editor.isActive('pageLink')}>
           <Bubble editor={editor} onAi={ai} busy={busy} />
         </BubbleMenu>
       )}
@@ -220,7 +222,7 @@ export function Editor({ page, editable = true }: Props) {
       <div
         className="editor-ctx-host"
         onContextMenu={(e) => {
-          if (!editable || (e.target as HTMLElement).closest('input,textarea,select,.cols-bar,.media-bar,.table-bar')) return;
+          if (!editable || isAndroid || (e.target as HTMLElement).closest('input,textarea,select,.cols-bar,.media-bar,.table-bar')) return;
           e.preventDefault();
           const hit = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
           const { from, to } = editor.state.selection;
@@ -411,6 +413,12 @@ function Toolbar({ editor, onEmoji, onSticker, onAi, busy, page }: { editor: TEd
       <B on={() => c().toggleItalic().run()} active={editor.isActive('italic')} title={t('tb.italic')}><Italic size={16} /></B>
       <B on={() => c().toggleUnderline().run()} active={editor.isActive('underline')} title={t('tb.underline')}><UIcon size={16} /></B>
       <B on={() => c().toggleHighlight({ color: '#fde68a' }).run()} active={editor.isActive('highlight')} title={t('tb.highlight')}><Highlighter size={16} /></B>
+      <TextColorButton editor={editor} />
+      <span className="tb-sep" />
+      <B on={() => c().setTextAlign('left').run()} active={editor.isActive({ textAlign: 'left' })} title={t('tb.alignLeft')}><AlignLeft size={16} /></B>
+      <B on={() => c().setTextAlign('center').run()} active={editor.isActive({ textAlign: 'center' })} title={t('tb.alignCenter')}><AlignCenter size={16} /></B>
+      <B on={() => c().setTextAlign('right').run()} active={editor.isActive({ textAlign: 'right' })} title={t('tb.alignRight')}><AlignRight size={16} /></B>
+      <B on={() => c().setTextAlign('justify').run()} active={editor.isActive({ textAlign: 'justify' })} title={t('tb.alignJustify')}><AlignJustify size={16} /></B>
       <span className="tb-sep" />
       <B on={() => c().toggleBulletList().run()} active={editor.isActive('bulletList')} title={t('slash.bullet')}><List size={16} /></B>
       <B on={() => c().toggleOrderedList().run()} active={editor.isActive('orderedList')} title={t('slash.numbered')}><ListOrdered size={16} /></B>
@@ -436,6 +444,42 @@ function Toolbar({ editor, onEmoji, onSticker, onAi, busy, page }: { editor: TEd
     </div>
     {inTable && <TableBar editor={editor} />}
     </div>
+  );
+}
+
+/** Cor do texto e marca-texto na barra fixa (prontas + personalizadas com código e conta-gotas). */
+function TextColorButton({ editor }: { editor: TEditor }) {
+  const t = useT();
+  const ref = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const c = () => editor.chain().focus();
+  const cur = (editor.getAttributes('textStyle').color as string | undefined) || '';
+  const curHl = (editor.getAttributes('highlight').color as string | undefined) || '';
+  return (
+    <>
+      <button ref={ref} className="tb" title={t('tb.textColor')} onMouseDown={(e) => e.preventDefault()} onClick={() => setOpen(!open)}>
+        <span className="color-a" style={cur ? { textDecorationColor: cur } : undefined}>A</span>
+      </button>
+      <Popover anchor={ref.current} open={open} onClose={() => setOpen(false)}>
+        <div className="color-menu" onMouseDown={(e) => (e.target as HTMLElement).tagName !== 'INPUT' && e.preventDefault()}>
+          <div className="muted small">{t('tb.textColor')}</div>
+          <div className="color-row wrap">
+            {COLORS.map((col) => (
+              <button key={col || 'none'} className={'color-dot' + (cur === col ? ' on' : '')} style={{ background: col || 'var(--text)' }} onClick={() => (col ? c().setColor(col).run() : c().unsetColor().run(), setOpen(false))} />
+            ))}
+            <CustomColors value={cur} onPick={(col) => (c().setColor(col).run(), setOpen(false))} />
+          </div>
+          <div className="muted small">{t('tb.highlight')}</div>
+          <div className="color-row wrap">
+            {HIGHLIGHTS.map((col) => (
+              <button key={col} className={'color-dot' + (curHl === col ? ' on' : '')} style={{ background: col }} onClick={() => (c().setHighlight({ color: col }).run(), setOpen(false))} />
+            ))}
+            <button className="color-dot none" onClick={() => (c().unsetHighlight().run(), setOpen(false))}>×</button>
+            <CustomColors value={curHl} onPick={(col) => (c().setHighlight({ color: col }).run(), setOpen(false))} />
+          </div>
+        </div>
+      </Popover>
+    </>
   );
 }
 
@@ -469,6 +513,7 @@ function TableBar({ editor }: { editor: TEditor }) {
         {CELL_COLORS.map((col) => (
           <button key={col || 'none'} className={'cell-color' + (col ? '' : ' none')} style={{ background: col || undefined }} onMouseDown={(e) => e.preventDefault()} onClick={() => c().setCellAttribute('background', col || null).run()} />
         ))}
+        <CustomColors small onPick={(col) => c().setCellAttribute('background', col).run()} />
       </span>
       <span className="tb-sep" />
       <B on={() => c().deleteRow().run()} title={t('tb.delRow')} danger><Rows3 size={15} /><Minus size={11} /></B>
@@ -547,6 +592,7 @@ function Bubble({ editor, onAi, busy }: { editor: TEditor; onAi: (a: AiAction, t
       <button className={'tb' + (editor.isActive({ textAlign: 'left' }) ? ' on' : '')} onClick={() => c().setTextAlign('left').run()}><AlignLeft size={15} /></button>
       <button className={'tb' + (editor.isActive({ textAlign: 'center' }) ? ' on' : '')} onClick={() => c().setTextAlign('center').run()}><AlignCenter size={15} /></button>
       <button className={'tb' + (editor.isActive({ textAlign: 'right' }) ? ' on' : '')} onClick={() => c().setTextAlign('right').run()}><AlignRight size={15} /></button>
+      <button className={'tb' + (editor.isActive({ textAlign: 'justify' }) ? ' on' : '')} onClick={() => c().setTextAlign('justify').run()} title={t('tb.alignJustify')}><AlignJustify size={15} /></button>
       {menu === 'color' && (
         <div className="bubble-pop">
           <div className="muted small">{t('tb.textColor')}</div>
@@ -554,6 +600,7 @@ function Bubble({ editor, onAi, busy }: { editor: TEditor; onAi: (a: AiAction, t
             {COLORS.map((col) => (
               <button key={col || 'none'} className="color-dot" style={{ background: col || 'var(--text)' }} onClick={() => (col ? c().setColor(col).run() : c().unsetColor().run(), setMenu(''))} />
             ))}
+            <CustomColors noAdd onPick={(col) => (c().setColor(col).run(), setMenu(''))} />
           </div>
           <div className="muted small">{t('tb.highlight')}</div>
           <div className="color-row">
@@ -561,6 +608,7 @@ function Bubble({ editor, onAi, busy }: { editor: TEditor; onAi: (a: AiAction, t
               <button key={col} className="color-dot" style={{ background: col }} onClick={() => (c().toggleHighlight({ color: col }).run(), setMenu(''))} />
             ))}
             <button className="color-dot none" onClick={() => (c().unsetHighlight().run(), setMenu(''))}>×</button>
+            <CustomColors noAdd onPick={(col) => (c().setHighlight({ color: col }).run(), setMenu(''))} />
           </div>
         </div>
       )}

@@ -14,7 +14,8 @@ export interface Page {
   db?: DatabaseData;
   report?: ReportData;
   canvas?: CanvasData;
-  font?: 'sans' | 'serif' | 'mono';
+  /** Id de uma fonte de `lib/fonts.ts` (sans, serif, mono, roboto…). */
+  font?: string;
   fullWidth?: boolean;
   journalDate?: string;
   mode?: 'doc' | 'edgeless';
@@ -281,9 +282,11 @@ export interface VaultSettings {
   /** Quando a parte compartilhada das configurações mudou pela última vez (sincronização). */
   sharedAt?: number;
   security: { autoLockMinutes: number; lockOnMinimize: boolean };
-  editor: { font: 'sans' | 'serif' | 'mono'; width: 'normal' | 'wide'; spellcheck: boolean; fontSize: number };
+  editor: { font: string; width: 'normal' | 'wide'; spellcheck: boolean; fontSize: number };
   snapshots: { enabled: boolean; keep: number };
   chartPalettes: { id: string; name: string; colors: string[] }[];
+  /** Paleta do designer: cores personalizadas salvas pelo usuário (vão junto na sincronização). */
+  designerColors?: string[];
   templates?: UserTemplate[];
   notion?: { token: string; lastSync?: number; links?: Record<string, string> };
   presFolders?: PresFolder[];
@@ -325,7 +328,7 @@ export interface CanvasNode {
   fontSize?: number;
   bold?: boolean;
   italic?: boolean;
-  align?: 'left' | 'center' | 'right';
+  align?: 'left' | 'center' | 'right' | 'justify';
   textColor?: string; // cor do texto em formas/notas
   font?: string;
   link?: { type: 'none' | 'page' | 'url' | 'email'; target: string };

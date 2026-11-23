@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, X } from 'lucide-react';
+import { isAndroid } from '../lib/platform';
 import { icons } from 'lucide-react';
 
 // ------------------------------------------------------------------ Modal
@@ -269,6 +270,8 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
 
 /** Toque longo (celular/tablet): chama `cb` após ~480 ms sem arrastar. */
 export function longPress(cb: (x: number, y: number) => void) {
+  // Android: o toque longo é do sistema (selecionar, copiar e colar); o menu abre pelo toque no ícone.
+  if (isAndroid) return {};
   let timer: ReturnType<typeof setTimeout> | null = null;
   let sx = 0, sy = 0;
   const clear = () => timer && (clearTimeout(timer), (timer = null));

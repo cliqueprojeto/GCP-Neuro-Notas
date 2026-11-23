@@ -9,10 +9,14 @@ import '@fontsource/inter/800.css';
 import '@fontsource/lora/400.css';
 import '@fontsource/lora/600.css';
 import '@fontsource/jetbrains-mono/400.css';
+import './lib/fonts';
+import { installCopyFix } from './lib/copyFix';
 import './styles/app.css';
 import './styles/editor.css';
 import './styles/features.css';
 import './styles/mobile.css';
+
+installCopyFix();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

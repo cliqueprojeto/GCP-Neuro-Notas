@@ -1,7 +1,8 @@
 /* ------------------------------------------------------------- editor */
 .editor-wrap { position: relative; }
-.editor-wrap.font-serif .prose { font-family: var(--serif); }
-.editor-wrap.font-mono .prose { font-family: var(--mono); font-size: .93em; }
+.editor-wrap .prose { font-family: var(--doc-font, var(--sans)); }
+.editor-wrap.font-mono .prose { font-size: .93em; }
+.editor-wrap .prose [style*="text-align: justify"] { hyphens: auto; }
 .toolbar { position: sticky; top: 52px; z-index: 12; display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 6px; margin: 0 -6px 14px; border-radius: 12px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--border); backdrop-filter: blur(10px); }
 .tb { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 30px; height: 30px; padding: 0 6px; border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
 .tb:hover:not(:disabled) { background: var(--hover); color: var(--text); }

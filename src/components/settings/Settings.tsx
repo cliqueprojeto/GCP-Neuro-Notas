@@ -24,6 +24,7 @@ import { AlertsSettings } from './AlertsSettings';
 import { PROVIDERS, detectBestModel, guessProvider, providerMeta, chat } from '../../ai/providers';
 import type { AiProvider, AiProviderId, UpdateFrequency } from '../../lib/types';
 import { uid } from '../../lib/crypto';
+import { FONTS, FONT_SIZES, fontById } from '../../lib/fonts';
 import { formatDate, relativeTime } from '../../lib/doc';
 import { useSync, syncSoon } from '../../cloud/autosync';
 import { ImportShareModal } from '../ShareModal';
@@ -113,10 +114,10 @@ function General() {
       <Card icon={<Type size={18} />} title={t('settings.editor')} subtitle={t('settings.editorHint')}>
         <div className="two">
           <Field label={t('settings.font')}>
-            <Select value={editor.font} options={[{ value: 'sans', label: 'Sans (Inter)' }, { value: 'serif', label: 'Serif (Lora)' }, { value: 'mono', label: 'Mono' }]} onChange={(font) => update((s) => ((s.editor.font = font), s))} />
+            <Select value={fontById(editor.font).id} options={FONTS.map((f) => ({ value: f.id, label: f.label, hint: t(`font.group.${f.group}` as TKey), icon: <span className="font-ag" style={{ fontFamily: f.family }}>Aa</span> }))} onChange={(font) => update((s) => ((s.editor.font = font), s))} />
           </Field>
           <Field label={t('settings.fontSize')}>
-            <Select value={String(editor.fontSize)} options={[14, 15, 16, 17, 18, 20].map((n) => ({ value: String(n), label: `${n}px` }))} onChange={(v) => update((s) => ((s.editor.fontSize = +v), s))} />
+            <Select value={String(editor.fontSize)} options={FONT_SIZES.map((n) => ({ value: String(n), label: `${n}px` }))} onChange={(v) => update((s) => ((s.editor.fontSize = +v), s))} />
           </Field>
           <Field label={t('settings.width')}>
             <Select value={editor.width} options={[{ value: 'normal', label: t('settings.width.normal') }, { value: 'wide', label: t('settings.width.wide') }]} onChange={(width) => update((s) => ((s.editor.width = width), s))} />

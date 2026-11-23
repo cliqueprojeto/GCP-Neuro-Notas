@@ -23,6 +23,7 @@ import { ShareModal } from './ShareModal';
 import { backlinks, formatDate, relativeTime } from '../lib/doc';
 import { relatedPages, unlinkedMentions } from '../ai/brain';
 import { pickImages } from '../lib/platform';
+import { FONTS } from '../lib/fonts';
 import { exportPageFile } from '../lib/transfer';
 import { exportDocx, exportPdf, exportPptx, exportXlsx, printPage } from '../lib/exporters';
 import { runAction, activeProvider } from '../ai/assist';
@@ -166,8 +167,9 @@ function PageInner({ page }: { page: Page }) {
             <>
               <div className="menu-label">{t('page.font')}</div>
               <div className="font-pick">
-                {(['sans', 'serif', 'mono'] as const).map((f) => (
-                  <button key={f} className={(page.font || 'sans') === f ? 'on' : ''} onClick={() => set({ font: f })}><span className={'font-' + f}>Ag</span><small>{f}</small></button>
+                <button className={!page.font ? 'on' : ''} onClick={() => set({ font: undefined })}><span>Ag</span><small>{t('font.default')}</small></button>
+                {FONTS.map((f) => (
+                  <button key={f.id} className={page.font === f.id ? 'on' : ''} onClick={() => set({ font: f.id })} title={f.label}><span style={{ fontFamily: f.family }}>Ag</span><small>{f.label}</small></button>
                 ))}
               </div>
               <button className="menu-item" onClick={() => set({ fullWidth: !page.fullWidth })}>{page.fullWidth ? <Minimize2 size={15} /> : <Maximize2 size={15} />} {t('page.fullWidth')}</button>

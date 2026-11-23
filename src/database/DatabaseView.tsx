@@ -9,6 +9,7 @@ import { useT, useLang, LOCALES, type TKey } from '../i18n';
 import { useVault } from '../store/vault';
 import { toast, useUi } from '../store/ui';
 import { ContextMenu, Modal, Popover, Select, longPress, type MenuEntry } from '../components/ui';
+import { isAndroid } from '../lib/platform';
 import { Cell, OptionPill } from './Cell';
 import { logChange, syncTimers, COMPUTED, calcColumn, calcOptions, defaultCalc, convertType, distinctValues, isNumericProp, importMatrix, makeProperty, newRow, recompute, titleProp, visibleRows } from './logic';
 import { PropConfig, TypeIcon, TypeMenu } from './fields';
@@ -641,6 +642,7 @@ function TableView({ db, view, setView, props, rows, setRow, setProp, addRow, ad
               key={r.id}
               className={(dragRow === r.id ? 'dragging' : '') + (overRow?.id === r.id ? (overRow.after ? ' drop-after' : ' drop-before') : '')}
               onContextMenu={(e) => {
+                if (isAndroid) return; // Android: toque longo = seleção/copiar/colar do sistema
                 const el = e.target as HTMLInputElement;
                 // Com texto selecionado num campo, mantém o menu nativo (copiar/colar).
                 if (/^(INPUT|TEXTAREA)$/.test(el.tagName) && el.selectionStart !== el.selectionEnd) return;
@@ -779,7 +781,7 @@ function PropHeader({ prop, db, view, setView, setProp, save, addProp, moveCol, 
       }}
       onDrop={(e) => (e.preventDefault(), onDrop())}
       onDragEnd={onDrop}
-      onContextMenu={(e) => (e.preventDefault(), setOpen('menu'))}
+      onContextMenu={(e) => { if (isAndroid) return; e.preventDefault(); setOpen('menu'); }}
     >
       <div className="th-wrap">
         <GripVertical size={12} className="th-grip" />

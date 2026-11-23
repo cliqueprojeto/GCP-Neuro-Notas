@@ -1327,6 +1327,22 @@ export const pt = {
   'cloud.needClient': "Para ler o seu Drive neste aparelho, importe primeiro a configuração do Google (o arquivo .json que você baixou ou recebeu).",
   'cloud.backupPasswordOpt': "Senha de login — só se o backup for de outro cofre",
   'cloud.restoreInfoSame': "Backups deste mesmo cofre são restaurados sem pedir senha, e sua senha de login continua a mesma.",
+  'tb.alignLeft': "Alinhar à esquerda",
+  'tb.alignCenter': "Centralizar",
+  'tb.alignRight': "Alinhar à direita",
+  'tb.alignJustify': "Justificar",
+  'font.default': "Padrão",
+  'font.group.sans': "Sem serifa",
+  'font.group.serif': "Com serifa",
+  'font.group.mono': "Monoespaçada",
+  'font.group.read': "Leitura fácil / dislexia",
+  'font.group.hand': "Manuscrita",
+  'color.custom': "Cor personalizada",
+  'color.eyedropper': "Conta-gotas: pegar uma cor da tela",
+  'color.save': "Salvar na paleta",
+  'color.apply': "Aplicar",
+  'color.palette': "Minha paleta de designer",
+  'color.saved': "Cor {c} salva na sua paleta",
 };
 
 export type Dict = Record<keyof typeof pt, string>;
