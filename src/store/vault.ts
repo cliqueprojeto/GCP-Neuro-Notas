@@ -506,7 +506,7 @@ export function livePages(pages: Record<string, Page>): Page[] {
 
 export function childrenOf(pages: Record<string, Page>, parentId: string | null): Page[] {
   return livePages(pages)
-    .filter((p) => p.parentId === parentId)
+    .filter((p) => p.parentId === parentId && !p.archivedAt)
     .sort((a, b) => a.order - b.order);
 }
 

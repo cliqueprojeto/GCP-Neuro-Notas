@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  ArrowDownUp, Calendar, Check, History, ListTodo, MapPin, MessageSquare, Paperclip, Pencil, Plus, Send, ShoppingCart, Timer, Trash2, LayoutGrid,
+  ArrowDownUp, Archive as ArchiveIcon, ArchiveRestore, Bell, Calendar, Check, History, ListTodo, MapPin, MessageSquare, Paperclip, Pencil, Plus, Send, ShoppingCart, Timer, Trash2, LayoutGrid,
 } from 'lucide-react';
 import type { DatabaseData, Property, PropType, Row, View } from '../lib/types';
 import { useT, useLang, LOCALES } from '../i18n';
@@ -12,6 +12,7 @@ import { TypeIcon, TypeMenu } from './fields';
 import { titleProp } from './logic';
 import { uid } from '../lib/crypto';
 import { fmtDateTime, fmtRelative } from '../lib/dates';
+import { DateInput } from '../components/DateInput';
 
 type SetRow = (id: string, cells: Record<string, any>) => void;
 const WIDE: PropType[] = ['longtext', 'items', 'checklist', 'files'];
@@ -220,6 +221,7 @@ export function RowModal({ db, dbTitle, row, onClose, setRow, setProp, setNotes,
   const lang = useLang();
   const tp = titleProp(db);
   const [addOpen, setAddOpen] = useState(false);
+  const [remOpen, setRemOpen] = useState(false);
   const addRef = useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<'comments' | 'activity'>('comments');
   const [newest, setNewest] = useState(true);
@@ -261,6 +263,7 @@ export function RowModal({ db, dbTitle, row, onClose, setRow, setProp, setNotes,
       footer={
         <>
           <button className="btn ghost danger" onClick={async () => (await askConfirm({ title: t('work.delCard'), danger: true, okLabel: t('common.delete') })) && onDelete()}><Trash2 size={15} /> {t('common.delete')}</button>
+          <button className="btn ghost" onClick={() => { patchRow({ archivedAt: row.archivedAt ? null : Date.now() }); if (!row.archivedAt) onClose(); }}>{row.archivedAt ? <ArchiveRestore size={15} /> : <ArchiveIcon size={15} />} {row.archivedAt ? t('archive.restore') : t('archive.action')}</button>
           <div className="grow" />
           <button className="btn primary" onClick={onClose}><Check size={15} /> {t('common.done')}</button>
         </>
@@ -272,12 +275,20 @@ export function RowModal({ db, dbTitle, row, onClose, setRow, setProp, setNotes,
           {QUICK.map((q) => (
             <button key={q.type} className="chip-btn" onClick={() => quick(q.type)}><q.icon size={14} /> {t(q.key)}</button>
           ))}
+          <button className={'chip-btn' + (row.remindAt || remOpen ? ' on' : '')} onClick={() => setRemOpen(!remOpen)}><Bell size={14} /> {t('work.q.reminder')}</button>
           <button ref={addRef} className="chip-btn accent" onClick={() => setAddOpen(true)}><Plus size={14} /> {t('work.addField')}</button>
           <Popover anchor={addRef.current} open={addOpen} onClose={() => setAddOpen(false)}>
             <TypeMenu onPick={(ty) => { setAddOpen(false); focusProp(addProp(ty).id); }} />
           </Popover>
         </div>
 
+        {(remOpen || row.remindAt) && (
+          <div className="row-reminder">
+            <Bell size={15} /> <b>{t('work.reminder')}</b>
+            <DateInput withTime value={row.remindAt || ''} onChange={(v) => patchRow({ remindAt: v || undefined })} />
+            <span className="muted small">{t('work.reminderHint')}</span>
+          </div>
+        )}
         <div className="row-props">
           {simple.map((p) => (
             <div className={'row-prop' + (flash === p.id ? ' flash' : '')} key={p.id} data-prop={p.id}>

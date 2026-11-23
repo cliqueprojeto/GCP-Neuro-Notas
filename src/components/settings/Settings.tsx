@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  BellRing,
   Bot, Check, CloudUpload, Cloud, Download, ExternalLink, FileUp, HardDrive, KeyRound, Lock, Palette, RefreshCw, Shield, Sparkles,
   Trash2, Upload, Globe, Type, Share2, BrainCircuit, Plus, Loader2, FolderInput,
 } from 'lucide-react';
@@ -19,6 +20,7 @@ import { CloudGuide } from './CloudGuide';
 import { GoogleDriveIcon, OneDriveIcon } from './BrandIcons';
 import { NotionCard } from './NotionCard';
 import { WipeCard } from './WipeCard';
+import { AlertsSettings } from './AlertsSettings';
 import { PROVIDERS, detectBestModel, guessProvider, providerMeta, chat } from '../../ai/providers';
 import type { AiProvider, AiProviderId, UpdateFrequency } from '../../lib/types';
 import { uid } from '../../lib/crypto';
@@ -31,6 +33,7 @@ const TABS = [
   { id: 'security', icon: Shield },
   { id: 'backup', icon: CloudUpload },
   { id: 'ai', icon: Bot },
+  { id: 'alerts', icon: BellRing },
   { id: 'updates', icon: RefreshCw },
 ] as const;
 
@@ -58,6 +61,7 @@ export function Settings({ tab: initial }: { tab?: string }) {
           {tab === 'security' && <Security />}
           {tab === 'backup' && <Backup />}
           {tab === 'ai' && <AiSettings />}
+          {tab === 'alerts' && <AlertsSettings />}
           {tab === 'updates' && <Updates />}
         </div>
       </div>

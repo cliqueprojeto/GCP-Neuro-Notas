@@ -1,4 +1,6 @@
 import { fmtDateTime } from '../lib/dates';
+import { readAttachment, type AiAttachment } from '../ai/attachments';
+import { pickFiles } from '../lib/files';
 import { NeuroIcon } from './NeuroIcon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
@@ -7,12 +9,13 @@ import {
   ArrowRight, Bot, CalendarHeart, CheckCircle2, Database, Download, FileText, Home, Info, LayoutTemplate, ListTodo, Lock, Network, Palette,
   PieChart, Plus, Search, Send, Settings, Sparkles, Trash2, X, AlertCircle, Heart, ExternalLink, Loader2,
   History, ArrowUpRight, Copy, FileInput, FilePlus2, Wand2, AlignLeft, Languages, Lightbulb,
+  Paperclip, StickyNote,
 } from 'lucide-react';
-import { useT, useLang } from '../i18n';
+import { useT, useLang, type TKey } from '../i18n';
 import { useVault, livePages } from '../store/vault';
 import { useUi } from '../store/ui';
 import { usePrefs } from '../store/prefs';
-import { PageIcon, Modal } from './ui';
+import { PageIcon, Modal, Popover } from './ui';
 import { searchPages, normalize } from '../lib/doc';
 import { openDaily } from './Journal';
 import { askBrain } from '../ai/brain';
@@ -156,7 +159,7 @@ export function CommandPalette() {
 
 // ------------------------------------------------------- painel de IA (cérebro)
 
-interface Msg { role: 'user' | 'assistant'; content: string; sources?: Page[]; error?: boolean }
+interface Msg { role: 'user' | 'assistant'; content: string; sources?: Page[]; error?: boolean; files?: string[] }
 
 export function AIPanel() {
   const t = useT();
@@ -171,6 +174,25 @@ export function AIPanel() {
   const [histOpen, setHistOpen] = useState(false);
   const [selBar, setSelBar] = useState<{ text: string; x: number; y: number } | null>(null);
   const [trOpen, setTrOpen] = useState(false);
+  const [files, setFiles] = useState<AiAttachment[]>([]);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkQ, setLinkQ] = useState('');
+  const [sendTo, setSendTo] = useState<{ md: string; x: number; y: number } | null>(null);
+  const [drag, setDrag] = useState(false);
+  const linkBtn = useRef<HTMLButtonElement>(null);
+  const linked = ui.aiContext.map((id) => pages[id]).filter((p): p is Page => !!p && !p.deletedAt);
+  const setLinked = (ids: string[]) => ui.set({ aiContext: [...new Set(ids)] });
+  useEffect(() => {
+    const h = (e: Event) => { const id = (e as CustomEvent).detail as string; setLinked([...useUi.getState().aiContext, id]); };
+    window.addEventListener('gcp-ai-context', h);
+    return () => window.removeEventListener('gcp-ai-context', h);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const addFiles = async (list: File[]) => {
+    for (const f of list) {
+      try { const a = await readAttachment(f); setFiles((x) => [...x, a]); }
+      catch (e) { toast(String((e as Error).message || e), 'error'); }
+    }
+  };
   const autoSave = useVault((s) => s.settings.ai.saveChats !== false);
   const scroller = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
@@ -194,13 +216,15 @@ export function AIPanel() {
     if (!text.trim() || busy) return;
     if (!provider) return;
     const history: ChatMessage[] = msgs.filter((m) => !m.error).slice(-8).map((m) => ({ role: m.role, content: m.content }));
-    setMsgs((m) => [...m, { role: 'user', content: text }]);
+    const atts = files;
+    setMsgs((m) => [...m, { role: 'user', content: text, files: atts.map((a) => a.name) }]);
     setInput('');
+    setFiles([]);
     setBusy(true);
     abort.current = new AbortController();
     try {
-      const all = brain ? livePages(pages) : current ? [current] : [];
-      const r = await askBrain(provider, all, history, text, LANG_NAMES[lang], current, abort.current.signal);
+      const all = brain ? livePages(pages) : [current, ...linked].filter((x): x is Page => !!x);
+      const r = await askBrain(provider, all, history, text, LANG_NAMES[lang], current, abort.current.signal, { linked, attachments: atts });
       setMsgs((m) => {
         const next: Msg[] = [...m, { role: 'assistant', content: r.text, sources: r.sources }];
         persist(next);
@@ -216,18 +240,19 @@ export function AIPanel() {
   /** Salva a conversa como página (aparece no Grafo ligada às notas citadas). */
   const persist = (list: Msg[]) => {
     if (!autoSave || !provider) return;
-    const clean = list.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content, sources: m.sources?.map((p) => p.id) }));
+    const clean = list.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content, sources: m.sources?.map((p) => p.id), files: m.files }));
     if (!clean.some((m) => m.role === 'assistant')) return;
     const ctx = convId ? pages[pages[convId]?.chat?.contextId || ''] || null : current;
-    setConvId(saveConversation(convId, clean, `${provider.name} · ${provider.model}`, ctx));
+    setConvId(saveConversation(convId, clean, `${provider.name} · ${provider.model}`, ctx, useUi.getState().aiContext));
   };
   const openConv = (p: Page) => {
     const all = useVault.getState().pages;
-    setMsgs((p.chat?.messages || []).map((m) => ({ role: m.role, content: m.content, sources: (m.sources || []).map((id) => all[id]).filter(Boolean) })));
+    setMsgs((p.chat?.messages || []).map((m) => ({ role: m.role, content: m.content, files: m.files, sources: (m.sources || []).map((id) => all[id]).filter(Boolean) })));
     setConvId(p.id);
+    setLinked(p.chat?.links || []);
     setHistOpen(false);
   };
-  const newConv = () => (setMsgs([]), setConvId(null));
+  const newConv = () => (setMsgs([]), setConvId(null), setFiles([]));
 
   // Ações sobre o trecho selecionado numa resposta (reescrever, resumir, traduzir…).
   const onSelect = () => {
@@ -266,6 +291,20 @@ export function AIPanel() {
     useVault.getState().updatePage(current.id, { content: { ...doc, content: [...(doc.content || []), ...add] } });
     toast(t('chat.inserted'), 'success');
   };
+  /** Acrescenta a resposta ao fim de qualquer página (ou como nota no quadro). */
+  const appendTo = (target: Page, md: string) => {
+    const v = useVault.getState();
+    if (target.type === 'canvas' || target.mode === 'edgeless') {
+      const cv = target.canvas || { nodes: [], edges: [], view: { x: 0, y: 0, zoom: 1 } };
+      const cx = (-cv.view.x + 400) / (cv.view.zoom || 1), cy = (-cv.view.y + 260) / (cv.view.zoom || 1);
+      const text = md.replace(/[#*_>`]/g, '').trim().slice(0, 1200);
+      v.updatePage(target.id, { canvas: { ...cv, nodes: [...cv.nodes, { id: 'n' + Date.now(), kind: 'note', x: cx, y: cy, w: 320, h: 220, text, color: '#ede9fe' }] } });
+    } else if (target.type === 'page') {
+      const doc = target.content?.type === 'doc' ? target.content : { type: 'doc', content: [] };
+      v.updatePage(target.id, { content: { ...doc, content: [...(doc.content || []), ...(htmlToDoc(mdToHtml(md)).content || [])] } });
+    } else return toast(t('chat.cantSendHere'), 'info');
+    toast(t('chat.sentTo', { p: target.title || t('page.untitled') }), 'success');
+  };
   const saveAsNote = (md: string) => {
     const first = md.replace(/[#*_>`]/g, '').trim().split('\n')[0].slice(0, 60);
     const np = useVault.getState().createPage({ title: first || t('chat.note'), icon: '✨', content: htmlToDoc(mdToHtml(md)), parentId: current?.id ?? null, tags: ['ia'] });
@@ -289,6 +328,24 @@ export function AIPanel() {
         <button className="icon-btn sm" title={t('chat.history')} onClick={() => setHistOpen(!histOpen)}><History size={16} /></button>
         {msgs.length > 0 && <button className="btn ghost xs" onClick={newConv}><Plus size={13} /> {t('brain.new')}</button>}
         <button className="icon-btn sm" onClick={() => ui.set({ aiPanel: false })}><X size={17} /></button>
+      </div>
+      <div className="ai-links">
+        <NeuroIcon size={13} /> <span className="muted small">{t('chat.linkedTo')}</span>
+        {linked.map((p) => (
+          <span key={p.id} className="rel-chip" onClick={() => ui.go({ name: 'page', id: p.id })}><PageIcon icon={p.icon} size={12} /> {p.title || t('page.untitled')}
+            <button className="rel-x" onClick={(e) => (e.stopPropagation(), setLinked(ui.aiContext.filter((x) => x !== p.id)))}><X size={11} /></button>
+          </span>
+        ))}
+        {current && !ui.aiContext.includes(current.id) && <button className="rel-add" onClick={() => setLinked([...ui.aiContext, current.id])}><Plus size={12} /> {current.title || t('page.untitled')}</button>}
+        <button ref={linkBtn} className="rel-add" onClick={() => setLinkOpen(!linkOpen)}><Plus size={12} /> {t('chat.linkProject')}</button>
+        <Popover anchor={linkBtn.current} open={linkOpen} onClose={() => setLinkOpen(false)}>
+          <div className="rel-pop">
+            <input className="input" autoFocus placeholder={t('embed.searchPage')} value={linkQ} onChange={(e) => setLinkQ(e.target.value)} />
+            {livePages(pages).filter((p) => !p.chat && !ui.aiContext.includes(p.id) && (!linkQ || normalize(p.title || '').includes(normalize(linkQ)))).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 12).map((p) => (
+              <button key={p.id} className="menu-item" onClick={() => { setLinked([...ui.aiContext, p.id]); setLinkQ(''); setLinkOpen(false); }}><PageIcon icon={p.icon} size={14} /> <span className="grow ellipsis">{p.title || t('page.untitled')}</span><small className="muted">{t(`chat.kind.${p.type === 'canvas' ? (p.presentation ? 'pres' : 'board') : p.type}` as TKey)}</small></button>
+            ))}
+          </div>
+        </Popover>
       </div>
       {histOpen && (
         <div className="ai-history">
@@ -329,11 +386,14 @@ export function AIPanel() {
           msgs.map((m, i) => (
             <div key={i} className={'msg ' + m.role + (m.error ? ' error' : '')}>
               {m.role === 'assistant' ? <div className="prose sm" dangerouslySetInnerHTML={{ __html: render(m.content) }} /> : <p>{m.content}</p>}
+              {m.files && m.files.length > 0 && <div className="msg-files">{m.files.map((f) => <span key={f} className="chip xs static"><Paperclip size={11} /> {f}</span>)}</div>}
               {m.role === 'assistant' && !m.error && (
                 <div className="msg-actions">
                   <button className="icon-btn xs" title={t('common.copy')} onClick={() => copyText(m.content).then(() => toast(t('common.copied'), 'success'))}><Copy size={13} /></button>
                   {current?.type === 'page' && <button className="icon-btn xs" title={t('chat.insert')} onClick={() => insertInPage(m.content)}><FileInput size={13} /></button>}
                   <button className="icon-btn xs" title={t('chat.saveNote')} onClick={() => saveAsNote(m.content)}><FilePlus2 size={13} /></button>
+                  {current && (current.type === 'canvas' || current.mode === 'edgeless') && <button className="icon-btn xs" title={t('chat.toBoard')} onClick={() => appendTo(current, m.content)}><StickyNote size={13} /></button>}
+                  <button className="icon-btn xs" title={t('chat.sendTo')} onClick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setSendTo({ md: m.content, x: r.left, y: r.bottom }); }}><Send size={13} /></button>
                 </div>
               )}
               {m.sources && m.sources.length > 0 && (
@@ -362,8 +422,31 @@ export function AIPanel() {
           )}
         </div>
       )}
+      {sendTo && (
+        <div className="ctx-back" onMouseDown={(e) => e.target === e.currentTarget && setSendTo(null)}>
+          <div className="menu rel-pop send-to" style={{ position: 'fixed', left: Math.max(8, Math.min(sendTo.x - 200, innerWidth - 300)), top: Math.min(sendTo.y + 6, innerHeight - 380) }}>
+            <div className="section-label">{t('chat.sendTo')}</div>
+            <input className="input" autoFocus placeholder={t('embed.searchPage')} value={linkQ} onChange={(e) => setLinkQ(e.target.value)} />
+            {[...linked, ...livePages(pages).filter((p) => (p.type === 'page' || p.type === 'canvas') && !p.chat && !linked.includes(p))].filter((p) => !linkQ || normalize(p.title || '').includes(normalize(linkQ))).slice(0, 10).map((p) => (
+              <button key={p.id} className="menu-item" onClick={() => { appendTo(p, sendTo.md); setSendTo(null); setLinkQ(''); }}><PageIcon icon={p.icon} size={14} /> <span className="grow ellipsis">{p.title || t('page.untitled')}</span></button>
+            ))}
+          </div>
+        </div>
+      )}
+      {provider && files.length > 0 && (
+        <div className="ai-files">
+          {files.map((f) => (
+            <span key={f.id} className="ai-file"><Paperclip size={12} /> <span className="ellipsis">{f.name}</span><small>{f.data ? (f.mime.includes('pdf') ? 'PDF' : 'IMG') : 'TXT'}</small>
+              <button onClick={() => setFiles((x) => x.filter((y) => y.id !== f.id))}><X size={11} /></button>
+            </span>
+          ))}
+        </div>
+      )}
       {provider && (
-        <div className="ai-input">
+        <div className={'ai-input' + (drag ? ' drag' : '')}
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); void addFiles([...e.dataTransfer.files]); }}>
+          <button className="icon-btn sm" title={t('chat.attach')} onClick={async () => addFiles(await pickFiles(true))}><Paperclip size={16} /></button>
           <textarea rows={2} placeholder={t('brain.placeholder')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())} />
           {busy ? (
             <button className="icon-btn boxed" onClick={() => abort.current?.abort()}><X size={17} /></button>

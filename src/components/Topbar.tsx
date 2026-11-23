@@ -6,6 +6,7 @@ import { useUi } from '../store/ui';
 import { useVault, breadcrumb } from '../store/vault';
 import { THEMES, getTheme, applyTheme, DEFAULT_CUSTOM, STRUCTURES, type CustomTheme, type Theme } from '../lib/themes';
 import { PageIcon, Popover } from './ui';
+import { NotificationBell } from './Notifications';
 import type { ReleaseInfo } from '../lib/updater';
 
 export function Topbar({ update, onUpdate }: { update: ReleaseInfo | null; onUpdate: () => void }) {
@@ -56,6 +57,7 @@ export function Topbar({ update, onUpdate }: { update: ReleaseInfo | null; onUpd
           <button key={l} className={lang === l ? 'on' : ''} onClick={() => prefs.set({ lang: l })}>{l.toUpperCase()}</button>
         ))}
       </div>
+      <NotificationBell />
       <button ref={themeRef} className="icon-btn boxed" onClick={() => setThemeOpen(!themeOpen)} title={t('settings.theme')}>
         {dark ? <Moon size={17} /> : <Sun size={17} />}
       </button>

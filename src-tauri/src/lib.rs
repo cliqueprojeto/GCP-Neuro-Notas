@@ -1,5 +1,6 @@
 mod db;
 mod player;
+mod mail;
 mod system;
 
 use tauri::Manager;
@@ -19,6 +20,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(system::OAuthState::default())
         .setup(|app| {
             #[cfg(desktop)]
@@ -62,6 +64,7 @@ pub fn run() {
             system::update_download,
             system::update_install,
             player::player_port,
+            mail::send_email,
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o GCP Notas");

@@ -2,10 +2,11 @@ import { useMemo, useRef, useState } from 'react';
 import { NeuroIcon } from './NeuroIcon';
 import {
   CalendarHeart, ChevronRight, Copy, Database, ExternalLink, FileText, Heart, Home, Info, LayoutTemplate, ListTodo, MoreHorizontal, Network,
-  PanelLeftClose, PieChart, Plus, Search, Settings, Sparkles, Star, StarOff, Trash2, Palette, Lock, Upload, PenTool, Presentation } from 'lucide-react';
+  PanelLeftClose, PieChart, Plus, Search, Settings, Sparkles, Star, StarOff, Trash2, Palette, Lock, Upload, PenTool, Presentation, Archive as ArchiveIcon,
+} from 'lucide-react';
 import { useT } from '../i18n';
 import { useVault, childrenOf, livePages } from '../store/vault';
-import { useUi, type Route } from '../store/ui';
+import { toast, useUi, type Route } from '../store/ui';
 import { usePrefs } from '../store/prefs';
 import { PageIcon, Popover } from './ui';
 import { APP_VERSION, openUrl } from '../lib/platform';
@@ -28,6 +29,7 @@ export function Sidebar() {
   const roots = childrenOf(pages, null);
   const favorites = livePages(pages).filter((p) => p.favorite).sort((a, b) => a.title.localeCompare(b.title));
   const trashCount = Object.values(pages).filter((p) => p.deletedAt && !p.purged).length;
+  const archiveCount = Object.values(pages).filter((p) => p.archivedAt && !p.deletedAt && !p.purged).length;
   const [newOpen, setNewOpen] = useState(false);
   const newRef = useRef<HTMLButtonElement>(null);
 
@@ -100,6 +102,7 @@ export function Sidebar() {
       </div>
 
       <nav className="nav-group bottom">
+        {archiveCount > 0 && <Nav r={{ name: 'archive' }} icon={<ArchiveIcon size={17} />} label={t('nav.archive')} badge={archiveCount} />}
         <Nav r={{ name: 'trash' }} icon={<Trash2 size={17} />} label={t('nav.trash')} badge={trashCount} />
         <Nav r={{ name: 'settings' }} icon={<Settings size={17} />} label={t('nav.settings')} />
         <Nav r={{ name: 'support' }} icon={<Heart size={17} />} label={t('nav.support')} />
@@ -206,6 +209,7 @@ function TreeItem({ page, depth, flat }: { page: Page; depth: number; flat?: boo
           <button className="menu-item" onClick={() => { const c = v.duplicatePage(page.id); setMenu(false); if (c) go({ name: 'page', id: c.id }); }}><Copy size={15} /> {t('common.duplicate')}</button>
           <button className="menu-item" onClick={() => (v.movePage(page.id, null), setMenu(false))}><Upload size={15} /> {t('page.moveToRoot')}</button>
           <div className="menu-sep" />
+          <button className="menu-item" onClick={() => (v.updatePage(page.id, { archivedAt: Date.now() }), setMenu(false), toast(t('archive.done'), 'success'))}><ArchiveIcon size={15} /> {t('archive.action')}</button>
           <button className="menu-item danger" onClick={() => (v.trashPage(page.id), setMenu(false))}><Trash2 size={15} /> {t('page.trash')}</button>
         </div>
       </Popover>

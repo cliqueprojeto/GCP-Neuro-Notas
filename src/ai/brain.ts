@@ -3,6 +3,7 @@
  * (BM25, sem enviar nada até o usuário perguntar) e notas relacionadas.
  */
 import { normalize, pageText, outgoingLinks } from '../lib/doc';
+import type { AiAttachment } from './attachments';
 import type { Page } from '../lib/types';
 import { chat, type ChatMessage } from './providers';
 import type { AiProvider } from '../lib/types';
@@ -91,11 +92,19 @@ export async function askBrain(
   langName: string,
   current?: Page | null,
   signal?: AbortSignal,
+  extra?: { linked?: Page[]; attachments?: AiAttachment[] },
 ): Promise<BrainAnswer> {
   const found = retrieve(pages, question + ' ' + (current?.title || ''));
   if (current && !found.some((f) => f.page.id === current.id)) {
     const t = pageText(current);
     if (t) found.unshift({ page: current, text: t.slice(0, 6000), tokens: [] });
+  }
+  // páginas, projetos, quadros e apresentações ligados à conversa entram primeiro (com subpáginas)
+  for (const lp of (extra?.linked || []).slice().reverse()) {
+    if (found.some((f) => f.page.id === lp.id)) continue;
+    const kids = pages.filter((x) => x.parentId === lp.id).slice(0, 12);
+    const txt = [pageText(lp), ...kids.map((k) => `#### ${k.title}\n${pageText(k).slice(0, 1500)}`)].join('\n\n');
+    if (txt.trim()) found.unshift({ page: lp, text: txt.slice(0, 9000), tokens: [] });
   }
   const context = found.map((c) => `### [[${c.page.title || 'Sem título'}]]\n${c.text}`).join('\n\n');
   const system =
@@ -105,7 +114,7 @@ export async function askBrain(
     `If the notes do not contain the answer, say so briefly and then answer from general knowledge, making the distinction clear. ` +
     `Format with Markdown (short paragraphs, lists and tables when useful).\n\n` +
     `<notes>\n${context || '(no matching notes)'}\n</notes>`;
-  const text = await chat(provider, system, [...history, { role: 'user', content: question }], signal);
+  const text = await chat(provider, system, [...history, { role: 'user', content: question, attachments: extra?.attachments }], signal);
   const seen = new Set<string>();
   const sources = found.map((f) => f.page).filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
   return { text, sources };

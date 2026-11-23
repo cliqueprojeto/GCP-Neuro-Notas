@@ -21,8 +21,10 @@ export interface Page {
   presentation?: boolean; // aparece em Apresentações
   locked?: boolean; // base/página bloqueada para edição
   synapses?: Synapse[]; // Neuro Links: conexões livres, fora da hierarquia
+  archivedAt?: number | null; // arquivada (sai das listas, sem ir para a lixeira)
+  remindAt?: string; // lembrete da página (AAAA-MM-DDTHH:mm)
   presFolders?: string[]; // pastas de apresentações (pode estar em várias)
-  chat?: { messages: { role: 'user' | 'assistant'; content: string; sources?: string[] }[]; provider?: string; contextId?: string };
+  chat?: { messages: { role: 'user' | 'assistant'; content: string; sources?: string[]; files?: string[] }[]; provider?: string; contextId?: string; links?: string[] };
   createdAt: number;
   updatedAt: number;
   deletedAt?: number | null;
@@ -116,6 +118,8 @@ export interface Row {
   notes?: string;
   comments?: RowComment[];
   activity?: RowActivity[];
+  archivedAt?: number | null;
+  remindAt?: string; // lembrete do cartão (AAAA-MM-DDTHH:mm)
   createdAt: number;
   updatedAt: number;
 }
@@ -162,6 +166,16 @@ export interface DatabaseData {
   views: View[];
   activeView: string;
   defaultView?: string; // visão aberta ao entrar na base
+  automations?: Automation[];
+}
+
+/** Automação simples de uma base: QUANDO algo acontece → FAZER ações. */
+export interface Automation {
+  id: string;
+  name: string;
+  enabled: boolean;
+  trigger: { type: 'status'; prop: string; to: string } | { type: 'created' } | { type: 'due'; prop: string; days: number } | { type: 'checked'; prop: string };
+  actions: ({ type: 'notify' } | { type: 'email'; to?: string } | { type: 'set'; prop: string; value: any } | { type: 'archive' })[];
 }
 
 /** Modelo criado pelo usuário (estrutura de tabela ou documento). */
@@ -269,7 +283,12 @@ export interface VaultSettings {
   templates?: UserTemplate[];
   notion?: { token: string; lastSync?: number; links?: Record<string, string> };
   presFolders?: PresFolder[];
+  mail?: MailSettings;
+  alerts?: { notified?: string[]; resolved?: string[]; enabled?: boolean; desktop?: boolean; daysAhead?: number; lastDigest?: string };
 }
+
+/** E-mail pelo SMTP do próprio provedor do usuário (sem servidor do app). */
+export interface MailSettings { enabled: boolean; host: string; port: number; security: 'ssl' | 'starttls' | 'none'; user: string; password: string; from: string; to: string; onAlerts: boolean; digest: boolean }
 
 export interface PresFolder { id: string; name: string; icon: string; color: string }
 

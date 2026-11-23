@@ -9,6 +9,7 @@ export type Route =
   | { name: 'boards' }
   | { name: 'presentations' }
   | { name: 'trash' }
+  | { name: 'archive' }
   | { name: 'journal' }
   | { name: 'tasks' }
   | { name: 'settings'; tab?: string }
@@ -27,13 +28,15 @@ interface UiState {
   future: Route[];
   palette: boolean;
   aiPanel: boolean;
+  pendingRow: { pageId: string; rowId: string } | null; // abrir este cartão ao chegar na base
+  aiContext: string[]; // páginas ligadas à conversa da IA
   mobileNav: boolean;
   toasts: Toast[];
   presentNow: string | null;
   go(r: Route): void;
   back(): void;
   forward(): void;
-  set(p: Partial<Pick<UiState, 'palette' | 'aiPanel' | 'mobileNav' | 'presentNow'>>): void;
+  set(p: Partial<Pick<UiState, 'palette' | 'aiPanel' | 'mobileNav' | 'presentNow' | 'pendingRow' | 'aiContext'>>): void;
   toast(text: string, kind?: Toast['kind']): void;
   dismiss(id: number): void;
 }
@@ -77,6 +80,8 @@ export const useUi = create<UiState>((set, get) => ({
   mobileNav: false,
   toasts: [],
   presentNow: null,
+  pendingRow: null,
+  aiContext: [],
   go(r) {
     const cur = get().route;
     if (JSON.stringify(cur) === JSON.stringify(r)) return set({ mobileNav: false });

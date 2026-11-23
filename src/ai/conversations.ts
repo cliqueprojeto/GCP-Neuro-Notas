@@ -14,6 +14,7 @@ export interface SavedMsg {
   role: 'user' | 'assistant';
   content: string;
   sources?: string[];
+  files?: string[];
 }
 
 const linkSpan = (p: Page) => `<span data-type="pageLink" data-id="${p.id}" data-label="${escapeHtml(p.title || '…')}">${escapeHtml(p.title || '…')}</span>`;
@@ -40,6 +41,7 @@ function toDoc(msgs: SavedMsg[], context: Page | null) {
   for (const m of msgs) {
     if (m.role === 'user') {
       html += `<h3>🙋 ${escapeHtml(m.content.split('\n')[0].slice(0, 140))}</h3>`;
+      if (m.files?.length) html += `<p>📎 ${m.files.map(escapeHtml).join(' · ')}</p>`;
       if (m.content.includes('\n')) html += `<p>${escapeHtml(m.content).replace(/\n/g, '<br>')}</p>`;
       continue;
     }
@@ -57,18 +59,20 @@ function toDoc(msgs: SavedMsg[], context: Page | null) {
 }
 
 /** Cria ou atualiza a página da conversa. Devolve o id. */
-export function saveConversation(id: string | null, msgs: SavedMsg[], provider: string, context: Page | null): string {
+export function saveConversation(id: string | null, msgs: SavedMsg[], provider: string, context: Page | null, links: string[] = []): string {
   const v = useVault.getState();
   const firstQ = msgs.find((m) => m.role === 'user')?.content || t('chat.untitled');
   const title = '💬 ' + firstQ.replace(/\s+/g, ' ').slice(0, 70);
-  const chat = { messages: msgs, provider, contextId: context?.id };
+  const chat = { messages: msgs, provider, contextId: context?.id, links };
+  // a conversa vira um neurônio ligado (sinapse) aos projetos, páginas e quadros escolhidos
+  const synapses = links.map((to) => ({ to, at: Date.now() }));
   const content = toDoc(msgs, context);
   const existing = id ? v.pages[id] : null;
   if (existing && !existing.deletedAt) {
-    v.updatePage(existing.id, { chat, content });
+    v.updatePage(existing.id, { chat, content, synapses });
     return existing.id;
   }
   const root = conversationsRoot()!;
-  const page = v.createPage({ title: title.replace(/^💬 /, ''), icon: '💬', parentId: root.id, tags: ['ia'], chat, content });
+  const page = v.createPage({ title: title.replace(/^💬 /, ''), icon: '💬', parentId: root.id, tags: ['ia'], chat, content, synapses });
   return page.id;
 }

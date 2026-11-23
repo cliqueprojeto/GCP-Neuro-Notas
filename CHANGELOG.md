@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1.7.0 — Notificações, arquivo, automações, e-mail sem servidor e IA com anexos
+
+- **Central de notificações** (sino no topo, com contador): abas **Pendentes**, **Resolvidas** e **Alertas**; prazos atrasados, de hoje e próximos, lembretes e temporizadores esgotados. Resolver conclui a tarefa, reabrir volta ao início, adiar lembra amanhã às 9h, e um clique abre o cartão certo.
+- **Notificações do sistema** no Windows, macOS, Linux e Android, verificadas a cada minuto, sem servidor.
+- **E-mail sem servidor**: o app envia direto pelo SMTP do seu provedor (Gmail, Outlook, Yahoo, Zoho, Locaweb, Hostinger…) com senha de app guardada no cofre criptografado; resumo de alertas por e-mail e e-mail de teste. Na versão web, abre o seu app de e-mail com a mensagem pronta.
+- **Lembretes** em cartões (data e hora) e **arquivar/desarquivar** cartões (filtro "Arquivados") e páginas (nova tela **Arquivo** na barra lateral).
+- **Automações nas bases**: quando um status muda, uma caixa é marcada ou um registro é criado → notificar, enviar e-mail, preencher campo ou arquivar.
+- **IA com anexos**: anexe PDF, imagens, planilhas (XLSX/CSV), Word, PowerPoint, Markdown, JSON e textos — imagens e PDF vão no formato nativo (Claude, Gemini, OpenAI), o resto é lido no próprio aparelho. Arraste e solte no painel.
+- **Segundo cérebro ligado a projetos**: ligue a conversa a projetos, páginas, bases, quadros e apresentações; eles (e as subpáginas) entram no contexto da IA, e a conversa salva vira um neurônio ligado a eles no Neuro Links.
+- **Enviar respostas para páginas**: escolha qualquer página para receber a resposta ou coloque-a como nota no quadro aberto.
+
 ## 1.6.0 — Bases de dados dentro da página, Neuro Links neural e temas premium
 
 - **Base de dados na página** (`/base de dados na página`): escolha a visão com prévia ilustrada (Tabela, Quadro, Galeria, Lista, Calendário, Cronograma, Gantt, Mapa ou Anexos) ou mostre uma base que já existe; os dados ficam editáveis ali mesmo, com abas de visões, filtros, Kanban e cartões completos.

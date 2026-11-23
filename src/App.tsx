@@ -7,6 +7,7 @@ import { useVault } from './store/vault';
 import { usePrefs } from './store/prefs';
 import { useUi } from './store/ui';
 import { applyTheme } from './lib/themes';
+import { useAlertScheduler } from './components/Notifications';
 import { useLang } from './i18n';
 import { LoginScreen, Wizard } from './components/Auth';
 import { Sidebar } from './components/Sidebar';
@@ -15,7 +16,7 @@ import { Home } from './components/Home';
 import { PageView } from './components/PageView';
 import { Graph } from './components/Graph';
 import { Settings } from './components/settings/Settings';
-import { About, Support, Tasks, Templates, Trash } from './components/Views';
+import { About, Support, Tasks, Templates, Trash, Archive } from './components/Views';
 import { AIPanel, CommandPalette, Toasts, UpdateDialog } from './components/Overlays';
 import { Spinner } from './components/ui';
 import { MobileNav } from './components/MobileNav';
@@ -26,6 +27,7 @@ export default function App() {
   const status = useVault((s) => s.status);
   const pageCount = useVault((s) => Object.keys(s.pages).length);
   const theme = usePrefs((s) => s.theme);
+  useAlertScheduler();
   const lang = useLang();
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem('gcp-notas:onboarded') === '1');
 
@@ -128,6 +130,7 @@ function Workspace() {
           {route.name === 'presentations' && <Presentations />}
           {route.name === 'templates' && <Templates />}
           {route.name === 'trash' && <Trash />}
+          {route.name === 'archive' && <Archive />}
           {route.name === 'tasks' && <Tasks />}
           {route.name === 'settings' && <Settings tab={route.tab} />}
           {route.name === 'support' && <Support />}

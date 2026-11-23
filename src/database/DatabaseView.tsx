@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowDownAZ, ArrowDownUp, ArrowDownZA, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, BookmarkPlus, CalendarDays, ChevronLeft, ChevronRight,
   Columns3, Copy, CopyPlus, Download, EyeOff, FileDown, FileSpreadsheet, Filter as FilterIcon, FilterX, GalleryVerticalEnd, GripVertical, LayoutList,
-  Maximize2, Minimize2, Star, Check, LayoutGrid, GanttChart, CalendarRange, Map as MapIcon, Paperclip, Undo2, Redo2, MoreHorizontal, Plus, Printer, Search, Settings2, Table2, Trash2, Upload, X,
+  Archive as ArchiveIcon, Zap, Maximize2, Minimize2, Star, Check, LayoutGrid, GanttChart, CalendarRange, Map as MapIcon, Paperclip, Undo2, Redo2, MoreHorizontal, Plus, Printer, Search, Settings2, Table2, Trash2, Upload, X,
 } from 'lucide-react';
 import type { CalcKind, DatabaseData, Filter, Page, Property, PropType, Row, View, ViewType } from '../lib/types';
 import { useT, useLang, LOCALES, type TKey } from '../i18n';
 import { useVault } from '../store/vault';
-import { toast } from '../store/ui';
+import { toast, useUi } from '../store/ui';
 import { ContextMenu, Modal, Popover, Select, longPress, type MenuEntry } from '../components/ui';
 import { Cell, OptionPill } from './Cell';
 import { logChange, syncTimers, COMPUTED, calcColumn, calcOptions, defaultCalc, convertType, distinctValues, isNumericProp, importMatrix, makeProperty, newRow, recompute, titleProp, visibleRows } from './logic';
@@ -18,6 +18,7 @@ import { uid } from '../lib/crypto';
 import { normalize } from '../lib/doc';
 import { FilesView, GanttView, MapDbView, TimelineView } from './views2';
 import { BoardView, RowModal } from './board';
+import { AutomationsModal, runAutomations } from './automations';
 import { ViewPreview } from './viewPreview';
 import { fmtDate } from '../lib/dates';
 
@@ -35,6 +36,7 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [menu, setMenu] = useState<'' | 'filter' | 'sort' | 'props' | 'view' | 'add' | 'export'>('');
   const [tplOpen, setTplOpen] = useState(false);
+  const [autoOpen, setAutoOpen] = useState(false);
   const [importing, setImporting] = useState<{ name: string; sheets: { name: string; aoa: any[][] }[] } | null>(null);
   const refs = {
     filter: useRef<HTMLButtonElement>(null), sort: useRef<HTMLButtonElement>(null), props: useRef<HTMLButtonElement>(null),
@@ -92,7 +94,7 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
   const rootRef = useRef<HTMLDivElement>(null);
   const setView = (patch: Partial<View>) => { const d = cur(); const vid = d.views.find((v) => v.id === d.activeView)?.id || view.id; save({ ...d, views: d.views.map((v) => (v.id === vid ? { ...v, ...patch } : v)) }); };
   const words = () => ({ edited: t('work.act.edited'), empty: '—' });
-  const applyCells = (d: DatabaseData, r: Row, cells: Record<string, any>) => logChange(d, r, syncTimers(d, { ...r, cells: { ...r.cells, ...cells }, updatedAt: Date.now() }), words(), LOCALES[lang]);
+  const applyCells = (d: DatabaseData, r: Row, cells: Record<string, any>) => runAutomations(d, r, logChange(d, r, syncTimers(d, { ...r, cells: { ...r.cells, ...cells }, updatedAt: Date.now() }), words(), LOCALES[lang]), page.title || '');
   const setRow = (id: string, cells: Record<string, any>) => { const d = cur(); save({ ...d, rows: d.rows.map((r) => (r.id === id ? applyCells(d, r, cells) : r)) }); };
   const patchRow = (id: string, patch: Partial<Row>) => { const d = cur(); save({ ...d, rows: d.rows.map((r) => (r.id === id ? { ...r, ...patch, updatedAt: Date.now() } : r)) }); };
   /** Move um cartão para outra coluna/posição (muda o status e a ordem de uma vez). */
@@ -118,8 +120,9 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
     const d = cur();
     const r = newRow(d, cells);
     r.activity = [{ id: uid('ac'), at: Date.now(), text: t('work.act.created') }];
+    const r2 = runAutomations(d, null, r, page.title || '');
     const rows = [...d.rows];
-    rows.splice(at ?? rows.length, 0, r);
+    rows.splice(at ?? rows.length, 0, r2);
     save({ ...d, rows });
     return r;
   };
@@ -132,7 +135,9 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
     save({ ...d, properties });
     return p;
   };
-  const rows = useMemo(() => visibleRows(db, view, search), [db, view, search]);
+  const [showArchived, setShowArchived] = useState(false);
+  const archivedCount = db.rows.filter((r) => r.archivedAt).length;
+  const rows = useMemo(() => visibleRows(db, view, search).filter((r) => (showArchived ? !!r.archivedAt : !r.archivedAt)), [db, view, search, showArchived]);
   const shown = db.properties.filter((p) => !(view.hidden || []).includes(p.id));
   const yes = t('common.yes');
 
@@ -197,6 +202,14 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
       toast(t('export.error') + ' ' + String((e as Error).message || e), 'error');
     }
   };
+  // chegou por um alerta/notificação: abre o cartão
+  useEffect(() => {
+    const pr = useUi.getState().pendingRow;
+    if (pr && pr.pageId === page.id && db.rows.some((r) => r.id === pr.rowId)) {
+      setOpenRow(pr.rowId);
+      useUi.getState().set({ pendingRow: null });
+    }
+  }, [page.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const h = (e: Event) => { if ((e as CustomEvent).detail === page.id) void doImport(); };
     window.addEventListener('gcp-db-import', h);
@@ -281,6 +294,7 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
         </button>
         <button ref={refs.props} title={t('db.properties')} className="btn ghost sm" onClick={() => setMenu(menu === 'props' ? '' : 'props')}><EyeOff size={15} /> <span className="hide-xs">{t('db.properties')}</span></button>
         <div className="db-tools">
+          <button className={'icon-btn sm' + ((db.automations || []).some((a) => a.enabled) ? ' on' : '')} title={t('auto.title')} onClick={() => setAutoOpen(true)}><Zap size={16} /></button>
           <button className="icon-btn sm" title={`${t('tb.undo')} (Ctrl+Z)`} onClick={undo} disabled={!past.current.length}><Undo2 size={16} /></button>
           <button className="icon-btn sm" title={`${t('tb.redo')} (Ctrl+Shift+Z)`} onClick={redo} disabled={!future.current.length}><Redo2 size={16} /></button>
           <button className={'icon-btn sm' + (full ? ' on' : '')} title={full ? t('db.exitFull') : t('db.fullScreen')} onClick={() => setFull(!full)}>{full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
@@ -393,7 +407,7 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
       {view.type === 'map' && <MapDbView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} setView={setView} setRow={setRow} />}
       {view.type === 'files' && <FilesView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} setView={setView} setRow={setRow} />}
 
-      <div className="db-foot muted small">{t('db.count', { n: rows.length, total: db.rows.length })}{view.type === 'table' && <span className="hide-mobile"> · {t('db.tableHint')}</span>}</div>
+      <div className="db-foot muted small">{archivedCount > 0 && <button className={'btn ghost xs' + (showArchived ? ' on' : '')} onClick={() => setShowArchived(!showArchived)}><ArchiveIcon size={13} /> {showArchived ? t('archive.backToActive') : t('archive.showRows', { n: archivedCount })}</button>} {t('db.count', { n: rows.length, total: db.rows.length })}{view.type === 'table' && <span className="hide-mobile"> · {t('db.tableHint')}</span>}</div>
 
       {openRow && db.rows.find((r) => r.id === openRow) && (
         <RowModal
@@ -409,6 +423,7 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
           onDelete={() => (delRow(openRow), setOpenRow(null))}
         />
       )}
+      {autoOpen && <AutomationsModal db={db} open onClose={() => setAutoOpen(false)} save={(d) => save(d)} />}
       {tplOpen && <SaveTemplateModal page={page} open onClose={() => setTplOpen(false)} />}
       {importing && (
         <ImportModal

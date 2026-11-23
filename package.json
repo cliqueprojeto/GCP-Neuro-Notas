@@ -1,7 +1,7 @@
 {
   "name": "gcp-notas",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "GCP Notas — notas, bases de dados, relatórios e segundo cérebro, offline e criptografado.",
   "author": "Bruno Albertini | Gestão Cultural Pro",
   "license": "GPL-3.0-or-later",
@@ -26,6 +26,7 @@
     "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-fs": "^2.7.1",
     "@tauri-apps/plugin-http": "^2.9.0",
+    "@tauri-apps/plugin-notification": "^2.8.1",
     "@tauri-apps/plugin-opener": "^2.7.3",
     "@tiptap/core": "^2.27.3",
     "@tiptap/extension-character-count": "^2.27.3",

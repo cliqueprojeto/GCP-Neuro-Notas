@@ -634,3 +634,13 @@ export function logChange(db: DatabaseData, prev: Row, next: Row, words: { edite
 let titleResolver: (id: string) => string = () => '';
 export function setRelationResolver(fn: (id: string) => string) { titleResolver = fn; }
 export function relationTitle(id: string) { return titleResolver(id); }
+
+
+/** Marca o registro como concluído (ou reabre), usando o primeiro campo de status. */
+export function setRowDone(db: DatabaseData, row: Row, done: boolean): Row {
+  const st = db.properties.find((p) => p.type === 'status' && p.options?.length);
+  if (!st) return row;
+  const opts = st.options!;
+  const target = done ? opts.find((o) => DONE_RX.test(o.label)) || opts[opts.length - 1] : opts[0];
+  return syncTimers(db, { ...row, cells: { ...row.cells, [st.id]: target.id }, updatedAt: Date.now() });
+}

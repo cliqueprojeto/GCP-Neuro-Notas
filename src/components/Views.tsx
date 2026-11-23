@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import {
   CheckSquare, ChevronRight, Copy, CreditCard, ExternalLink, Heart, Info, LayoutTemplate, ListTodo, RotateCcw, Scale, Sparkles, Trash2, Code2, GitBranch,
+  Archive as ArchiveIcon, ArchiveRestore,
 } from 'lucide-react';
 import { useT, useLang, LOCALES, type TKey } from '../i18n';
 import { useVault, livePages } from '../store/vault';
@@ -99,6 +100,40 @@ export function Templates() {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ arquivo
+
+export function Archive() {
+  const t = useT();
+  const lang = useLang();
+  const pages = useVault((s) => s.pages);
+  const v = useVault.getState();
+  const go = useUi((s) => s.go);
+  const list = Object.values(pages).filter((p) => p.archivedAt && !p.deletedAt && !p.purged).sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
+  return (
+    <div className="page-shell">
+      <div className="page-hero compact">
+        <div className="eyebrow"><ArchiveIcon size={13} /> {t('nav.archive')}</div>
+        <h1>{t('archive.title')}</h1>
+        <p className="muted">{t('archive.subtitle')}</p>
+      </div>
+      {!list.length ? (
+        <Empty icon={<ArchiveIcon size={30} />} title={t('archive.empty')} />
+      ) : (
+        <div className="panel">
+          {list.map((p) => (
+            <div key={p.id} className="trash-row">
+              <PageIcon icon={p.icon} size={18} />
+              <button className="grow ellipsis link-like" onClick={() => go({ name: 'page', id: p.id })}>{p.title || t('page.untitled')}</button>
+              <small className="muted">{relativeTime(p.archivedAt!, LOCALES[lang])}</small>
+              <button className="btn ghost sm" onClick={() => v.updatePage(p.id, { archivedAt: null })}><ArchiveRestore size={14} /> {t('archive.restore')}</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { attachmentText, type AiAttachment } from './attachments';
 import Anthropic from '@anthropic-ai/sdk';
 import { netFetch } from '../lib/platform';
 import type { AiProvider, AiProviderId } from '../lib/types';
@@ -189,14 +190,31 @@ export async function detectBestModel(p: AiProvider): Promise<AiProvider> {
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  attachments?: AiAttachment[];
 }
+
+const isImg = (a: AiAttachment) => a.mime.startsWith('image/') && !!a.data;
+const isPdf = (a: AiAttachment) => a.mime.includes('pdf') && !!a.data;
+/** Junta ao texto os anexos que não vão em formato nativo. */
+const withText = (m: ChatMessage, native: (a: AiAttachment) => boolean) =>
+  m.content + (m.attachments || []).filter((a) => !native(a)).map((a) => attachmentText(a, !!a.data)).join('');
 
 export async function chat(p: AiProvider, system: string, messages: ChatMessage[], signal?: AbortSignal): Promise<string> {
   const model = p.model || FALLBACK_MODEL[p.kind] || '';
   switch (p.kind) {
     case 'anthropic': {
       const client = anthropicClient(p);
-      const res = await client.messages.create({ model, max_tokens: 16000, system, messages }, { signal });
+      const msgs = messages.map((m) => {
+        if (!m.attachments?.length || m.role !== 'user') return { role: m.role, content: m.content };
+        const blocks: any[] = [];
+        for (const a of m.attachments) {
+          if (isImg(a)) blocks.push({ type: 'image', source: { type: 'base64', media_type: a.mime, data: a.data } });
+          else if (isPdf(a)) blocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: a.data }, title: a.name });
+        }
+        blocks.push({ type: 'text', text: withText(m, (a) => isImg(a) || isPdf(a)) });
+        return { role: m.role, content: blocks };
+      });
+      const res = await client.messages.create({ model, max_tokens: 16000, system, messages: msgs as any }, { signal });
       if (res.stop_reason === 'refusal') throw new Error('refusal');
       return res.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
@@ -207,7 +225,13 @@ export async function chat(p: AiProvider, system: string, messages: ChatMessage[
     case 'gemini': {
       const body = {
         systemInstruction: { parts: [{ text: system }] },
-        contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+        contents: messages.map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [
+            ...(m.attachments || []).filter((a) => isImg(a) || isPdf(a)).map((a) => ({ inline_data: { mime_type: a.mime, data: a.data } })),
+            { text: withText(m, (a) => isImg(a) || isPdf(a)) },
+          ],
+        })),
       };
       const data = await json(
         await netFetch(`${base(p)}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(p.apiKey)}`, {
@@ -224,7 +248,11 @@ export async function chat(p: AiProvider, system: string, messages: ChatMessage[
         await netFetch(`${base(p)}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model, stream: false, messages: [{ role: 'system', content: system }, ...messages] }),
+          body: JSON.stringify({
+            model,
+            stream: false,
+            messages: [{ role: 'system', content: system }, ...messages.map((m) => ({ role: m.role, content: withText(m, isImg), ...(m.attachments?.some(isImg) ? { images: m.attachments.filter(isImg).map((a) => a.data) } : {}) }))],
+          }),
           signal,
         }),
       );
@@ -241,7 +269,27 @@ export async function chat(p: AiProvider, system: string, messages: ChatMessage[
         await netFetch(`${base(p)}/chat/completions`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, ...messages] }),
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: system },
+              ...messages.map((m) => {
+                if (!m.attachments?.length || m.role !== 'user') return { role: m.role, content: m.content };
+                // OpenAI/OpenRouter leem PDF como arquivo; demais provedores compatíveis recebem imagens
+                const pdfOk = p.kind === 'openai' || p.kind === 'openrouter';
+                const native = (a: AiAttachment) => isImg(a) || (pdfOk && isPdf(a));
+                return {
+                  role: m.role,
+                  content: [
+                    { type: 'text', text: withText(m, native) },
+                    ...m.attachments.filter(native).map((a) =>
+                      isImg(a) ? { type: 'image_url', image_url: { url: `data:${a.mime};base64,${a.data}` } } : { type: 'file', file: { filename: a.name, file_data: `data:application/pdf;base64,${a.data}` } },
+                    ),
+                  ],
+                };
+              }),
+            ],
+          }),
           signal,
         }),
       );
