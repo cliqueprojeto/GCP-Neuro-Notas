@@ -79,10 +79,11 @@ const INTERVALS: Record<UpdateFrequency, number> = {
   never: Infinity,
 };
 
-export function isCheckDue(): boolean {
+/** `minGap`: ao voltar para o app, "a cada abertura" vira "no máximo uma vez por hora". */
+export function isCheckDue(minGap = 0): boolean {
   const { updateFrequency, lastUpdateCheck } = usePrefs.getState();
   if (updateFrequency === 'never') return false;
-  return Date.now() - lastUpdateCheck >= INTERVALS[updateFrequency];
+  return Date.now() - lastUpdateCheck >= Math.max(INTERVALS[updateFrequency], minGap);
 }
 
 export async function downloadAndInstall(rel: ReleaseInfo, onProgress: (received: number, total: number) => void) {

@@ -26,7 +26,7 @@ import { htmlToDoc } from '../lib/transfer';
 import { toast } from '../store/ui';
 import type { ChatMessage } from '../ai/providers';
 import type { Page } from '../lib/types';
-import { downloadAndInstall, RELEASES_URL, type ReleaseInfo } from '../lib/updater';
+import { compareVersions, downloadAndInstall, fetchLatest, RELEASES_URL, type ReleaseInfo } from '../lib/updater';
 import { isDesktop, openUrl } from '../lib/platform';
 import { THEMES } from '../lib/themes';
 
@@ -461,8 +461,13 @@ export function AIPanel() {
 
 // --------------------------------------------------------------- atualização
 
-export function UpdateDialog({ release, onClose }: { release: ReleaseInfo; onClose: () => void }) {
+export function UpdateDialog({ release: initial, onClose }: { release: ReleaseInfo; onClose: () => void }) {
   const t = useT();
+  // Confere de novo no GitHub ao abrir: se saiu uma versão ainda mais nova, usa ela.
+  const [release, setRelease] = useState(initial);
+  useEffect(() => {
+    void fetchLatest().then((r) => r.version && compareVersions(r.version, release.version) >= 0 && setRelease(r)).catch(() => undefined);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const prefs = usePrefs();
   const [progress, setProgress] = useState<{ r: number; t: number } | null>(null);
   const [error, setError] = useState('');

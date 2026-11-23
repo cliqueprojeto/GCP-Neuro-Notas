@@ -107,16 +107,24 @@ function Workspace() {
 
   // Atualizações e backup automático.
   useEffect(() => {
-    if (isCheckDue())
+    // Procura versão nova ao abrir, ao voltar para o app (no Android ele fica aberto em segundo
+    // plano por horas) e a cada 3 h — sempre trocando pela versão mais recente publicada.
+    const check = (resume = false) => {
+      if (!isCheckDue(resume ? 3600_000 : 0)) return;
       void checkForUpdate().then((r) => {
         if (r.status === 'available' && r.release.version !== usePrefs.getState().skippedVersion) setUpdate(r.release);
       });
+    };
+    check();
+    const onVis = () => document.visibilityState === 'visible' && check(true);
+    document.addEventListener('visibilitychange', onVis);
+    const every = setInterval(() => check(true), 3 * 3600_000);
     const t = setTimeout(() => void autoBackupIfDue(), 8000);
     const onAvail = (e: Event) => setUpdate((e as CustomEvent).detail);
     const onOpen = (e: Event) => (setUpdate((e as CustomEvent).detail), setShowUpdate(true));
     window.addEventListener('gcp-update', onAvail);
     window.addEventListener('gcp-update-open', onOpen);
-    return () => (clearTimeout(t), window.removeEventListener('gcp-update', onAvail), window.removeEventListener('gcp-update-open', onOpen));
+    return () => (clearTimeout(t), clearInterval(every), document.removeEventListener('visibilitychange', onVis), window.removeEventListener('gcp-update', onAvail), window.removeEventListener('gcp-update-open', onOpen));
   }, []);
 
   return (

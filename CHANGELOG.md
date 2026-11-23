@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.8.1 — Aviso de atualização sempre com a versão mais nova
+
+- O app procura versão nova ao abrir, **ao voltar para ele** e a cada 3 horas. No Android, onde o app fica aberto em segundo plano por horas, o aviso da versão nova agora aparece sem precisar fechar o app.
+- Ao abrir o aviso, o app confere de novo no GitHub e, se já houver uma versão ainda mais nova, baixa direto ela. Antes, um aviso antigo podia levar à versão anterior.
+
 ## 1.8.0 — Sincronização automática entre aparelhos
 
 - **Aparelhos espelhados sozinhos**: com o Google Drive (ou OneDrive) conectado, cada alteração é enviada em segundos e os outros aparelhos da mesma conta recebem ao abrir o app, ao voltar para ele, ao reconectar à internet e a cada 30 segundos. Não é mais preciso fazer backup e restaurar para passar do computador para o celular. Pode ser desligado em Configurações → Backup e sincronização.
