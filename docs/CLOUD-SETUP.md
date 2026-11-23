@@ -2,7 +2,7 @@
 
 O GCP-Neuro Notas conversa direto com o Google Drive e o OneDrive a partir do seu computador (OAuth com PKCE e retorno local em `127.0.0.1`). Não existe servidor intermediário. Para isso, o aplicativo precisa de um **ID de cliente OAuth** de cada provedor.
 
-- **Versões oficiais** (Releases do GitHub) já saem configuradas quando os segredos abaixo estão definidos no repositório.
+- **Google Drive:** siga o passo a passo ilustrado em [GOOGLE-DRIVE.md](GOOGLE-DRIVE.md). Cada usuário cria o próprio cadastro gratuito (sem dividir cota e sem verificação do Google).
 - **Quem compila por conta própria** pode informar os IDs em `.env` (veja `.env.example`) ou direto no app, em **Configurações → Backup e sincronização → Configuração avançada**.
 
 ## Google Drive
@@ -26,7 +26,7 @@ O GCP-Neuro Notas guarda os arquivos na pasta oculta do aplicativo no seu Drive 
 
 Os arquivos ficam em **Aplicativos/GCP-Neuro Notas** no seu OneDrive.
 
-## Segredos do GitHub Actions (builds oficiais)
+## Segredos do GitHub Actions (opcional, só para builds próprios)
 
 Em **Settings → Secrets and variables → Actions** do repositório, crie:
 

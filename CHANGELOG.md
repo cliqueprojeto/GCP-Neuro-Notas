@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.7.1 — Google Drive passo a passo, sem verificação e sem dividir cota
+
+- **Tutorial ilustrado atualizado** (Configurações → Backup e sincronização → Passo a passo do Google) para a nova Google Auth Platform: novas etapas **Acesso a dados** (escopos não confidenciais) e **Branding** (links de página inicial, Política de Privacidade e Termos, com botões de copiar), publicação "Em produção" sem verificação do Google.
+- **Compartilhar com pessoas próximas**: exporte a configuração do Google em um arquivo e envie a quem confia; a pessoa importa em um clique. Cada um mantém o próprio Drive e o próprio cofre.
+- **Guia no GitHub**: [docs/GOOGLE-DRIVE.md](docs/GOOGLE-DRIVE.md), com as mesmas telas (dados de exemplo, nenhum dado real).
+- **Política de Privacidade** e **Termos de Uso** publicados (PT, EN, ES).
+
 ## 1.7.0 — Notificações, arquivo, automações, e-mail sem servidor e IA com anexos
 
 - **Central de notificações** (sino no topo, com contador): abas **Pendentes**, **Resolvidas** e **Alertas**; prazos atrasados, de hoje e próximos, lembretes e temporizadores esgotados. Resolver conclui a tarefa, reabrir volta ao início, adiar lembra amanhã às 9h, e um clique abre o cartão certo.

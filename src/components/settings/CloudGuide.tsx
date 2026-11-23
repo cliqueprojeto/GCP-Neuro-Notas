@@ -1,18 +1,19 @@
 import { useState } from 'react';
-import { CheckCircle2, ExternalLink, FileJson, KeyRound } from 'lucide-react';
+import { CheckCircle2, Copy, ExternalLink, FileJson, KeyRound, Share2, Users } from 'lucide-react';
 import { useT, type TKey } from '../../i18n';
 import { useVault } from '../../store/vault';
 import { toast } from '../../store/ui';
 import { Modal } from '../ui';
-import { openUrl, pickTextFiles } from '../../lib/platform';
+import { copyText, openUrl, pickTextFiles, saveTextFile } from '../../lib/platform';
 import { GoogleDriveIcon, OneDriveIcon } from './BrandIcons';
 
 /** Lê o arquivo client_secret_*.json baixado do Google Cloud. */
 export function parseGoogleClientJson(text: string): { clientId: string; clientSecret: string } {
   const data = JSON.parse(text);
   const c = data.installed || data.web || data;
-  const clientId = String(c.client_id || '').trim();
-  const clientSecret = String(c.client_secret || '').trim();
+  // aceita o JSON baixado do Google e o arquivo de compartilhamento do próprio app
+  const clientId = String(c.client_id || c.clientId || '').trim();
+  const clientSecret = String(c.client_secret || c.clientSecret || '').trim();
   if (!/\.apps\.googleusercontent\.com$/.test(clientId)) throw new Error('client_id');
   return { clientId, clientSecret };
 }
@@ -21,12 +22,23 @@ const GOOGLE_STEPS: { img?: string; url?: string; key: string }[] = [
   { img: '1-projeto', url: 'https://console.cloud.google.com/projectcreate', key: 'g1' },
   { img: '2-drive-api', url: 'https://console.cloud.google.com/apis/library/drive.googleapis.com', key: 'g2' },
   { img: '3-autenticacao', url: 'https://console.cloud.google.com/auth/overview', key: 'g3' },
+  { img: '3c-escopos', url: 'https://console.cloud.google.com/auth/scopes', key: 'g3c' },
+  { img: '3b-branding', url: 'https://console.cloud.google.com/auth/branding', key: 'g3b' },
   { img: '4-publicar', url: 'https://console.cloud.google.com/auth/audience', key: 'g4' },
   { img: '5-cliente', url: 'https://console.cloud.google.com/auth/clients', key: 'g5' },
   { key: 'g6' },
   { img: '7-aviso', key: 'g7' },
   { img: '9-permitir', key: 'g8' },
 ];
+
+const REPO = 'https://github.com/cliqueprojeto/GCP-Neuro-Notas';
+const BRANDING_LINKS: [TKey, string][] = [
+  ['guide.l.home', REPO],
+  ['guide.l.privacy', `${REPO}/blob/claude/epic-bohr-f7xkw7/docs/PRIVACIDADE.md`],
+  ['guide.l.terms', `${REPO}/blob/claude/epic-bohr-f7xkw7/docs/TERMOS.md`],
+  ['guide.l.domain', 'github.com'],
+];
+const SCOPES = ['.../auth/drive.appdata', '.../auth/userinfo.email', 'openid'];
 
 const MS_STEPS: { url?: string; key: string }[] = [
   { url: 'https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade', key: 'm1' },
@@ -86,12 +98,33 @@ export function CloudGuide({ open, onClose, initial = 'gdrive' }: { open: boolea
                     {s.url && <button className="btn ghost sm" onClick={() => openUrl(s.url!)}><ExternalLink size={14} /> {t('guide.openPage')}</button>}
                     {s.key === 'g6' && <button className="btn primary sm" onClick={importJson}><FileJson size={15} /> {t('guide.chooseJson')}</button>}
                   </div>
+                  {s.key === 'g3b' && (
+                    <div className="guide-copy">
+                      {BRANDING_LINKS.map(([k, val]) => (
+                        <button key={k} className="guide-copy-row" onClick={() => copyText(val).then(() => toast(t('common.copied'), 'success'))} title={t('common.copy')}>
+                          <small>{t(k)}</small><code>{val}</code><Copy size={13} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {s.key === 'g3c' && <div className="guide-copy">{SCOPES.map((x) => <code key={x} className="guide-code">{x}</code>)}</div>}
                 </div>
                 {s.img && <img className="guide-img" src={`/oauth-guide/${s.img}.svg`} alt="" loading="lazy" />}
               </li>
             ))}
           </ol>
           <p className="muted small">{t('guide.gNote')}</p>
+          <div className="guide-share">
+            <div className="row"><Users size={16} /> <b>{t('guide.shareTitle')}</b></div>
+            <p className="muted small">{t('guide.shareText')}</p>
+            <div className="row wrap">
+              <button className="btn ghost sm" disabled={!cloud.googleClientId} onClick={async () => {
+                const json = JSON.stringify({ format: 'gcp-notas-google-client', clientId: cloud.googleClientId, clientSecret: cloud.googleClientSecret || '' }, null, 2);
+                if (await saveTextFile('gcp-neuro-notas-google.json', json, [{ name: 'JSON', extensions: ['json'] }])) toast(t('guide.shareSaved'), 'success');
+              }}><Share2 size={14} /> {t('guide.shareExport')}</button>
+              <button className="btn ghost sm" onClick={importJson}><FileJson size={14} /> {t('guide.shareImport')}</button>
+            </div>
+          </div>
         </>
       ) : (
         <>

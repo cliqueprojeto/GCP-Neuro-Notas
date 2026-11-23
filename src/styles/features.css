@@ -1443,3 +1443,10 @@ input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--mute
 .ai-input.drag { outline: 2px dashed var(--accent); outline-offset: -4px; background: var(--accent-soft); }
 .msg-files { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .send-to { width: 300px; max-height: 380px; overflow-y: auto; z-index: 1301; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+.guide-copy { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.guide-copy-row { display: grid; grid-template-columns: 150px 1fr 16px; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); text-align: left; }
+.guide-copy-row:hover { border-color: var(--accent); }
+.guide-copy-row small { color: var(--muted); font-weight: 600; }
+.guide-copy-row code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.guide-share { margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border)); background: var(--accent-soft); display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 760px) { .guide-copy-row { grid-template-columns: 1fr 16px; } .guide-copy-row small { grid-column: 1 / -1; } }

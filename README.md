@@ -129,7 +129,7 @@ Páginas aninhadas com arrastar e soltar, favoritos, lixeira com restauração, 
 
 ### ☁️ Backup e sincronização
 
-- **Google Drive** e **OneDrive**: backup manual ou automático (diário/semanal), retenção configurável, **sincronização entre aparelhos** (o registro mais recente vence) e **restauração** em um aparelho novo.
+- **Google Drive** e **OneDrive**: backup manual ou automático (diário/semanal), retenção configurável, **sincronização entre aparelhos** (o registro mais recente vence) e **restauração** em um aparelho novo. Para conectar o Drive, siga o [passo a passo ilustrado](docs/GOOGLE-DRIVE.md) (gratuito, sem verificação do Google).
 - **Backup em arquivo** `.gcpnotes` com senha própria, importação mesclando ou substituindo.
 - Os provedores só recebem dados **já criptografados**.
 
@@ -345,7 +345,7 @@ O apoio é voluntário: todas as funções estão disponíveis sem contribuiçã
 - **Presentations:** continuous zoom navigation between slides, animated connectors, timer, folders with icons, and **PowerPoint export/import** with transitions and animations.
 - **AI (optional, your own key):** Claude, OpenAI, Gemini, Mistral, Groq, DeepSeek, Grok, OpenRouter, Ollama — the app detects the best available model automatically. Ask questions about all your notes with cited sources.
 - **Export:** print, PDF, DOCX, PPTX (native charts), XLSX, Markdown, HTML. **Share** password-protected `.gcpshare` files with other users.
-- **Backup & sync:** Google Drive and OneDrive, end-to-end encrypted; password-protected backup files.
+- **Backup & sync:** Google Drive and OneDrive, end-to-end encrypted; password-protected backup files. Google Drive setup guide: [docs/GOOGLE-DRIVE.md](docs/GOOGLE-DRIVE.md).
 - **Security:** Argon2id + XChaCha20-Poly1305, recovery key, auto-lock. No account, no tracking, no ads.
 - **12 premium themes**, Portuguese/English/Spanish auto-detected, in-app updates with SHA-256 verification.
 
@@ -362,7 +362,7 @@ Download the installer for your system from the [latest release](https://github.
 - **Presentaciones:** navegación continua con zoom entre diapositivas, conectores animados, cronómetro, carpetas con íconos y **exportar/importar PowerPoint** con transiciones y animaciones.
 - **IA opcional con tu propia clave**, con detección automática del mejor modelo y respuestas que citan tus notas.
 - **Exportar:** imprimir, PDF, DOCX, PPTX, XLSX, Markdown, HTML. **Compartir** archivos `.gcpshare` protegidos con contraseña.
-- **Copia y sincronización** en Google Drive y OneDrive, cifradas de extremo a extremo.
+- **Copia y sincronización** en Google Drive y OneDrive, cifradas de extremo a extremo. Guía de Google Drive: [docs/GOOGLE-DRIVE.md](docs/GOOGLE-DRIVE.md).
 - **12 temas premium**, portugués/inglés/español detectados automáticamente, actualizaciones dentro de la app.
 
 Descarga el instalador de tu sistema en la [última versión](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest). Desarrollado por **Bruno Albertini** · [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). Licencia: GPL-3.0.
