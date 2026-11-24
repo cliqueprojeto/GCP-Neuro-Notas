@@ -287,6 +287,8 @@ export interface VaultSettings {
   chartPalettes: { id: string; name: string; colors: string[] }[];
   /** Paleta do designer: cores personalizadas salvas pelo usuário (vão junto na sincronização). */
   designerColors?: string[];
+  /** Imagens enviadas como ícone (do computador/celular), para usar de novo. */
+  customIcons?: string[];
   templates?: UserTemplate[];
   notion?: { token: string; workspace?: string; lastSync?: number; links?: Record<string, string> };
   presFolders?: PresFolder[];

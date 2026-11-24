@@ -1513,3 +1513,16 @@ input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--mute
 .crash-box code { max-width: 100%; overflow-wrap: anywhere; color: var(--muted); }
 .notion-item.all { border-bottom: 1px solid var(--border); font-weight: 600; }
 .notion-zip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 10px; margin-top: 4px; border-top: 1px dashed var(--border); }
+
+/* ---------------------------------------------------- ícone com imagem própria */
+.icon-drop { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 14px; border: 2px dashed var(--border); border-radius: 14px; text-align: center; color: var(--muted); outline: none; }
+.icon-drop.over, .icon-drop:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
+.custom-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; max-height: 180px; overflow: auto; padding: 6px 4px 2px; }
+.custom-icon { position: relative; display: inline-flex; }
+.custom-icon > button:first-child { width: 48px; height: 48px; border-radius: 10px; border: 1px solid var(--border); display: grid; place-items: center; padding: 4px; }
+.custom-icon > button:first-child:hover { border-color: var(--accent); background: var(--accent-soft); }
+.custom-icon img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.custom-icon .saved-x { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; display: none; align-items: center; justify-content: center; background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+.custom-icon:hover .saved-x { display: inline-flex; }
+@media (hover: none) { .custom-icon .saved-x { display: inline-flex; } }
+img.page-icon { object-fit: contain; border-radius: 4px; }

@@ -322,7 +322,7 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; line-height
 
 /* --------------------------------------------------------- pickers */
 .icon-picker { display: flex; flex-direction: column; gap: 10px; }
-.emoji-host em-emoji-picker { width: 100%; --rgb-background: transparent; --border-radius: 12px; height: 380px; }
+.emoji-host em-emoji-picker { width: 100%; --border-radius: 12px; height: 380px; }
 .lucide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; max-height: 300px; overflow: auto; }
 .lucide-grid button { height: 38px; display: grid; place-items: center; border-radius: 8px; }
 .lucide-grid button:hover { background: var(--hover); }

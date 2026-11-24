@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.8.4 — Ícones com imagem do computador e menu de tom de pele legível
+
+- **Ícone com imagem própria**: a escolha de ícone ganhou a aba **Imagem**. Dá para escolher um arquivo do computador ou do celular (PNG, JPG, SVG, ICO, GIF ou WebP), arrastar ou colar com Ctrl+V. As imagens usadas ficam em "Minhas imagens" para usar de novo e sincronizam entre aparelhos. Vale para páginas, pastas de apresentações, botões, cartões, modelos e bases.
+- **Tom de pele dos emojis**: o menu deixou de ficar transparente por cima dos emojis. Agora tem fundo sólido na cor do tema, claro ou escuro.
+
 ## 1.8.3 — Notion: importação completa (API e .zip) e fim da tela branca
 
 - **Correção da tela branca** ao clicar em "Importar do Notion": a lista de páginas era recarregada sem parar até travar o app. Agora carrega uma vez e mostra o erro na própria janela, se houver.

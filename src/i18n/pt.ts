@@ -1353,6 +1353,12 @@ export const pt = {
   'notion.zipDone': "Importado do Notion: {p} página(s), {d} base(s) e {f} arquivo(s)/imagem(ns).",
   'notion.zipEmpty': "Este .zip não tem páginas do Notion (HTML, Markdown ou CSV).",
   'notion.zipError': "Não foi possível ler o .zip.",
+  'icon.image': "Imagem",
+  'icon.upload': "Escolher imagem do computador",
+  'icon.uploadHint': "PNG, JPG, SVG, ICO, GIF ou WebP. Também dá para arrastar ou colar (Ctrl+V) aqui.",
+  'icon.myImages': "Minhas imagens",
+  'icon.notImage': "Escolha um arquivo de imagem.",
+  'icon.tooBig': "Imagem grande demais (máximo 8 MB).",
 };
 
 export type Dict = Record<keyof typeof pt, string>;

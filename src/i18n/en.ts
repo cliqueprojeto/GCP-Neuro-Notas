@@ -1337,4 +1337,10 @@ export const en: Dict = {
   'notion.zipDone': "Imported from Notion: {p} page(s), {d} database(s) and {f} file(s)/image(s).",
   'notion.zipEmpty': "This .zip has no Notion pages (HTML, Markdown or CSV).",
   'notion.zipError': "Could not read the .zip.",
+  'icon.image': "Image",
+  'icon.upload': "Choose image from computer",
+  'icon.uploadHint': "PNG, JPG, SVG, ICO, GIF or WebP. You can also drag or paste (Ctrl+V) here.",
+  'icon.myImages': "My images",
+  'icon.notImage': "Choose an image file.",
+  'icon.tooBig': "Image too large (max 8 MB).",
 };

@@ -1,11 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { icons } from 'lucide-react';
+import { icons, ImagePlus, X } from 'lucide-react';
 import data from '@emoji-mart/data';
 import { Picker } from 'emoji-mart';
 import { useT, useLang } from '../i18n';
 import { usePrefs } from '../store/prefs';
 import { getTheme } from '../lib/themes';
 import { SHAPE_STICKERS } from '../editor/stickers';
+import { fileToDataUrl, pickImages } from '../lib/platform';
+import { useVault } from '../store/vault';
+import { toast } from '../store/ui';
+
+const MAX_CUSTOM = 24;
+
+/** Cor do painel do tema em "r, g, b" (o seletor de emojis pede neste formato). */
+function panelRgb(): string {
+  const c = document.createElement('canvas').getContext('2d');
+  const v = getComputedStyle(document.body).getPropertyValue('--panel').trim() || '#ffffff';
+  if (!c) return '255, 255, 255';
+  c.fillStyle = '#ffffff';
+  c.fillStyle = v;
+  c.fillRect(0, 0, 1, 1);
+  const d = c.getImageData(0, 0, 1, 1).data;
+  return `${d[0]}, ${d[1]}, ${d[2]}`;
+}
 
 const LUCIDE = [
   'FileText', 'Notebook', 'BookOpen', 'Book', 'Bookmark', 'Library', 'GraduationCap', 'School', 'Briefcase', 'Building2', 'Calendar',
@@ -41,6 +58,8 @@ export function EmojiPicker({ onSelect }: { onSelect: (emoji: string) => void })
       onEmojiSelect: (e: any) => onSelect(e.native),
     });
     ref.current.innerHTML = '';
+    // Fundo sólido na cor do tema: o menu de tom de pele usa esta cor e ficava transparente.
+    (picker as unknown as HTMLElement).style.setProperty('--rgb-background', panelRgb());
     ref.current.appendChild(picker as unknown as Node);
     return () => {
       if (ref.current) ref.current.innerHTML = '';
@@ -52,7 +71,23 @@ export function EmojiPicker({ onSelect }: { onSelect: (emoji: string) => void })
 
 export function IconPicker({ onSelect, onRemove, allowStickers = false }: { onSelect: (icon: string) => void; onRemove?: () => void; allowStickers?: boolean }) {
   const t = useT();
-  const [tab, setTab] = useState<'emoji' | 'icons' | 'stickers'>('emoji');
+  const [tab, setTab] = useState<'emoji' | 'icons' | 'stickers' | 'image'>('emoji');
+  const custom = useVault((v) => v.settings.customIcons) || [];
+  const [over, setOver] = useState(false);
+  const applyImage = (src: string) => {
+    useVault.getState().updateSettings((s) => ((s.customIcons = [src, ...(s.customIcons || []).filter((x) => x !== src)].slice(0, MAX_CUSTOM)), s));
+    onSelect(src);
+  };
+  const fromFiles = async (files: File[]) => {
+    const f = files.find((x) => x.type.startsWith('image/') || /\.(ico|svg|png|jpe?g|gif|webp|bmp)$/i.test(x.name));
+    if (!f) return toast(t('icon.notImage'), 'error');
+    if (f.size > 8 * 1024 * 1024) return toast(t('icon.tooBig'), 'error');
+    applyImage(await fileToDataUrl(f, 256));
+  };
+  const upload = async () => {
+    const [src] = await pickImages(false, 256);
+    if (src) applyImage(src);
+  };
   const [color, setColor] = useState(COLORS[0]);
   const [q, setQ] = useState('');
   const list = useMemo(() => LUCIDE.filter((n) => (icons as any)[n] && n.toLowerCase().includes(q.toLowerCase())), [q]);
@@ -63,6 +98,7 @@ export function IconPicker({ onSelect, onRemove, allowStickers = false }: { onSe
           <button className={tab === 'emoji' ? 'on' : ''} onClick={() => setTab('emoji')}>{t('icon.emoji')}</button>
           <button className={tab === 'icons' ? 'on' : ''} onClick={() => setTab('icons')}>{t('icon.icons')}</button>
           {allowStickers && <button className={tab === 'stickers' ? 'on' : ''} onClick={() => setTab('stickers')}>{t('icon.stickers')}</button>}
+          <button className={tab === 'image' ? 'on' : ''} onClick={() => setTab('image')}>{t('icon.image')}</button>
         </div>
         <div className="grow" />
         {onRemove && <button className="btn ghost sm" onClick={onRemove}>{t('common.remove')}</button>}
@@ -86,6 +122,35 @@ export function IconPicker({ onSelect, onRemove, allowStickers = false }: { onSe
               );
             })}
           </div>
+        </div>
+      )}
+      {tab === 'image' && (
+        <div className="stack">
+          <div
+            className={'icon-drop' + (over ? ' over' : '')}
+            onDragOver={(e) => (e.preventDefault(), setOver(true))}
+            onDragLeave={() => setOver(false)}
+            onDrop={(e) => (e.preventDefault(), setOver(false), void fromFiles(Array.from(e.dataTransfer.files)))}
+            onPaste={(e) => void fromFiles(Array.from(e.clipboardData.files))}
+            tabIndex={0}
+          >
+            <ImagePlus size={26} />
+            <button className="btn primary sm" onClick={upload}>{t('icon.upload')}</button>
+            <span className="muted small">{t('icon.uploadHint')}</span>
+          </div>
+          {custom.length > 0 && (
+            <>
+              <div className="muted small">{t('icon.myImages')}</div>
+              <div className="custom-icons">
+                {custom.map((src) => (
+                  <span key={src.slice(-40)} className="custom-icon">
+                    <button onClick={() => onSelect(src)}><img src={src} alt="" /></button>
+                    <button className="saved-x" title={t('common.delete')} onClick={() => useVault.getState().updateSettings((s) => ((s.customIcons = (s.customIcons || []).filter((x) => x !== src)), s))}><X size={10} /></button>
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
       {tab === 'stickers' && (
