@@ -17,12 +17,29 @@ interface SyncState {
   error?: string;
   lastAt?: number;
   lastPulled: number;
+  /** Há alterações locais ainda não enviadas. */
+  pending: boolean;
+  /** Quando o próximo envio automático deve acontecer. */
+  nextAt?: number;
 }
 
-export const useSync = create<SyncState>(() => ({ status: 'off', lastPulled: 0 }));
+export const useSync = create<SyncState>(() => ({ status: 'off', lastPulled: 0, pending: false }));
 
-const PUSH_DELAY = 4000;
-const POLL_MS = 30_000;
+export const SYNC_DELAYS = [5, 30, 60, 300, 900, 0] as const;
+/** Espera depois de editar antes de enviar (ms). 0 = só manual, ao sair do app ou ao fechar. */
+function pushDelay(): number {
+  const d = useVault.getState().settings.cloud.syncDelay;
+  return (d ?? 30) * 1000;
+}
+/** Conferir novidades da nuvem: a cada 30 s, ou no ritmo do envio se for mais espaçado. */
+function pollMs(): number {
+  const d = pushDelay();
+  return d === 0 ? 120_000 : Math.max(30_000, d);
+}
+let lastPoll = 0;
+export function hasPendingSync(): boolean {
+  return enabledAccounts().length > 0 && localChanges.rev !== syncedRev;
+}
 
 const known: Partial<Record<CloudProvider, number>> = {};
 let syncedRev = -1;
@@ -81,7 +98,8 @@ async function runOnce(force: boolean) {
     syncedRev = rev;
     failures = 0;
     nextTryAt = 0;
-    useSync.setState({ status: 'ok', lastAt: Date.now(), lastPulled: pulled });
+    lastPoll = Date.now();
+    useSync.setState({ status: 'ok', lastAt: Date.now(), lastPulled: pulled, pending: localChanges.rev !== syncedRev, nextAt: undefined });
   } catch (e) {
     failures++;
     // Espera crescente entre tentativas que falham (até 5 min).
@@ -97,14 +115,25 @@ async function runOnce(force: boolean) {
 
 function onLocalChange() {
   if (!enabledAccounts().length) return;
-  if (pushTimer) clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => void syncSoon(), PUSH_DELAY);
+  const d = pushDelay();
+  // Junta várias edições num envio só (o envio leva o cofre inteiro, então espaçar alivia o app).
+  if (d === 0) {
+    if (!useSync.getState().pending) useSync.setState({ pending: true, nextAt: undefined });
+    return;
+  }
+  if (pushTimer) return; // já há um envio agendado: as novas edições vão junto
+  const at = Date.now() + d;
+  useSync.setState({ pending: true, nextAt: at });
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    void syncSoon();
+  }, d);
 }
 
 function onVisibility() {
   if (document.visibilityState === 'visible') void syncSoon();
   else if (localChanges.rev !== syncedRev) {
-    if (pushTimer) clearTimeout(pushTimer);
+    if (pushTimer) (clearTimeout(pushTimer), (pushTimer = null));
     void syncSoon(); // vai para segundo plano: envia o que falta
   }
 }
@@ -120,8 +149,10 @@ export function startAutoSync() {
   window.addEventListener('online', onOnline);
   window.addEventListener('focus', onFocus);
   pollTimer = setInterval(() => {
-    if (document.visibilityState === 'visible') void syncSoon();
-  }, POLL_MS);
+    if (document.visibilityState !== 'visible' || Date.now() - lastPoll < pollMs()) return;
+    lastPoll = Date.now();
+    void syncSoon();
+  }, 10_000);
   const first = setTimeout(() => void syncSoon(), 2500);
   return () => (clearTimeout(first), stopAutoSync());
 }
@@ -129,7 +160,7 @@ export function startAutoSync() {
 let lastFocus = 0;
 function onFocus() {
   // Voltar para a janela no computador: confere se outro aparelho mudou algo.
-  if (Date.now() - lastFocus < 10_000) return;
+  if (Date.now() - lastFocus < Math.min(60_000, pollMs())) return;
   lastFocus = Date.now();
   void syncSoon();
 }
@@ -142,5 +173,19 @@ export function stopAutoSync() {
   if (pollTimer) clearInterval(pollTimer);
   if (pushTimer) clearTimeout(pushTimer);
   pollTimer = pushTimer = null;
-  useSync.setState({ status: 'off' });
+  useSync.setState({ status: 'off', pending: false, nextAt: undefined });
+}
+
+/**
+ * Antes de fechar o app no computador: se houver alterações não enviadas, sincroniza primeiro
+ * e avisa. Se não conseguir, pergunta se pode fechar mesmo assim.
+ */
+export async function guardClose(ask: () => Promise<boolean>, notify: () => void): Promise<boolean> {
+  await useVault.getState().flush().catch(() => {});
+  if (!hasPendingSync()) return true;
+  notify();
+  if (pushTimer) (clearTimeout(pushTimer), (pushTimer = null));
+  await Promise.race([syncSoon(true), new Promise((r) => setTimeout(r, 25_000))]);
+  if (!hasPendingSync()) return true;
+  return ask();
 }

@@ -278,8 +278,9 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; line-height
 .page-view { min-height: 100%; position: relative; }
 .page-view.edgeless { height: 100%; display: flex; flex-direction: column; }
 .cover { height: 220px; position: relative; }
-.cover-actions { position: absolute; right: 24px; bottom: 14px; display: none; gap: 8px; }
-.cover:hover .cover-actions { display: flex; }
+.cover-actions { position: absolute; right: 24px; top: 14px; z-index: 3; display: flex; gap: 8px; opacity: 0; transition: opacity .18s ease; }
+.cover:hover .cover-actions, .cover-actions:hover, .cover-actions:focus-within { opacity: 1; }
+@media (hover: none) { .cover-actions { opacity: 1; } }
 .page-toolbar { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 8px; padding: 10px 24px; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(10px); }
 .page-toolbar.floating { position: relative; border-bottom: 1px solid var(--border); }
 .mode-seg { display: inline-flex; padding: 3px; border-radius: 11px; border: 1px solid var(--border); background: var(--panel); }

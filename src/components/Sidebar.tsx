@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useT } from '../i18n';
 import { useVault, childrenOf, livePages } from '../store/vault';
+import { usePagesMeta } from '../store/selectors';
 import { toast, useUi, type Route } from '../store/ui';
 import { usePrefs } from '../store/prefs';
 import { PageIcon, Popover } from './ui';
@@ -18,7 +19,7 @@ export const AUTHOR_URL = 'https://www.gestaoculturalpro.com.br';
 
 export function Sidebar() {
   const t = useT();
-  const pages = useVault((s) => s.pages);
+  const pages = usePagesMeta();
   const createPage = useVault((s) => s.createPage);
   const lock = useVault((s) => s.lock);
   const saving = useVault((s) => s.saving);
@@ -141,7 +142,7 @@ export function NewMenu({ onPick, onTemplates }: { onPick: (t: PageType) => void
 
 function TreeItem({ page, depth, flat }: { page: Page; depth: number; flat?: boolean }) {
   const t = useT();
-  const pages = useVault((s) => s.pages);
+  const pages = usePagesMeta();
   const v = useVault.getState();
   const route = useUi((s) => s.route);
   const go = useUi((s) => s.go);

@@ -1,3 +1,4 @@
+import { CopyCardPanel, cardPaint, useBoardTargets } from '../database/cardKit';
 import { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import {
@@ -7,7 +8,7 @@ import {
 import { useT, useLang, LOCALES, type TKey } from '../i18n';
 import { useVault, livePages } from '../store/vault';
 import { useUi, toast } from '../store/ui';
-import { PageIcon, Empty } from './ui';
+import { PageIcon, Empty, Popover } from './ui';
 import { TEMPLATES, CATEGORY_ICONS, instantiate, type TemplateCategory } from '../templates/templates';
 import { instantiateUser, deleteUserTemplate, UserTemplateBadge } from '../templates/user';
 import { APP_VERSION, copyText, openUrl } from '../lib/platform';
@@ -46,6 +47,7 @@ export function Templates() {
           <button key={c} className={'chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{CATEGORY_ICONS[c]} {t(`tpl.cat.${c}` as TKey)}</button>
         ))}
       </div>
+      {(cat === 'all' || cat === ('mine' as any)) && <CardTemplatesSection />}
       {(cat === 'all' || cat === ('mine' as any)) && (
         <>
           <h3 className="tpl-section-title">⭐ {t('utpl.mine')}</h3>
@@ -347,5 +349,47 @@ export function About() {
         <p className="muted small">Tauri · Rust · SQLite · React · TipTap/ProseMirror · Argon2id · XChaCha20-Poly1305 · Recharts · emoji-mart · Lucide · docx · PptxGenJS · SheetJS · jsPDF</p>
       </section>
     </div>
+  );
+}
+
+/** Modelos de cartão salvos (Kanban): usar em qualquer quadro, renomear ou excluir. */
+function CardTemplatesSection() {
+  const t = useT();
+  const lang = useLang();
+  const tpls = useVault((s) => s.settings.cardTemplates) || [];
+  const [useFor, setUseFor] = useState<{ id: string; el: HTMLElement } | null>(null);
+  const targets = useBoardTargets();
+  if (!tpls.length) return null;
+  const tpl = tpls.find((x) => x.id === useFor?.id);
+  const del = async (id: string) => {
+    if (await askConfirm({ title: t('common.delete'), okLabel: t('common.delete'), danger: true })) useVault.getState().updateSettings((s) => ((s.cardTemplates = (s.cardTemplates || []).filter((x) => x.id !== id)), s));
+  };
+  return (
+    <>
+      <h3 className="tpl-section-title">🗂️ {t('card.templates')}</h3>
+      <p className="muted small">{t('card.templatesHint')}</p>
+      <div className="card-tpl-list">
+        {tpls.map((x) => (
+          <div key={x.id} className="card-tpl">
+            <span className="card-tpl-paint" style={{ background: cardPaint(x.color) || 'var(--accent)' }} />
+            <b className="grow ellipsis">{x.name}</b>
+            <small className="muted">{relativeTime(x.createdAt, LOCALES[lang])}</small>
+            <button className="btn ghost xs" disabled={!targets.length} onClick={(e) => setUseFor({ id: x.id, el: e.currentTarget })}>{t('card.useIn')}</button>
+            <button className="icon-btn xs danger-h" title={t('common.delete')} onClick={() => del(x.id)}><Trash2 size={13} /></button>
+          </div>
+        ))}
+      </div>
+      <Popover anchor={useFor?.el || null} open={!!tpl} onClose={() => setUseFor(null)} align="right">
+        {tpl && targets[0] && (
+          <CopyCardPanel
+            initialName={tpl.name}
+            counts={{ checklists: tpl.fields.filter((f) => f.type === 'checklist').length, labels: tpl.fields.filter((f) => ['select', 'status', 'multi'].includes(f.type)).length, comments: tpl.comments?.length || 0, files: tpl.fields.filter((f) => f.type === 'files').length, notes: !!tpl.notes }}
+            defaultPageId={targets[0].id}
+            source={{ name: tpl.name, fields: tpl.fields, notes: tpl.notes, comments: tpl.comments, color: tpl.color, colorStyle: tpl.colorStyle }}
+            onDone={({ page }) => { setUseFor(null); toast(t('card.copied', { b: page.title || t('page.untitled') }), 'success'); }}
+          />
+        )}
+      </Popover>
+    </>
   );
 }

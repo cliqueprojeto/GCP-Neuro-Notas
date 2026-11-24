@@ -121,6 +121,9 @@ export interface Row {
   activity?: RowActivity[];
   archivedAt?: number | null;
   remindAt?: string; // lembrete do cartão (AAAA-MM-DDTHH:mm)
+  /** Cor do cartão no Quadro: "#rrggbb" ou "g:N" (gradiente premium). */
+  color?: string;
+  colorStyle?: 'bar' | 'fill';
   createdAt: number;
   updatedAt: number;
 }
@@ -151,6 +154,8 @@ export interface View {
   hidden?: string[];
   calcs?: Record<string, CalcKind>; // cálculo do rodapé por coluna
   hiddenTab?: boolean; // visão oculta da barra de abas
+  /** Fundo do Quadro: "c:N" (cor), "g:N" (gradiente) ou data URL de imagem. */
+  bg?: string;
 }
 
 export type CalcKind =
@@ -278,6 +283,8 @@ export interface VaultSettings {
     lastSync?: number;
     /** Espelha os aparelhos sozinho (padrão: ligado). */
     autoSync?: boolean;
+    /** Espera depois de uma alteração antes de enviar (segundos; 0 = só manual/ao sair). Padrão 30. */
+    syncDelay?: number;
   };
   /** Quando a parte compartilhada das configurações mudou pela última vez (sincronização). */
   sharedAt?: number;
@@ -289,6 +296,8 @@ export interface VaultSettings {
   designerColors?: string[];
   /** Imagens enviadas como ícone (do computador/celular), para usar de novo. */
   customIcons?: string[];
+  /** Modelos de cartão (servem para qualquer base: os campos casam pelo nome). */
+  cardTemplates?: CardTemplate[];
   templates?: UserTemplate[];
   notion?: { token: string; workspace?: string; lastSync?: number; links?: Record<string, string> };
   presFolders?: PresFolder[];
@@ -382,3 +391,7 @@ export interface CanvasData {
   bg?: CanvasBg;
   present?: { transition: 'fly' | 'smooth' | 'fade' | 'slide' | 'none'; duration: number; timer?: { mode: 'off' | 'up' | 'down'; minutes: number } };
 }
+
+/** Campo guardado num modelo de cartão (seleções guardam o rótulo, para valer em outras bases). */
+export interface CardTplField { name: string; type: PropType; value: any }
+export interface CardTemplate { id: string; name: string; color?: string; colorStyle?: 'bar' | 'fill'; notes?: string; fields: CardTplField[]; comments?: RowComment[]; createdAt: number }

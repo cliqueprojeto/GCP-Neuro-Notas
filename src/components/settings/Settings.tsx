@@ -26,7 +26,7 @@ import type { AiProvider, AiProviderId, UpdateFrequency } from '../../lib/types'
 import { uid } from '../../lib/crypto';
 import { FONTS, FONT_SIZES, fontById } from '../../lib/fonts';
 import { formatDate, relativeTime } from '../../lib/doc';
-import { useSync, syncSoon } from '../../cloud/autosync';
+import { useSync, syncSoon, SYNC_DELAYS } from '../../cloud/autosync';
 import { ImportShareModal } from '../ShareModal';
 import { askConfirm, askText } from '../PromptHost';
 
@@ -281,6 +281,15 @@ function Backup() {
           <div className="sync-auto">
             <Switch checked={cloud.autoSync !== false} onChange={(x) => { v.updateSettings((s) => ((s.cloud.autoSync = x), s)); if (x) setTimeout(() => void syncSoon(true), 50); }} label={t('sync.auto')} />
             <small className="muted">{t('sync.autoHint')}</small>
+            {cloud.autoSync !== false && (
+              <Field label={t('sync.delay')} hint={t('sync.delayHint')}>
+                <Select
+                  value={String(cloud.syncDelay ?? 30)}
+                  options={SYNC_DELAYS.map((d) => ({ value: String(d), label: t(`sync.delay.${d}` as TKey) }))}
+                  onChange={(x) => v.updateSettings((s) => ((s.cloud.syncDelay = +x), s))}
+                />
+              </Field>
+            )}
             {syncState.status === 'mismatch' && <div className="callout-box warn">{t('cloud.mismatch')}</div>}
             {syncState.status === 'error' && syncState.error && <div className="callout-box warn">{t('sync.error')} — {syncState.error}</div>}
           </div>

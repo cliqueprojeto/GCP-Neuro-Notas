@@ -4,6 +4,7 @@ import { useT, useLang, type TKey } from '../i18n';
 import { usePrefs, type Lang } from '../store/prefs';
 import { useUi } from '../store/ui';
 import { useVault, breadcrumb } from '../store/vault';
+import { usePagesMeta } from '../store/selectors';
 import { THEMES, getTheme, applyTheme, DEFAULT_CUSTOM, STRUCTURES, type CustomTheme, type Theme } from '../lib/themes';
 import { PageIcon, Popover } from './ui';
 import { NotificationBell } from './Notifications';
@@ -15,7 +16,7 @@ export function Topbar({ update, onUpdate }: { update: ReleaseInfo | null; onUpd
   const lang = useLang();
   const prefs = usePrefs();
   const ui = useUi();
-  const pages = useVault((s) => s.pages);
+  const pages = usePagesMeta();
   const [themeOpen, setThemeOpen] = useState(false);
   const themeRef = useRef<HTMLButtonElement>(null);
   const crumbs = ui.route.name === 'page' ? breadcrumb(pages, ui.route.id) : [];

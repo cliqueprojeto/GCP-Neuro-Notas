@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  ArrowDownUp, Archive as ArchiveIcon, ArchiveRestore, Bell, Calendar, Check, History, ListTodo, MapPin, MessageSquare, Paperclip, Pencil, Plus, Send, ShoppingCart, Timer, Trash2, LayoutGrid,
+  ArrowDownUp, Archive as ArchiveIcon, ArchiveRestore, Bell, Calendar, Check, History, ListTodo, MapPin, MessageSquare, Paperclip, Pencil, Plus, Send, ShoppingCart, Timer, Trash2, LayoutGrid, Palette, LayoutTemplate, Copy,
 } from 'lucide-react';
 import type { DatabaseData, Property, PropType, Row, View } from '../lib/types';
 import { useT, useLang, LOCALES } from '../i18n';
@@ -13,16 +13,21 @@ import { titleProp } from './logic';
 import { uid } from '../lib/crypto';
 import { fmtDateTime, fmtRelative } from '../lib/dates';
 import { DateInput } from '../components/DateInput';
+import { askText } from '../components/PromptHost';
+import { toast } from '../store/ui';
+import { useVault } from '../store/vault';
+import { BoardBgPicker, CardColorPicker, CardIndicators, CopyCardPanel, boardBgCss, cardSource, cardStyle, countsOf, createCardIn, saveCardTemplate } from './cardKit';
 
 type SetRow = (id: string, cells: Record<string, any>) => void;
 const WIDE: PropType[] = ['longtext', 'items', 'checklist', 'files'];
-const BADGE: PropType[] = ['checklist', 'items', 'timer'];
+const BADGE: PropType[] = ['items', 'timer'];
 const INTERACTIVE = 'button,input,textarea,select,a,.cell-check,.stars,.timer-badge,[contenteditable="true"]';
 
 /* ================================================================ quadro */
 
-export function BoardView({ db, view, rows, setRow, addRow, openRow, setProp, shown, addProp, moveCard }: {
+export function BoardView({ db, view, rows, setRow, addRow, openRow, setProp, shown, addProp, moveCard, setView, pageId }: {
   db: DatabaseData; view: View; rows: Row[]; setRow: SetRow; addRow: (c?: Record<string, any>) => Row; openRow: (id: string) => void;
+  setView: (p: Partial<View>) => void; pageId: string;
   setProp: (p: Property) => void; shown: Property[]; addProp: (t: PropType) => Property;
   moveCard: (id: string, cells: Record<string, any>, beforeId: string | null, groupId: string) => void;
 }) {
@@ -34,6 +39,18 @@ export function BoardView({ db, view, rows, setRow, addRow, openRow, setProp, sh
   const [target, setTarget] = useState<{ col: string; before: string | null } | null>(null);
   const targetRef = useRef<{ col: string; before: string | null } | null>(null);
   const suppress = useRef(false);
+  const [bgOpen, setBgOpen] = useState(false);
+  const bgRef = useRef<HTMLButtonElement>(null);
+  const [tplFor, setTplFor] = useState<{ col: string; el: HTMLElement } | null>(null);
+  const cardTpls = useVault((s) => s.settings.cardTemplates) || [];
+  const fromTemplate = (colId: string, tplId: string) => {
+    const tpl = cardTpls.find((x) => x.id === tplId);
+    const page = useVault.getState().pages[pageId];
+    if (!tpl || !page?.db) return;
+    const row = createCardIn(page, { ...tpl, name: tpl.name }, { listId: colId, position: 999, keep: { checklists: true, labels: true, comments: true, files: true, notes: true } });
+    setTplFor(null);
+    setTimeout(() => openRow(row.id), 30);
+  };
 
   useEffect(() => () => end(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -128,7 +145,15 @@ export function BoardView({ db, view, rows, setRow, addRow, openRow, setProp, sh
     <CardBody db={db} r={r} tp={tp} group={group} shown={shown} setRow={setRow} setProp={setProp} className={extra} />
   );
 
+  const bg = boardBgCss(view.bg);
   return (
+    <div className={'board-wrap' + (bg ? ' has-bg' : '')} style={bg ? { background: bg } : undefined}>
+    <div className="board-tools">
+      <button ref={bgRef} className="btn ghost xs board-bg-btn" onClick={() => setBgOpen(!bgOpen)}><Palette size={13} /> {t('board.bg.title')}</button>
+      <Popover anchor={bgRef.current} open={bgOpen} onClose={() => setBgOpen(false)} align="right">
+        <BoardBgPicker value={view.bg} onChange={(b) => setView({ bg: b })} />
+      </Popover>
+    </div>
     <div className="board" ref={boardRef}>
       {cols.map((c) => {
         const items = rows.filter((r) => (r.cells[group.id] || '') === c.id);
@@ -139,6 +164,7 @@ export function BoardView({ db, view, rows, setRow, addRow, openRow, setProp, sh
             <div className="board-col-head">
               <OptionPill label={c.label} color={c.color} />
               <span className="board-count">{items.length}</span>
+              <button className="icon-btn xs" title={t('card.fromTemplate')} onClick={(e) => setTplFor({ col: c.id, el: e.currentTarget })}><LayoutTemplate size={14} /></button>
               <button className="icon-btn xs" title={t('db.new')} onClick={() => openRow(addRow({ [group.id]: c.id }).id)}><Plus size={14} /></button>
             </div>
             {items.map((r) => (
@@ -146,7 +172,8 @@ export function BoardView({ db, view, rows, setRow, addRow, openRow, setProp, sh
                 {isTarget && target?.before === r.id && <div className="card-drop" />}
                 <div
                   data-card={r.id}
-                  className={'card' + (ghost?.id === r.id ? ' drag-src' : '')}
+                  className={'card' + (ghost?.id === r.id ? ' drag-src' : '') + cardStyle(r).className}
+                  style={cardStyle(r).style}
                   role="button"
                   tabIndex={0}
                   onPointerDown={(e) => start(e, r)}
@@ -167,9 +194,19 @@ export function BoardView({ db, view, rows, setRow, addRow, openRow, setProp, sh
         );
       })}
       {ghost && dragged && createPortal(
-        <div className="card card-ghost" style={{ left: ghost.x, top: ghost.y, width: ghost.w }}>{card(dragged)}</div>,
+        <div className={'card card-ghost' + cardStyle(dragged).className} style={{ left: ghost.x, top: ghost.y, width: ghost.w, ...cardStyle(dragged).style }}>{card(dragged)}</div>,
         document.body,
       )}
+    </div>
+    <Popover anchor={tplFor?.el || null} open={!!tplFor} onClose={() => setTplFor(null)}>
+      <div className="menu tpl-menu">
+        <div className="menu-label">{t('card.fromTemplate')}</div>
+        {!cardTpls.length && <p className="muted small pad">{t('card.noTemplates')}</p>}
+        {cardTpls.map((x) => (
+          <button key={x.id} className="menu-item" onClick={() => fromTemplate(tplFor!.col, x.id)}><LayoutTemplate size={14} /> <span className="grow ellipsis">{x.name}</span></button>
+        ))}
+      </div>
+    </Popover>
     </div>
   );
 }
@@ -181,7 +218,6 @@ function CardBody({ db, r, tp, group, shown, setRow, setProp, className = '' }: 
   const filled = (p: Property) => r.cells[p.id] != null && r.cells[p.id] !== '' && !(Array.isArray(r.cells[p.id]) && !r.cells[p.id].length);
   const badges = db.properties.filter((p) => BADGE.includes(p.type) && filled(p));
   const props = shown.filter((p) => p.id !== tp.id && p.id !== group.id && !BADGE.includes(p.type) && p.type !== 'longtext' && filled(p)).slice(0, 4);
-  const n = r.comments?.length || 0;
   return (
     <div className={'card-in ' + className}>
       <div className="card-title">{r.cells[tp.id] || t('page.untitled')}</div>
@@ -190,14 +226,14 @@ function CardBody({ db, r, tp, group, shown, setRow, setProp, className = '' }: 
           <Cell prop={p} row={r} compact readOnly={!['checkbox', 'rating'].includes(p.type)} onChange={(v) => setRow(r.id, { [p.id]: v })} onPropChange={setProp} />
         </div>
       ))}
-      {(badges.length > 0 || n > 0) && (
+      {badges.length > 0 && (
         <div className="card-badges">
           {badges.map((p) => (
             <Cell key={p.id} prop={p} row={r} compact onChange={(v) => setRow(r.id, { [p.id]: v })} onPropChange={setProp} />
           ))}
-          {n > 0 && <span className="card-comments"><MessageSquare size={12} /> {n}</span>}
         </div>
       )}
+      <CardIndicators db={db} r={r} group={group} />
     </div>
   );
 }
@@ -213,8 +249,8 @@ const QUICK: { type: PropType; icon: any; key: 'work.q.sub' | 'work.q.items' | '
   { type: 'location', icon: MapPin, key: 'work.q.place' },
 ];
 
-export function RowModal({ db, dbTitle, row, onClose, setRow, setProp, setNotes, patchRow, addProp, onDelete }: {
-  db: DatabaseData; dbTitle: string; row: Row; onClose: () => void; setRow: SetRow; setProp: (p: Property) => void; setNotes: (n: string) => void;
+export function RowModal({ db, dbTitle, row, onClose, setRow, setProp, setNotes, patchRow, addProp, onDelete, pageId }: {
+  db: DatabaseData; dbTitle: string; row: Row; onClose: () => void; pageId: string; setRow: SetRow; setProp: (p: Property) => void; setNotes: (n: string) => void;
   patchRow: (p: Partial<Row>) => void; addProp: (t: PropType) => Property; onDelete: () => void;
 }) {
   const t = useT();
@@ -222,6 +258,16 @@ export function RowModal({ db, dbTitle, row, onClose, setRow, setProp, setNotes,
   const tp = titleProp(db);
   const [addOpen, setAddOpen] = useState(false);
   const [remOpen, setRemOpen] = useState(false);
+  const [colorOpen, setColorOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const colorRef = useRef<HTMLButtonElement>(null);
+  const copyRef = useRef<HTMLButtonElement>(null);
+  const saveTpl = async () => {
+    const name = await askText({ title: t('card.saveTemplate'), label: t('card.saveTemplateHint'), value: String(row.cells[tp.id] || '') });
+    if (!name?.trim()) return;
+    saveCardTemplate(db, row, name.trim());
+    toast(t('card.templateSaved', { n: name.trim() }), 'success');
+  };
   const addRef = useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<'comments' | 'activity'>('comments');
   const [newest, setNewest] = useState(true);
@@ -276,7 +322,27 @@ export function RowModal({ db, dbTitle, row, onClose, setRow, setProp, setNotes,
             <button key={q.type} className="chip-btn" onClick={() => quick(q.type)}><q.icon size={14} /> {t(q.key)}</button>
           ))}
           <button className={'chip-btn' + (row.remindAt || remOpen ? ' on' : '')} onClick={() => setRemOpen(!remOpen)}><Bell size={14} /> {t('work.q.reminder')}</button>
-          <button ref={addRef} className="chip-btn accent" onClick={() => setAddOpen(true)}><Plus size={14} /> {t('work.addField')}</button>
+          <button ref={addRef} className="chip-btn accent" onClick={() => setAddOpen(!addOpen)}><Plus size={14} /> {t('work.addField')}</button>
+          <button ref={colorRef} className={'chip-btn' + (row.color ? ' on' : '')} onClick={() => setColorOpen(!colorOpen)}><Palette size={14} /> {t('card.color')}</button>
+          <Popover anchor={colorRef.current} open={colorOpen} onClose={() => setColorOpen(false)}>
+            <CardColorPicker row={row} patch={patchRow} />
+          </Popover>
+          <button className="chip-btn" onClick={saveTpl}><LayoutTemplate size={14} /> {t('card.saveTemplate')}</button>
+          <button ref={copyRef} className="chip-btn" onClick={() => setCopyOpen(!copyOpen)}><Copy size={14} /> {t('card.copyMove')}</button>
+          <Popover anchor={copyRef.current} open={copyOpen} onClose={() => setCopyOpen(false)} align="right">
+            <CopyCardPanel
+              allowMove
+              initialName={String(row.cells[tp.id] || '')}
+              counts={countsOf(db, row)}
+              defaultPageId={pageId}
+              source={cardSource(db, row)}
+              onDone={({ page, moved }) => {
+                setCopyOpen(false);
+                toast(moved ? t('card.moved', { b: page.title || t('page.untitled') }) : t('card.copied', { b: page.title || t('page.untitled') }), 'success');
+                if (moved) onDelete();
+              }}
+            />
+          </Popover>
           <Popover anchor={addRef.current} open={addOpen} onClose={() => setAddOpen(false)}>
             <TypeMenu onPick={(ty) => { setAddOpen(false); focusProp(addProp(ty).id); }} />
           </Popover>

@@ -10,6 +10,7 @@ import { NotionSendModal } from './settings/NotionCard';
 import { NotionIcon } from './settings/BrandIcons';
 import { useT, useLang, LOCALES } from '../i18n';
 import { useVault, livePages } from '../store/vault';
+import { usePagesMeta } from '../store/selectors';
 import { useUi, toast } from '../store/ui';
 import { usePrefs } from '../store/prefs';
 import { getTheme, coverCss, COVER_GRADIENTS } from '../lib/themes';
@@ -18,11 +19,13 @@ import { DatabaseView } from '../database/DatabaseView';
 import { ReportView } from '../reports/ReportView';
 import { CanvasView } from '../canvas/CanvasView';
 import { IconPicker } from './IconPicker';
-import { Modal, PageIcon, Popover } from './ui';
+import { Modal, PageIcon, Popover, Spinner } from './ui';
 import { ShareModal } from './ShareModal';
 import { backlinks, formatDate, relativeTime } from '../lib/doc';
 import { relatedPages, unlinkedMentions } from '../ai/brain';
-import { pickImages } from '../lib/platform';
+import { pickImages, netFetch } from '../lib/platform';
+import { CoverEditor } from './CoverEditor';
+import { generateImage, imageProviders, NoImageProvider } from '../ai/images';
 import { FONTS } from '../lib/fonts';
 import { exportPageFile } from '../lib/transfer';
 import { exportDocx, exportPdf, exportPptx, exportXlsx, printPage } from '../lib/exporters';
@@ -39,12 +42,33 @@ export function PageView({ id }: { id: string }) {
 function PageInner({ page }: { page: Page }) {
   const t = useT();
   const lang = useLang();
-  const v = useVault();
+  const v = useVault.getState();
+  // Ligações e notas relacionadas: recalculadas quando muda a estrutura, não a cada letra digitada.
+  const metaPages = usePagesMeta();
   const go = useUi((s) => s.go);
   const theme = usePrefs((s) => s.theme);
   const width = useVault((s) => s.settings.editor.width);
   const [iconOpen, setIconOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
+  const [coverEdit, setCoverEdit] = useState<string | null>(null);
+  const [coverPrompt, setCoverPrompt] = useState('');
+  const [coverBusy, setCoverBusy] = useState(false);
+  const genCover = async () => {
+    setCoverBusy(true);
+    try {
+      let src = await generateImage(coverPrompt.trim() || `Elegant cover image for a page titled "${page.title}"`, { wide: true });
+      if (/^https?:/.test(src)) {
+        // Converte o link temporário em imagem dentro do app (para recortar e sincronizar).
+        const blob = await (await netFetch(src)).blob();
+        src = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(blob); });
+      }
+      setCoverEdit(src);
+    } catch (e) {
+      toast(e instanceof NoImageProvider ? t('cover.noProvider') : t('ai.error') + ' ' + String((e as Error)?.message || e), 'error');
+    } finally {
+      setCoverBusy(false);
+    }
+  };
   const [menu, setMenu] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [share, setShare] = useState(false);
@@ -61,10 +85,10 @@ function PageInner({ page }: { page: Page }) {
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const set = (p: Partial<Page>) => v.updatePage(page.id, p);
   const edgeless = page.type === 'canvas' || (page.type === 'page' && page.mode === 'edgeless');
-  const all = livePages(v.pages);
+  const all = useMemo(() => livePages(useVault.getState().pages), [metaPages]); // eslint-disable-line react-hooks/exhaustive-deps
   const links = useMemo(() => backlinks(all, page.id), [all, page.id]);
-  const related = useMemo(() => (page.type === 'page' ? relatedPages(all, page, 5) : []), [all, page]);
-  const mentions = useMemo(() => unlinkedMentions(all, page).slice(0, 5), [all, page]);
+  const related = useMemo(() => (page.type === 'page' ? relatedPages(all, useVault.getState().pages[page.id] || page, 5) : []), [all, page.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const mentions = useMemo(() => unlinkedMentions(all, useVault.getState().pages[page.id] || page).slice(0, 5), [all, page.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const kids = all.filter((p) => p.parentId === page.id).sort((a, b) => a.order - b.order);
 
   useEffect(() => {
@@ -140,6 +164,7 @@ function PageInner({ page }: { page: Page }) {
         <div className="cover" style={{ background: coverCss(page.cover) }}>
           <div className="cover-actions">
             <button ref={coverRef} className="btn glass sm" onClick={() => setCoverOpen(true)}>{t('page.changeCover')}</button>
+            {page.cover.startsWith('data:') && <button className="btn glass sm" onClick={() => (setCoverOpen(true), setCoverEdit(page.cover))}>{t('cover.adjust')}</button>}
             <button className="btn glass sm" onClick={() => set({ cover: null })}>{t('common.remove')}</button>
           </div>
         </div>
@@ -288,15 +313,29 @@ function PageInner({ page }: { page: Page }) {
       <Modal open={iconOpen} onClose={() => setIconOpen(false)} title={t('page.icon')} width={420}>
         <IconPicker allowStickers onSelect={(icon) => (set({ icon }), setIconOpen(false))} onRemove={() => (set({ icon: '' }), setIconOpen(false))} />
       </Modal>
-      <Modal open={coverOpen} onClose={() => setCoverOpen(false)} title={t('page.changeCover')} width={620}>
-        <div className="cover-grid">
-          {COVER_GRADIENTS.map((g, i) => (
-            <button key={i} style={{ background: g }} onClick={() => (set({ cover: 'g:' + i }), setCoverOpen(false))} />
-          ))}
-        </div>
-        <button className="btn ghost" onClick={async () => { const [src] = await pickImages(false, 2000); if (src) { set({ cover: src }); setCoverOpen(false); } }}>
-          <ImagePlus size={15} /> {t('page.uploadCover')}
-        </button>
+      <Modal open={coverOpen} onClose={() => (setCoverOpen(false), setCoverEdit(null))} title={coverEdit ? t('cover.adjust') : t('page.changeCover')} width={coverEdit ? 760 : 620}>
+        {coverEdit ? (
+          <CoverEditor src={coverEdit} onCancel={() => setCoverEdit(null)} onSave={(src) => (set({ cover: src }), setCoverEdit(null), setCoverOpen(false))} />
+        ) : (
+          <>
+            <div className="cover-grid">
+              {COVER_GRADIENTS.map((g, i) => (
+                <button key={i} style={{ background: g }} onClick={() => (set({ cover: 'g:' + i }), setCoverOpen(false))} />
+              ))}
+            </div>
+            <button className="btn ghost" onClick={async () => { const [src] = await pickImages(false, 3000); if (src) setCoverEdit(src); }}>
+              <ImagePlus size={15} /> {t('page.uploadCover')}
+            </button>
+            <div className="cover-ai">
+              <div className="cb-label"><Sparkles size={12} /> {t('cover.aiTitle')}</div>
+              <textarea className="input" rows={2} placeholder={t('cover.aiPlaceholder', { t: page.title || '' })} value={coverPrompt} onChange={(e) => setCoverPrompt(e.target.value)} />
+              <div className="row">
+                <button className="btn primary sm" disabled={coverBusy} onClick={genCover}>{coverBusy ? <Spinner /> : <Sparkles size={14} />} {coverBusy ? t('cover.generating') : t('cover.generate')}</button>
+                <span className="muted small">{imageProviders().length ? t('cover.aiHint', { p: imageProviders()[0].name }) : t('cover.noProvider')}</span>
+              </div>
+            </div>
+          </>
+        )}
       </Modal>
       <ShareModal page={page} open={share} onClose={() => setShare(false)} />
       {tplOpen && <SaveTemplateModal page={page} open onClose={() => setTplOpen(false)} />}

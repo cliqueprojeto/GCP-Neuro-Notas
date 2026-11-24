@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlarmClock, Bell, BellRing, CalendarClock, CheckCircle2, Circle, Clock, Mail, RotateCcw, Settings2, Timer, TriangleAlert } from 'lucide-react';
 import { useT, type TKey } from '../i18n';
 import { useVault } from '../store/vault';
+import { usePagesData } from '../store/selectors';
 import { toast, useUi } from '../store/ui';
 import { Popover } from './ui';
 import { alertLabel, collect, digest, sendMail, systemNotify, type AlertItem } from '../lib/alerts';
@@ -50,7 +51,7 @@ function snooze(a: AlertItem) {
 
 export function NotificationBell() {
   const t = useT();
-  const pages = useVault((s) => s.pages);
+  const pages = usePagesData();
   const settings = useVault((s) => s.settings);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'pending' | 'resolved' | 'alerts'>('alerts');
@@ -58,7 +59,7 @@ export function NotificationBell() {
   const [tick, setTick] = useState(0);
   useEffect(() => { const h = setInterval(() => setTick((x) => x + 1), 60000); return () => clearInterval(h); }, []);
   const hidden = settings.alerts?.resolved || [];
-  const data = useMemo(() => collect(pages, settings.alerts?.daysAhead ?? 2), [pages, settings.alerts?.daysAhead, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const data = useMemo(() => collect(useVault.getState().pages, settings.alerts?.daysAhead ?? 2), [pages, settings.alerts?.daysAhead, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const alerts = data.alerts.filter((a) => !hidden.includes(a.id));
   const list = tab === 'alerts' ? alerts : tab === 'pending' ? data.pending : data.resolved.slice(0, 60);
   const go = (a: AlertItem) => { setOpen(false); openAlert(a); };

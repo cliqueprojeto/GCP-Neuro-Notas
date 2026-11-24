@@ -3,7 +3,7 @@ import { EditorContextMenu } from './EditorContextMenu';
 import { useEditor, EditorContent, BubbleMenu, type Editor as TEditor } from '@tiptap/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
+  AlignCenter, AlignJustify, AlignLeft, AlignRight, Search as SearchIcon, Bold, BarChart3, CheckSquare, ChevronDown, Code, Code2, Columns3, Database, Dices, FileSpreadsheet,
   FileText, Heading1, Heading2, Heading3, Highlighter, ImageIcon, Images, Italic, Link2, List, ListOrdered, ListTree, Minus, MessageSquareQuote,
   ArrowUpToLine, ArrowDownToLine, ArrowLeftToLine, ArrowRightToLine, TableCellsMerge, TableCellsSplit, PanelTop, PanelLeft,
   PieChart, Plus, Quote, Redo2, Rows3, SmilePlus, Sparkles, Sticker, Strikethrough, Table2, Text, Trash2, Underline as UIcon, Undo2, Play,
@@ -24,6 +24,7 @@ import { useUi, toast } from '../store/ui';
 import { pickImages, isAndroid } from '../lib/platform';
 import { fontById } from '../lib/fonts';
 import { CustomColors } from '../components/ColorPicker';
+import { FindBar } from './findInPage';
 import { normalize, formatDate } from '../lib/doc';
 import { Modal, Popover, PageIcon } from '../components/ui';
 import { EmojiPicker } from '../components/IconPicker';
@@ -46,6 +47,18 @@ export function Editor({ page, editable = true }: Props) {
   const [stickerOpen, setStickerOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  useEffect(() => {
+    // Ctrl/⌘ + F: localizar na página
+    const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setFindOpen(true);
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
   const [ytOpen, setYtOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -213,7 +226,11 @@ export function Editor({ page, editable = true }: Props) {
 
   return (
     <div className={`editor-wrap font-${fontById(page.font || settings.font).group}`} style={{ fontSize: settings.fontSize, ['--doc-font' as string]: fontById(page.font || settings.font).family }}>
-      {editable && <Toolbar editor={editor} onEmoji={() => setEmojiOpen(true)} onSticker={() => setStickerOpen(true)} onAi={() => setAiOpen(true)} busy={busy} page={page} />}
+      {editable && <Toolbar editor={editor} onEmoji={() => setEmojiOpen(true)} onSticker={() => setStickerOpen(true)} onAi={() => setAiOpen(true)} onFind={() => setFindOpen(!findOpen)} busy={busy} page={page} />}
+      <div className="find-slot">
+        {!editable && <button className="btn ghost xs find-open-ro" onClick={() => setFindOpen(true)}><SearchIcon size={13} /> {t('find.open')}</button>}
+        {findOpen && <FindBar editor={editor} onClose={() => setFindOpen(false)} />}
+      </div>
       {editable && (
         <BubbleMenu editor={editor} tippyOptions={{ duration: 120, maxWidth: 'none' }} shouldShow={({ editor, from, to }) => !isAndroid && from !== to && !(editor.state.selection as any).node && !editor.isActive('image') && !editor.isActive('pageLink')}>
           <Bubble editor={editor} onAi={ai} busy={busy} />
@@ -381,7 +398,7 @@ function templateItems(t: (k: TKey, v?: any) => string, page: Page): SuggestItem
 
 // --------------------------------------------------------------- toolbar
 
-function Toolbar({ editor, onEmoji, onSticker, onAi, busy, page }: { editor: TEditor; onEmoji: () => void; onSticker: () => void; onAi: () => void; busy: boolean; page: Page }) {
+function Toolbar({ editor, onEmoji, onSticker, onAi, onFind, busy, page }: { editor: TEditor; onEmoji: () => void; onSticker: () => void; onAi: () => void; onFind: () => void; busy: boolean; page: Page }) {
   const t = useT();
   const [, force] = useState(0);
   useEffect(() => {
@@ -439,6 +456,7 @@ function Toolbar({ editor, onEmoji, onSticker, onAi, busy, page }: { editor: TEd
       <B on={onSticker} title={t('slash.sticker')}><Sticker size={16} /></B>
       <InsertMenu editor={editor} page={page} />
       <div className="grow" />
+      <B on={onFind} title={t('find.open') + ' (Ctrl+F)'}><SearchIcon size={16} /></B>
       <button className="btn ai sm" onMouseDown={(e) => e.preventDefault()} onClick={onAi} disabled={busy}>
         <Sparkles size={15} /> {busy ? t('ai.thinking') : t('ai.write')}
       </button>

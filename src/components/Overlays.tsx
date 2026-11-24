@@ -9,7 +9,7 @@ import {
   ArrowRight, Bot, CalendarHeart, CheckCircle2, Database, Download, FileText, Home, Info, LayoutTemplate, ListTodo, Lock, Network, Palette,
   PieChart, Plus, Search, Send, Settings, Sparkles, Trash2, X, AlertCircle, Heart, ExternalLink, Loader2,
   History, ArrowUpRight, Copy, FileInput, FilePlus2, Wand2, AlignLeft, Languages, Lightbulb,
-  Paperclip, StickyNote,
+  Paperclip, StickyNote, FilePen, Check, Undo2,
 } from 'lucide-react';
 import { useT, useLang, type TKey } from '../i18n';
 import { useVault, livePages } from '../store/vault';
@@ -19,6 +19,7 @@ import { PageIcon, Modal, Popover } from './ui';
 import { searchPages, normalize } from '../lib/doc';
 import { openDaily } from './Journal';
 import { askBrain } from '../ai/brain';
+import { pageForAi, restoreAssets, splitEdit, htmlToPageDoc, MAX_EDIT_CHARS } from '../ai/pageEdit';
 import { activeProvider, LANG_NAMES, runAction, mdToHtml, type AiAction } from '../ai/assist';
 import { listConversations, saveConversation } from '../ai/conversations';
 import { copyText } from '../lib/platform';
@@ -35,6 +36,11 @@ import { THEMES } from '../lib/themes';
 interface Cmd { id: string; label: string; icon: React.ReactNode; hint?: string; run: () => void }
 
 export function CommandPalette() {
+  const open = useUi((s) => s.palette);
+  return open ? <CommandPaletteInner /> : null;
+}
+
+function CommandPaletteInner() {
   const t = useT();
   const ui = useUi();
   const pages = useVault((s) => s.pages);
@@ -159,9 +165,15 @@ export function CommandPalette() {
 
 // ------------------------------------------------------- painel de IA (cérebro)
 
-interface Msg { role: 'user' | 'assistant'; content: string; sources?: Page[]; error?: boolean; files?: string[] }
+interface PageEdit { html: string; assets: string[]; pageId: string; prev?: any; applied?: boolean; preview?: boolean }
+interface Msg { role: 'user' | 'assistant'; content: string; sources?: Page[]; error?: boolean; files?: string[]; edit?: PageEdit }
 
 export function AIPanel() {
+  const open = useUi((s) => s.aiPanel);
+  return open ? <AIPanelInner /> : null;
+}
+
+function AIPanelInner() {
   const t = useT();
   const lang = useLang();
   const ui = useUi();
@@ -179,6 +191,7 @@ export function AIPanel() {
   const [linkQ, setLinkQ] = useState('');
   const [sendTo, setSendTo] = useState<{ md: string; x: number; y: number } | null>(null);
   const [drag, setDrag] = useState(false);
+  const [editMode, setEditMode] = useState(true);
   const linkBtn = useRef<HTMLButtonElement>(null);
   const linked = ui.aiContext.map((id) => pages[id]).filter((p): p is Page => !!p && !p.deletedAt);
   const setLinked = (ids: string[]) => ui.set({ aiContext: [...new Set(ids)] });
@@ -224,9 +237,15 @@ export function AIPanel() {
     abort.current = new AbortController();
     try {
       const all = brain ? livePages(pages) : [current, ...linked].filter((x): x is Page => !!x);
-      const r = await askBrain(provider, all, history, text, LANG_NAMES[lang], current, abort.current.signal, { linked, attachments: atts });
+      // Pode alterar a página aberta: manda o HTML dela (imagens trocadas por marcadores).
+      const forAi = editMode && current?.type === 'page' ? pageForAi(current) : null;
+      const editable = forAi && forAi.html.length <= MAX_EDIT_CHARS ? forAi : null;
+      if (forAi && !editable) toast(t('chat.pageTooBig'), 'info');
+      const r = await askBrain(provider, all, history, text, LANG_NAMES[lang], current, abort.current.signal, { linked, attachments: atts, editHtml: editable?.html });
+      const sp = splitEdit(r.text);
+      const edit: PageEdit | undefined = sp.html && editable && current ? { html: sp.html, assets: editable.assets, pageId: current.id } : undefined;
       setMsgs((m) => {
-        const next: Msg[] = [...m, { role: 'assistant', content: r.text, sources: r.sources }];
+        const next: Msg[] = [...m, { role: 'assistant', content: sp.text || (edit ? t('chat.editReady') : r.text), sources: r.sources, edit }];
         persist(next);
         return next;
       });
@@ -235,6 +254,29 @@ export function AIPanel() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const patchMsg = (i: number, e: Partial<PageEdit>) => setMsgs((list) => list.map((m, j) => (j === i && m.edit ? { ...m, edit: { ...m.edit, ...e } } : m)));
+  const applyEdit = (i: number) => {
+    const e = msgs[i]?.edit;
+    const target = e && useVault.getState().pages[e.pageId];
+    if (!e || !target) return toast(t('editor.brokenLink'), 'error');
+    const prev = target.content;
+    try {
+      useVault.getState().updatePage(target.id, { content: htmlToPageDoc(e.html, e.assets) });
+      patchMsg(i, { applied: true, prev });
+      toast(t('chat.editApplied', { p: target.title || t('page.untitled') }), 'success');
+      if (useUi.getState().route.name !== 'page' || (useUi.getState().route as any).id !== target.id) ui.go({ name: 'page', id: target.id });
+    } catch (err) {
+      toast(t('ai.error') + ' ' + String((err as Error).message || err), 'error');
+    }
+  };
+  const undoEdit = (i: number) => {
+    const e = msgs[i]?.edit;
+    if (!e?.prev) return;
+    useVault.getState().updatePage(e.pageId, { content: e.prev });
+    patchMsg(i, { applied: false });
+    toast(t('chat.editUndone'), 'success');
   };
 
   /** Salva a conversa como página (aparece no Grafo ligada às notas citadas). */
@@ -338,6 +380,7 @@ export function AIPanel() {
         ))}
         {current && !ui.aiContext.includes(current.id) && <button className="rel-add" onClick={() => setLinked([...ui.aiContext, current.id])}><Plus size={12} /> {current.title || t('page.untitled')}</button>}
         <button ref={linkBtn} className="rel-add" onClick={() => setLinkOpen(!linkOpen)}><Plus size={12} /> {t('chat.linkProject')}</button>
+        {current?.type === 'page' && <button className={'rel-add edit-toggle' + (editMode ? ' on' : '')} title={t('chat.editModeHint')} onClick={() => setEditMode(!editMode)}><FilePen size={12} /> {editMode ? t('chat.editModeOn') : t('chat.editModeOff')}</button>}
         <Popover anchor={linkBtn.current} open={linkOpen} onClose={() => setLinkOpen(false)}>
           <div className="rel-pop">
             <input className="input" autoFocus placeholder={t('embed.searchPage')} value={linkQ} onChange={(e) => setLinkQ(e.target.value)} />
@@ -386,6 +429,19 @@ export function AIPanel() {
           msgs.map((m, i) => (
             <div key={i} className={'msg ' + m.role + (m.error ? ' error' : '')}>
               {m.role === 'assistant' ? <div className="prose sm" dangerouslySetInnerHTML={{ __html: render(m.content) }} /> : <p>{m.content}</p>}
+              {m.edit && (
+                <div className={'edit-card' + (m.edit.applied ? ' applied' : '')}>
+                  <div className="edit-head"><FilePen size={14} /> <b className="grow">{m.edit.applied ? t('chat.editDone') : t('chat.editProposal')}</b>
+                    <button className="btn ghost xs" onClick={() => patchMsg(i, { preview: !m.edit!.preview })}>{m.edit.preview ? t('chat.hidePreview') : t('chat.preview')}</button>
+                  </div>
+                  {m.edit.preview && <div className="edit-preview prose sm" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(restoreAssets(m.edit.html, m.edit.assets)) }} />}
+                  <div className="row">
+                    {!m.edit.applied
+                      ? <button className="btn primary sm" onClick={() => applyEdit(i)}><Check size={14} /> {t('chat.applyEdit')}</button>
+                      : <button className="btn ghost sm" onClick={() => undoEdit(i)}><Undo2 size={14} /> {t('chat.undoEdit')}</button>}
+                  </div>
+                </div>
+              )}
               {m.files && m.files.length > 0 && <div className="msg-files">{m.files.map((f) => <span key={f} className="chip xs static"><Paperclip size={11} /> {f}</span>)}</div>}
               {m.role === 'assistant' && !m.error && (
                 <div className="msg-actions">

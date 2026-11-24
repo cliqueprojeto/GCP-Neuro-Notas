@@ -49,6 +49,7 @@ import { ImageView, MediaRecView, YoutubeView } from './media';
 import type { SuggestItem } from './suggest';
 import { moveCurrentBlock } from './BlockHandle';
 import { PageLinkView } from './pageLinkView';
+import { FindHighlight } from './findInPage';
 
 export const lowlight = createLowlight(common);
 
@@ -318,7 +319,7 @@ export function editorExtensions(opts: {
   slash: Partial<SuggestionOptions<SuggestItem>>;
   pageLink: Partial<SuggestionOptions<any>>;
 }): AnyExtension[] {
-  return [...base(opts.placeholder), BlockMove, EditableGaps, slashExtension(opts.slash), pageLinkExtension(opts.pageLink)];
+  return [...base(opts.placeholder), BlockMove, EditableGaps, FindHighlight, slashExtension(opts.slash), pageLinkExtension(opts.pageLink)];
 }
 
 let cachedExport: AnyExtension[] | null = null;

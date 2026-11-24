@@ -6,7 +6,8 @@ import { Presentations } from './components/Presentations';
 import { useEffect, useState } from 'react';
 import { useVault } from './store/vault';
 import { usePrefs } from './store/prefs';
-import { useUi } from './store/ui';
+import { useUi, toast } from './store/ui';
+import { isTauri, isMobile } from './lib/platform';
 import { applyTheme } from './lib/themes';
 import { useAlertScheduler } from './components/Notifications';
 import { useLang } from './i18n';
@@ -23,7 +24,10 @@ import { Spinner } from './components/ui';
 import { MobileNav } from './components/MobileNav';
 import { checkForUpdate, isCheckDue, type ReleaseInfo } from './lib/updater';
 import { autoBackupIfDue } from './cloud/cloud';
-import { startAutoSync } from './cloud/autosync';
+import { startAutoSync, guardClose, hasPendingSync } from './cloud/autosync';
+import { askConfirm } from './components/PromptHost';
+import { systemNotify } from './lib/alerts';
+import { t as tr0 } from './i18n';
 
 export default function App() {
   const status = useVault((s) => s.status);
@@ -105,6 +109,7 @@ function Workspace() {
 
   // Sincronização automática entre aparelhos (enquanto o cofre está aberto).
   useEffect(() => startAutoSync(), []);
+  useEffect(() => installCloseGuard(), []);
 
   // Atualizações e backup automático.
   useEffect(() => {
@@ -160,4 +165,40 @@ function Workspace() {
       {showUpdate && update && <UpdateDialog release={update} onClose={() => setShowUpdate(false)} />}
     </div>
   );
+}
+
+/**
+ * Ao fechar: com alterações ainda não enviadas à nuvem, sincroniza antes e avisa.
+ * No computador intercepta o fechamento da janela; no navegador usa o aviso padrão.
+ */
+function installCloseGuard(): () => void {
+  const tr = (k: string) => tr0(k as any);
+  const notify = () => {
+    toast(tr('sync.closing'), 'info');
+    void systemNotify('GCP-Neuro Notas', tr('sync.closing'));
+  };
+  const ask = () => askConfirm({ title: tr('sync.closeTitle'), message: tr('sync.closeText'), okLabel: tr('sync.closeAnyway'), cancelLabel: tr('sync.keepOpen'), danger: true });
+  if (isTauri && !isMobile) {
+    let off: (() => void) | null = null;
+    let alive = true;
+    void import('@tauri-apps/api/window').then(async ({ getCurrentWindow }) => {
+      const w = getCurrentWindow();
+      const un = await w.onCloseRequested(async (e) => {
+        if (!hasPendingSync()) return;
+        e.preventDefault();
+        if (await guardClose(ask, notify)) await w.destroy();
+      });
+      if (alive) off = un;
+      else un();
+    });
+    return () => ((alive = false), off?.());
+  }
+  const h = (e: BeforeUnloadEvent) => {
+    if (!hasPendingSync()) return;
+    void guardClose(async () => true, () => {});
+    e.preventDefault();
+    e.returnValue = '';
+  };
+  window.addEventListener('beforeunload', h);
+  return () => window.removeEventListener('beforeunload', h);
 }

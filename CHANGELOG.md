@@ -1,5 +1,20 @@
 # Histórico de versões
 
+## 1.9.0 — IA que edita a página, busca na página, capas com IA, Kanban premium e app mais leve
+
+- **A IA edita a página aberta**: no painel "Perguntar à IA", com "Pode editar esta página" ligado, peça mudanças como "normalize as tabelas", "troque estes dados na página" ou "corrija as datas". A IA explica o que mudou e mostra a proposta, com prévia. Você escolhe **Aplicar na página** e pode **Desfazer**. Imagens e blocos especiais são preservados.
+- **Capas**: os botões "Trocar capa" e "Remover" não somem mais ao passar o mouse; ficam no topo da capa. Novo **editor de capa** com proporção (5:1, 4:1, 3:1, 16:9 ou original), zoom e posição arrastando a imagem; a capa é salva já recortada e leve. Novo **Gerar capa com IA** (OpenAI, Google Gemini ou OpenRouter, com a sua chave).
+- **Localizar na página** (Ctrl+F ou lupa na barra): destaca todas as ocorrências (sem diferenciar acentos), com próximo e anterior e **filtros** por títulos, tabelas, imagens, links, tarefas, layouts e botões, mídia e anexos, destaques e citações, com lista de resultados clicável.
+- **Sincronização mais leve e configurável**: em Configurações → Backup e sincronização, escolha quando enviar as alterações (5 s, 30 s, 1, 5 ou 15 minutos, ou só ao sair). As edições vão juntas num envio só. A nuvem na barra superior fica **laranja** quando há algo pendente, com o tempo até o próximo envio. **Ao fechar o app no computador** com alterações não enviadas, ele sincroniza antes e avisa; sem internet, pergunta se pode fechar mesmo assim.
+- **App mais rápido ao digitar**: a barra lateral, o topo, as notificações, o painel de IA e a paleta de comandos não são mais recalculados a cada pausa na digitação, só quando muda a estrutura (títulos, ícones, posição). As ligações e notas relacionadas da página também deixaram de ser recalculadas a cada letra.
+- **Kanban**:
+  - Os cartões mostram **ícones do que têm dentro**: descrição, comentários, subtarefas feitas/total, anexos e prazo colorido (Atrasado, Hoje, Concluído).
+  - **Cor do cartão** como faixa no topo ou cartão colorido, com cores prontas, **gradientes premium** e cor personalizada (código, conta-gotas e paleta).
+  - **Fundo do quadro** com imagem própria, cores sólidas, gradientes abstratos ou cor personalizada.
+  - **Modelos de cartão**: salve um cartão como modelo com nome e crie cartões a partir dele pelo ícone de modelos no topo de cada lista ou em **Templates → Modelos de cartão**.
+  - **Copiar ou mover cartão** para qualquer quadro e lista, escolhendo a posição e o que manter (subtarefas, etiquetas, comentários, anexos e descrição). Os campos são casados pelo nome, e os que faltam são criados no destino.
+- **Menus que fecham direito**: "Adicionar campo ao cartão" e os outros menus dentro de janelas fecham ao clicar fora ou no próprio botão de novo. O Esc fecha só o menu de cima, sem fechar o cartão.
+
 ## 1.8.5 — Links de página em cartões e botões, colunas com borda e fundo, Neuro Links lembra a visualização
 
 - **Links de página personalizáveis**: passe o mouse sobre um link e clique no pincel para escolher a aparência: **etiqueta**, **texto**, **botão** ou **cartão com prévia** (ícone, faixa colorida e o começo do texto da página). Também dá para escolher a cor (prontas, código, conta-gotas ou paleta do designer), mostrar ou esconder o ícone da página e **aplicar a todos os links do bloco** de uma vez, por exemplo de uma coluna inteira.

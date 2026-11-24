@@ -2,6 +2,7 @@
  * "Segundo cérebro": recuperação local de trechos relevantes das notas
  * (BM25, sem enviar nada até o usuário perguntar) e notas relacionadas.
  */
+import { EDIT_INSTRUCTIONS } from './pageEdit';
 import { normalize, pageText, outgoingLinks } from '../lib/doc';
 import type { AiAttachment } from './attachments';
 import type { Page } from '../lib/types';
@@ -92,7 +93,7 @@ export async function askBrain(
   langName: string,
   current?: Page | null,
   signal?: AbortSignal,
-  extra?: { linked?: Page[]; attachments?: AiAttachment[] },
+  extra?: { linked?: Page[]; attachments?: AiAttachment[]; editHtml?: string },
 ): Promise<BrainAnswer> {
   const found = retrieve(pages, question + ' ' + (current?.title || ''));
   if (current && !found.some((f) => f.page.id === current.id)) {
@@ -113,7 +114,8 @@ export async function askBrain(
     `When you use information from a note, cite it inline as [[Note title]] exactly as written. ` +
     `If the notes do not contain the answer, say so briefly and then answer from general knowledge, making the distinction clear. ` +
     `Format with Markdown (short paragraphs, lists and tables when useful).\n\n` +
-    `<notes>\n${context || '(no matching notes)'}\n</notes>`;
+    `<notes>\n${context || '(no matching notes)'}\n</notes>` +
+    (extra?.editHtml ? `${EDIT_INSTRUCTIONS}\n\n<current_page title="${(current?.title || '').replace(/"/g, "'")}">\n${extra.editHtml}\n</current_page>` : '');
   const text = await chat(provider, system, [...history, { role: 'user', content: question, attachments: extra?.attachments }], signal);
   const seen = new Set<string>();
   const sources = found.map((f) => f.page).filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));

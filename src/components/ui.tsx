@@ -51,6 +51,9 @@ export function Modal({
 
 // --------------------------------------------------------------- Popover
 
+/** Menus abertos, do mais antigo ao mais recente (Esc fecha o de cima). */
+const POP_STACK: { close: () => void }[] = [];
+
 export function Popover({
   anchor,
   open,
@@ -80,26 +83,41 @@ export function Popover({
     if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
     setPos({ top, left });
   }, [open, anchor, align]);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return;
+    const me = { close: () => closeRef.current() };
+    POP_STACK.push(me);
     const down = (e: MouseEvent) => {
-      if (ref.current?.contains(e.target as Node) || anchor?.contains(e.target as Node)) return;
-      // Cliques em listas/menus abertos por cima deste (Select aninhado, menu de contexto, janela) não fecham o pai.
       const t = e.target as HTMLElement;
-      if (t.closest?.('.popover, .ctx-back, .modal-back, .suggest-wrap')) {
-        const top = t.closest('.popover');
-        if (!top || top !== ref.current) return;
-      }
-      onClose();
+      if (ref.current?.contains(t) || anchor?.contains(t)) return;
+      // Menus abertos por cima deste (Select aninhado, menu de contexto, sugestões) não fecham o pai.
+      const other = t.closest?.('.popover');
+      if (other && other !== ref.current && POP_STACK.indexOf(me) < POP_STACK.length - 1) return;
+      if (t.closest?.('.ctx-back, .suggest-wrap, .eyedrop-layer')) return;
+      // Uma janela aberta DEPOIS deste menu (a partir dele) também não o fecha; a janela onde ele está, sim.
+      const modal = t.closest?.('.modal-back');
+      if (modal && anchor && !modal.contains(anchor)) return;
+      closeRef.current();
     };
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    setTimeout(() => window.addEventListener('mousedown', down), 0);
-    window.addEventListener('keydown', key);
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || POP_STACK[POP_STACK.length - 1] !== me) return;
+      // Esc fecha só o menu de cima — não a janela do cartão por trás.
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      closeRef.current();
+    };
+    const timer = setTimeout(() => window.addEventListener('mousedown', down), 0);
+    window.addEventListener('keydown', key, true);
     return () => {
+      clearTimeout(timer);
+      const i = POP_STACK.indexOf(me);
+      if (i >= 0) POP_STACK.splice(i, 1);
       window.removeEventListener('mousedown', down);
-      window.removeEventListener('keydown', key);
+      window.removeEventListener('keydown', key, true);
     };
-  }, [open, anchor, onClose]);
+  }, [open, anchor]);
   if (!open) return null;
   return createPortal(
     <div ref={ref} className={'popover ' + className} style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}>

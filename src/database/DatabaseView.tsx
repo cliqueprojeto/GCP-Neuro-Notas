@@ -399,7 +399,7 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
       )}
 
       {view.type === 'table' && <TableView db={db} view={view} setView={setView} props={shown} rows={rows} setRow={setRow} setProp={setProp} addRow={addRow} addProp={addProp} openRow={setOpenRow} save={save} />}
-      {view.type === 'board' && <BoardView db={db} view={view} rows={rows} setRow={setRow} addRow={addRow} openRow={setOpenRow} setProp={setProp} shown={shown} addProp={addProp} moveCard={moveCard} />}
+      {view.type === 'board' && <BoardView db={db} view={view} rows={rows} setRow={setRow} addRow={addRow} openRow={setOpenRow} setProp={setProp} shown={shown} addProp={addProp} moveCard={moveCard} setView={setView} pageId={page.id} />}
       {view.type === 'gallery' && <GalleryView db={db} rows={rows} openRow={setOpenRow} addRow={addRow} shown={shown} setRow={setRow} setProp={setProp} />}
       {view.type === 'calendar' && <CalendarView db={db} view={view} rows={rows} openRow={setOpenRow} addRow={addRow} addProp={addProp} />}
       {view.type === 'list' && <ListView db={db} rows={rows} openRow={setOpenRow} addRow={addRow} shown={shown} setRow={setRow} setProp={setProp} />}
@@ -421,6 +421,7 @@ export function DatabaseView({ page, embedded }: { page: Page; embedded?: boolea
           patchRow={(patch) => patchRow(openRow, patch)}
           addProp={addProp}
           dbTitle={page.title}
+          pageId={page.id}
           onDelete={() => (delRow(openRow), setOpenRow(null))}
         />
       )}

@@ -40,7 +40,7 @@ export function guessProvider(key: string): AiProviderId | null {
   return null;
 }
 
-const base = (p: AiProvider) => (p.baseUrl || providerMeta(p.kind).baseUrl).replace(/\/+$/, '');
+export const base = (p: AiProvider) => (p.baseUrl || providerMeta(p.kind).baseUrl).replace(/\/+$/, '');
 
 function anthropicClient(p: AiProvider) {
   return new Anthropic({
@@ -52,7 +52,7 @@ function anthropicClient(p: AiProvider) {
   });
 }
 
-async function json(res: Response) {
+export async function json(res: Response) {
   const text = await res.text();
   let data: any = null;
   try {

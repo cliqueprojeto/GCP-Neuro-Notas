@@ -348,3 +348,20 @@ textarea.cnode-text { border: 0; outline: none; background: transparent; resize:
   .row-prop { grid-template-columns: 110px 1fr; }
 }
 .page-link.pl-card .pl-style { top: 6px; right: 6px; }
+
+/* ---------------------------------------------------- localizar na página */
+.find-bar { position: sticky; top: 104px; z-index: 13; margin: -6px -6px 14px; padding: 8px 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }
+.find-row { display: flex; align-items: center; gap: 6px; }
+.find-input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font-size: 14px; outline: none; }
+.find-count { font-size: 12px; color: var(--muted); min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.find-filters { display: flex; gap: 5px; flex-wrap: wrap; }
+.find-filters .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.find-results { max-height: 220px; overflow: auto; display: flex; flex-direction: column; border-top: 1px solid var(--border); padding-top: 4px; }
+.find-result { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 7px; text-align: left; font-size: 13px; color: var(--text); }
+.find-result:hover, .find-result.on { background: var(--accent-soft); }
+.find-type { flex-shrink: 0; min-width: 92px; color: var(--muted); font-size: 11px; }
+.find-hit { background: color-mix(in srgb, #facc15 55%, transparent); border-radius: 3px; color: inherit; }
+.find-hit.cur { background: #f97316; color: #fff; }
+.find-flash { outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent) !important; outline-offset: 3px; border-radius: 8px; transition: outline-color .4s; }
+.find-open-ro { margin-bottom: 8px; }
+@media (max-width: 600px) { .find-bar { top: 56px; } .find-type { min-width: 70px; } }
