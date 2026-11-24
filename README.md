@@ -4,7 +4,7 @@
 
 # GCP-Neuro Notas
 
-**Notas, bases de dados, relatórios BI, quadro infinito e segundo cérebro com IA — offline, criptografado e nativo.**
+**Notas, bases de dados, relatórios BI, quadro infinito, apresentações e segundo cérebro com IA — offline, criptografado e nativo.**
 
 Livre · Gratuito · Sem cadastro · Android, Linux, Windows e macOS (Intel e Apple Silicon)
 
@@ -13,7 +13,7 @@ Livre · Gratuito · Sem cadastro · Android, Linux, Windows e macOS (Intel e Ap
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-34d399)](LICENSE)
 ![Plataformas](https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-ec4899)
 
-**[⬇️ Baixar](#️-download-e-instalação)** · **[✨ Recursos](#-recursos)** · **[🖼️ Telas](#️-telas)** · **[🔐 Segurança](#-segurança-e-privacidade)** · **[📜 Versões](CHANGELOG.md)** · **[❤️ Apoie](#️-apoie-o-projeto)**
+**[⬇️ Baixar](#️-download-e-instalação)** · **[✨ Recursos](#-recursos)** · **[⌨️ Comandos /](#️-todos-os-comandos-)** · **[🖼️ Telas](#️-telas)** · **[🔐 Segurança](#-segurança-e-privacidade)** · **[📜 Versões](CHANGELOG.md)** · **[❤️ Apoie](#️-apoie-o-projeto)**
 
 🇧🇷 Português · [🇺🇸 English](#-english) · [🇪🇸 Español](#-español)
 
@@ -25,128 +25,139 @@ Livre · Gratuito · Sem cadastro · Android, Linux, Windows e macOS (Intel e Ap
 
 ## Sobre
 
-O **GCP-Neuro Notas** faz parte da série de aplicativos **GCP** da [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). Ele reúne em um único aplicativo nativo o melhor de três mundos:
+O **GCP-Neuro Notas** faz parte da série de aplicativos **GCP** da [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). Ele reúne em um único aplicativo nativo:
 
-- **Editor de blocos e bases de dados** (no estilo de Notion): páginas aninhadas, comando `/`, tabelas, Kanban, galerias, calendários e formulários.
-- **Segundo cérebro conectado** (no estilo de Obsidian): links `[[entre páginas]]`, backlinks, menções sem link, notas relacionadas e grafo interativo.
-- **Quadro infinito** (no estilo do modo *edgeless* de AFFiNE): desenhe, crie formas, molduras, notas adesivas e conecte ideias com setas — e alterne qualquer página entre **Documento** e **Quadro**.
+- **Editor de blocos e bases de dados** (no estilo do Notion): páginas aninhadas, comando `/`, colunas, tabelas, Kanban, galerias, calendários, Gantt e formulários.
+- **Segundo cérebro conectado** (no estilo do Obsidian): links `[[entre páginas]]`, backlinks, menções sem link, notas relacionadas e o **Neuro Links**, o mapa vivo das suas ideias.
+- **Quadro infinito e apresentações** (no estilo do AFFiNE e do Figma): desenhe, monte diagramas e mapas mentais, conecte ideias e apresente com zoom contínuo — e alterne qualquer página entre **Documento** e **Quadro**.
 
-Tudo fica **no seu computador**, em um banco de dados interno (SQLite embutido), **criptografado com a sua senha**. Não há servidor, conta, rastreamento ou anúncios. A IA é opcional: você usa a sua própria chave.
+Tudo fica **no seu aparelho**, em um banco de dados interno (SQLite embutido), **criptografado com a sua senha**. Não há servidor, conta, rastreamento ou anúncios. A IA é opcional: você usa a sua própria chave.
+
+## 🆕 Novidades recentes
+
+| Versão | Destaques |
+|---|---|
+| **1.8.5** | Links de página como **etiqueta, texto, botão ou cartão com prévia**, com cor e ícone; **colunas com borda e fundo** personalizados; ícones de layout redesenhados; **Neuro Links lembra a última visualização** |
+| **1.8.4** | Ícone de página com **imagem do computador ou do celular**; menu de tom de pele legível |
+| **1.8.3** | **Notion completo**: importação e sincronização pela API com imagens, arquivos, colunas e bases, e **importação do .zip exportado** (HTML ou Markdown/CSV) |
+| **1.8.2** | **25 fontes embutidas** (inclusive para dislexia), tamanhos de 10 a 36 px, **texto justificado**, **cores personalizadas** com código, conta-gotas e paleta do designer, cópia legível para o Word nos temas escuros |
+| **1.8.0** | **Sincronização automática entre aparelhos** pelo Google Drive ou OneDrive: tudo espelhado sem backup manual |
+| **1.7** | Central de **notificações**, lembretes, **automações nas bases**, **e-mail sem servidor**, IA com anexos (PDF, imagens, planilhas) |
+| **1.6** | **Base de dados dentro da página**, Neuro Links com visual neural e **sinapses** (conexões livres), **temas premium** e tema personalizado |
+| **1.5** | Kanban completo, campos **Produtos/serviços**, **Subtarefas** e **Temporizador**, comentários e histórico de atividades, menu de contexto no editor |
+
+O histórico completo está no [CHANGELOG](CHANGELOG.md).
 
 ## ✨ Recursos
 
-### 🆕 Novidades da 1.4
+### ✍️ Editor de páginas
 
 | | Recurso | Detalhes |
 |---|---|---|
-| 🎞️ | **Apresentação premium** | Voo contínuo entre slides (zoom e passeio como no Quadro), conectores que se desenham, links abertos em tela limpa com botão de voltar, cronômetro progressivo ou regressivo e transição por slide |
-| 🗂️ | **Apresentações** | Página fixa com pastas e ícones (um item pode estar em várias), cartões ou registro, temas de fundo e novos decks prontos |
-| 📊 | **PowerPoint** | Exporta com formas editáveis, fundo do tema, transições e animações; importa `.pptx` mantendo posições, cores, fontes, imagens e efeitos |
-| 🧠 | **Diagramas e mapas mentais** | Banco por categoria (lista, processo, ciclo, hierarquia, mapa mental, relação, matriz, pirâmide, espinha de peixe…) gerado a partir dos seus itens |
-| 🎨 | **Fundos e conectores** | Temas de fundo e imagem com ponto de foco no Quadro; linhas tracejada, pontilhada, serrilhada, ondulada, dupla ou neon, com espessura |
-| 📅 | **Bases** | Visões **Gantt** (arrastar e redimensionar), **Cronograma**, **Mapa** e **Anexos**; campos Arquivos e Local; tela cheia; desfazer e refazer |
-| 🗺️ | **Blocos novos** | `/anexo` com ícone por tipo de arquivo e `/mapa` com ponto A, ponto B e trajeto (OpenStreetMap) |
-| 🧑‍🏫 | **Educação** | Modelo de plano de aula com campos dinâmicos e base de intercorrências em sala |
-| 📱 | **Android** | Ícone sem bordas que preenche qualquer formato e barras do Quadro sem sobreposição |
-
-### 🆕 Novidades da 1.3
-
-| | Recurso | Detalhes |
-|---|---|---|
-| 🔘 | **Botões** | Estilos premium, ícones, formas, cores e efeitos animados, com link para páginas, notas, sites ou e-mail (`/botões`) |
-| 🧩 | **Cartões** | Seções estilo site com ícone, título, texto e chamada, em 1 a 4 colunas e efeitos de hover (`/cartões`) |
-| 🎬 | **Quadro estilo Figma** | Link em qualquer elemento, elementos botão e gráfico, animações de entrada e em loop, transições entre slides |
-| 🕸️ | **Grafo mais claro** | Linhas destacadas conforme o tema, cores e espessura escolhidas por você, layout pronto ao abrir |
-
-### 🆕 Novidades da 1.2
-
-| | Recurso | Detalhes |
-|---|---|---|
-| 🧮 | **Bases estilo planilha** | Filtro por valores como no Excel (buscar, selecionar tudo, *em branco*), ordenar e filtrar em cada coluna, arrastar colunas e linhas, totais (soma/média) no rodapé |
-| 🖱️ | **Botão direito / toque longo** | Inserir linha acima/abaixo, duplicar, mover, excluir; no celular, toque longo ou toque no número da linha |
-| 🧾 | **Novos campos** | **Fórmula** entre campos (`{Quant.} * {Valor}`, `SE`, `SOMA`, `DIAS`…), **fórmula condicional** com faixas (*entre 7 e 10 → Aprovado*) e cores, **moeda** com país detectado e máscara ao digitar, **CPF**, **CNPJ** (com validação), **telefone** e **CEP** com máscara |
-| 📥 | **Importar e exportar tabelas** | Importar do Excel/CSV (tipos detectados), imprimir só a tabela, PDF vetorial e Excel com formatos |
-| ⭐ | **Meus modelos** | Salve uma tabela ou documento como modelo com nome, descrição, ícone e cor; aparece em Templates e no comando `/` |
-| ↕️ | **Blocos móveis** | Alça ao lado de cada bloco para mover para cima/baixo (Alt+Shift+↑/↓), arrastar, duplicar, transformar ou excluir — inclusive enquetes, formulários e galerias |
-| 🎨 | **Comando `/` colorido** | Ícones coloridos por categoria, templates prontos e modelos próprios direto no `/` |
-| 🔌 | **Conectores magnéticos** | Pontos nos 4 lados de cada elemento, encaixe por proximidade, clique no conector para trocar estilo, setas, rótulo, cor e arrastar as pontas para religar |
-| 🖥️ | **Apresentar** | Cada moldura do quadro vira um slide, em tela cheia, com transições, teclado e toque |
-| 🗺️ | **Quadros e Calendário fixos** | Página "Quadros" com miniaturas; calendário compacto acima do Diário e agenda em mês, semana e dia com detalhes de cada registro |
-| 🧠 | **Grafo inteligente** | Ligações do quadro e das conversas com IA, sugestões de conexão com um clique, grupos por cor, foco local e painel do nó |
-| 💬 | **Conversas com IA salvas** | Histórico, retomar conversas, ligadas no Grafo às notas citadas; selecione um trecho para reescrever, resumir, traduzir ou explicar |
-| 🔎 | **Busca com filtros** | Filtre por tipo e por tags (chips ou `#tag` na busca) |
-| ☁️ | **Nuvem sem complicação** | Logos oficiais, passo a passo ilustrado para criar o cadastro OAuth e importar o JSON do Google; **sincronização com o Notion** (importar, sincronizar e enviar páginas) |
-
-### ✍️ Editor completo
-
-| | Recurso | Detalhes |
-|---|---|---|
-| ⌨️ | **Comando `/`** | Títulos, listas, tarefas, listas recolhíveis, citações, destaques coloridos, código com realce de sintaxe, divisores, tabelas redimensionáveis, data |
-| 🖼️ | **Mídia** | Imagens (colar, arrastar ou enviar), **galerias** com legendas e visualização ampliada, vídeos do YouTube, **emojis** (busca em PT/EN/ES), **stickers** vetoriais e ícones |
-| 📊 | **Enquetes / pesquisas** | Votação com barras e porcentagens, várias respostas, zerar votos |
-| 🎲 | **Sorteios** | Lista de nomes ou intervalo de números, quantidade de vencedores, sem repetição, animação e histórico (sorteio com gerador criptográfico) |
-| 📝 | **Formulários** | Monte perguntas (texto, e-mail, número, data, múltipla escolha, sim/não, avaliação), colete respostas, exporte CSV ou **transforme em base de dados** |
-| 🎨 | **Formatação** | Negrito, itálico, sublinhado, tachado, cores de texto, marca-texto, alinhamento, sobrescrito/subscrito, links |
-| 🔗 | **Links `[[ ]]`** | Ligue páginas digitando `[[`; crie a página na hora se ela não existir |
+| ⌨️ | **Comando `/`** | Mais de 45 blocos em categorias coloridas, com busca: veja a [lista completa](#️-todos-os-comandos-) |
+| 🧱 | **Layouts em colunas** | 2 a 5 colunas, proporções prontas (barra lateral, destaque central), estilos (simples, cartões, borda, sombreado, destaque, vidro) e **borda e fundo personalizados** (tipo, espessura, cor, intensidade e cantos) |
+| 🔗 | **Links entre páginas** | Digite `[[` para ligar páginas; cada link pode virar **etiqueta, texto, botão ou cartão com prévia**, com cor e ícone, e o visual pode ser aplicado a todos os links de um bloco |
+| 🎨 | **Formatação** | Negrito, itálico, sublinhado, tachado, código, links, **cores de texto e marca-texto personalizados** (código da cor, conta-gotas e paleta do designer), alinhamento à esquerda, centro, direita e **justificado** |
+| 🔤 | **Tipografia** | **25 fontes embutidas** que funcionam offline (Inter, Roboto, Montserrat, Lora, Merriweather, Playfair, Atkinson Hyperlegible, Lexend, OpenDyslexic, JetBrains Mono, Caveat…), tamanho de 10 a 36 px, fonte por página |
+| 🖼️ | **Mídia** | Imagens (colar, arrastar ou enviar), galerias, YouTube, **gravação de áudio e vídeo**, anexos, mapas com rota, QR Code, emojis, stickers |
+| 🧩 | **Componentes** | Botões e cartões estilo site, enquetes, sorteios, formulários que viram base de dados |
+| 🏷️ | **Ícones e capas** | Emojis com tom de pele, ícones vetoriais com cor, stickers ou **imagem própria**; capas em gradiente ou imagem |
+| 🖱️ | **Blocos móveis** | Alça ao lado de cada bloco para arrastar, mover (Alt+Shift+↑/↓), duplicar, transformar ou excluir; menu do botão direito |
 | 🕘 | **Histórico de versões** | Versões automáticas por página, com pré-visualização e restauração |
-| 🔤 | **Tipografia** | Fontes Sans, Serif e Mono, tamanho e largura do texto, largura total por página, capas (gradientes ou imagem) e ícones |
+| 📋 | **Copiar para o Word** | A formatação vai junto e o texto claro dos temas escuros vira preto |
 
 ### 🗂️ Bases de dados
 
-- Propriedades: texto, número, **moeda** (com máscara), **fórmula**, **fórmula condicional**, **CPF**, **CNPJ**, **CEP**, seleção, multisseleção, **status**, data, caixa de seleção, link, e-mail, telefone, **senha** (oculta, copiar, gerador de senhas fortes), avaliação ⭐, progresso e data de criação.
-- Visualizações: **Tabela**, **Quadro Kanban** (arrastar e soltar), **Galeria**, **Calendário** e **Lista** — várias por base.
-- **Filtros** combinados, **ordenação**, busca, colunas ocultas, registro aberto em janela com anotações, exportação CSV.
+- **Visões**: Tabela, Quadro Kanban, Galeria, Lista, Calendário, **Gantt**, **Cronograma**, **Mapa** e **Anexos** — várias por base, com tela cheia, desfazer e refazer.
+- **Base dentro da página** (`/base de dados na página`) ou como página própria.
+- **Campos**: texto, texto longo, número, **moeda** com máscara, **fórmula** e **fórmula condicional**, **CPF**, **CNPJ**, **CEP**, telefone, e-mail, link, seleção, multisseleção, **status**, data, caixa de seleção, **senha** (oculta, com gerador), avaliação, progresso, **arquivos**, **local**, **produtos/serviços**, **subtarefas**, **temporizador**, **relação** e **Neuro Links**.
+- **Planilha de verdade**: filtro por valores como no Excel, ordenar, arrastar colunas e linhas, totais no rodapé, importar Excel/CSV, exportar Excel e PDF.
+- **Cartões completos**: comentários, histórico de atividades, lembretes, arquivar.
+- **Automações**: quando um status muda ou uma caixa é marcada → notificar, enviar e-mail, preencher campo ou arquivar.
 
 ### 📊 Relatórios BI
 
-- Painéis montados a partir das bases: **colunas, barras, empilhado, linhas, área, pizza, rosca, radar, indicador (KPI) e tabela**.
-- Agrupamento por qualquer propriedade (datas por dia, semana, mês ou ano), segunda dimensão em **séries**, contagem, soma, média, mínimo e máximo, filtros por gráfico, limite de categorias com "Outros".
-- **Cores sob medida**: 6 paletas (incluindo uma paleta acessível validada para daltonismo) ou cor por cor; legenda, rótulos e largura do cartão.
-- Tudo se atualiza sozinho quando os dados mudam.
+Painéis a partir das bases: **colunas, barras, empilhado, linhas, área, pizza, rosca, radar, indicador (KPI) e tabela**; agrupamento por qualquer campo, séries, soma, média, mínimo e máximo, filtros por gráfico e **cores sob medida** (inclusive paleta validada para daltonismo). Tudo se atualiza sozinho.
 
-### 🎨 Quadro infinito
+### 🎨 Quadro infinito e apresentações
 
-Caneta livre, borracha, **molduras** (que arrastam o conteúdo junto), formas (retângulo, elipse, losango, triângulo), textos, notas adesivas, imagens, **páginas incorporadas** com o conteúdo visível e **conectores** retos, em cotovelo ou curvos, com rótulos e cores. Zoom, ajuste à tela, desfazer e atalhos de teclado (V, H, C, F, P, E, S, T, N).
+- **Quadro**: caneta, borracha, formas, textos, notas adesivas, imagens, mídia, **páginas incorporadas**, botões e gráficos, molduras e **conectores magnéticos** (retos, cotovelo ou curvos; tracejados, pontilhados, ondulados, neon…), fundos com temas e imagem.
+- **Diagramas e mapas mentais** prontos (lista, processo, ciclo, hierarquia, mapa mental, matriz, pirâmide, espinha de peixe, SWOT…) gerados a partir dos seus tópicos.
+- **Apresentações**: cada moldura vira um slide, com voo contínuo entre slides, animações, cronômetro, pastas com ícones e **exportação e importação de PowerPoint** com transições.
 
-### 🧠 Segundo cérebro e IA
+### 🧠 Neuro Links, segundo cérebro e IA
 
-- **Grafo de ideias** interativo: links, hierarquia e similaridade de conteúdo; busca, destaque de vizinhos e filtros.
-- **Notas relacionadas** e **menções sem link** calculadas localmente, sem IA e sem internet.
-- **Pergunte às suas notas** (`Ctrl + J`): o assistente busca os trechos relevantes em todas as páginas e responde **citando as notas usadas** com links clicáveis.
-- **IA no editor**: escrever a partir de um pedido, melhorar, corrigir, encurtar, expandir, resumir, explicar, continuar, extrair tarefas, traduzir (PT/EN/ES), mudar o tom, sugerir título e tags.
-- **Provedores**: Anthropic Claude, OpenAI, Google Gemini, Mistral, Groq, DeepSeek, xAI Grok, OpenRouter, **Ollama (local)** e qualquer API compatível com OpenAI. Cole a chave: o app **reconhece o provedor, lista os modelos disponíveis e escolhe o melhor automaticamente** (você pode trocar).
-- **Exportar para outras IAs**: gera um pacote Markdown com suas notas e links para usar como base de conhecimento em qualquer assistente.
+- **Neuro Links**: mapa interativo das suas páginas como neurônios — hierarquia, links `[[ ]]`, conectores do quadro, tags, **similares (IA local)** e **sugestões de conexão**; **sinapses** livres entre quaisquer páginas, foco local, grupos por cor, cores e espessuras escolhidas por você. A última visualização fica salva.
+- **Notas relacionadas** e **menções sem link** calculadas no próprio aparelho, sem internet.
+- **Segundo cérebro** (`Ctrl + J`): pergunte às suas notas e receba respostas **citando as páginas usadas**; conversas salvas, ligadas a projetos e anexos (PDF, imagens, planilhas, Word, PowerPoint).
+- **IA no editor**: escrever a partir de um pedido, melhorar, corrigir, encurtar, expandir, resumir, traduzir, mudar o tom, sugerir título e tags.
+- **Provedores**: Anthropic Claude, OpenAI, Google Gemini, Mistral, Groq, DeepSeek, xAI Grok, OpenRouter, **Ollama (local)** e APIs compatíveis com OpenAI — o app reconhece a chave e escolhe o melhor modelo.
 
 ### 📁 Organização e produtividade
 
-Páginas aninhadas com arrastar e soltar, favoritos, lixeira com restauração, **diário do dia** com um clique, **central de tarefas** (de páginas e bases, por prazo), **paleta de comandos** (`Ctrl + K`), navegação voltar/avançar, **25 templates** prontos em PT/EN/ES (trabalho, diário, educação, projetos, tarefas, cofre de senhas, links, contatos, inventário, orçamento, viagens, receitas, PARA e painel BI).
+Páginas aninhadas com arrastar e soltar, favoritos, **arquivo** e lixeira com restauração, **Diário de hoje**, **Tarefas** de todas as páginas e bases, **Calendário** (mês, semana e dia), **Quadros**, **Apresentações**, **central de notificações** com alertas do sistema, **paleta de comandos** (`Ctrl + K`), busca com filtros e tags, e **25 templates** prontos em PT/EN/ES, além dos seus próprios modelos.
 
-### 📤 Exportar, imprimir e compartilhar
+### 📤 Importar, exportar e compartilhar
 
-- **Imprimir**, **PDF**, **Word (.docx)**, **PowerPoint (.pptx)** com gráficos nativos editáveis, **Excel (.xlsx)**, **Markdown** e **HTML**.
-- Importação de **Markdown/TXT/HTML** (inclusive um cofre do Obsidian, com os `[[links]]` religados).
-- **Compartilhar com outras pessoas**: gere um arquivo `.gcpshare` com a página, subpáginas e bases usadas, **protegido por senha**, que a outra pessoa importa no próprio GCP-Neuro Notas.
+- **Exportar**: imprimir, **PDF**, **Word (.docx)**, **PowerPoint (.pptx)**, **Excel (.xlsx)**, **Markdown** e **HTML**.
+- **Importar**: Markdown/TXT/HTML (inclusive cofres do **Obsidian**), Excel/CSV, PowerPoint e o **.zip exportado pelo Notion** (páginas, bases, imagens e arquivos).
+- **Notion pela API**: importar, sincronizar de novo e enviar páginas.
+- **Compartilhar**: arquivo `.gcpshare` **protegido por senha** com a página, subpáginas e bases usadas.
 
 ### ☁️ Backup e sincronização
 
-- **Google Drive** e **OneDrive**: backup manual ou automático (diário/semanal), retenção configurável, **sincronização entre aparelhos** (o registro mais recente vence) e **restauração** em um aparelho novo. Para conectar o Drive, siga o [passo a passo ilustrado](docs/GOOGLE-DRIVE.md) (gratuito, sem verificação do Google).
-- **Backup em arquivo** `.gcpnotes` com senha própria, importação mesclando ou substituindo.
+- **Sincronização automática** entre computador e celular pelo **Google Drive** ou **OneDrive**: cada alteração (textos, imagens, áudios, quadros, bases, configurações) chega aos outros aparelhos em segundos. [Passo a passo do Google Drive](docs/GOOGLE-DRIVE.md).
+- **Backups** automáticos ou manuais na nuvem e em arquivo `.gcpnotes`; restauração em um aparelho novo com a mesma senha de entrada.
 - Os provedores só recebem dados **já criptografados**.
 
-### 🎨 Interface premium
+### 🎨 Interface
 
-- **14 temas** (incluindo o novo **Neuro** escuro e claro) + seguir o sistema, com troca instantânea no topo.
-- **Português, inglês e espanhol**, detectados pelo sistema, com troca rápida PT · EN · ES (a escolha fica salva).
-- **Assistente inicial** em 5 passos: idioma, tema, senha mestra, chave de recuperação e conteúdo inicial.
-- Layout responsivo, pronto para telas de celular e tablet.
+- **24 temas** (claros, escuros e premium com vidro fosco, plano, editorial…) + **tema personalizado** e seguir o sistema.
+- **Português, inglês e espanhol**, com troca rápida PT · EN · ES.
+- Responsivo para celular e tablet, com contraste reforçado e foco visível no teclado.
+- **Atualizações dentro do app** a partir das [Releases](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases), com verificação SHA-256 — no computador e no Android.
 
-### 🔄 Atualizações automáticas
+## ⌨️ Todos os comandos `/`
 
-Novas versões chegam direto das [Releases do GitHub](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases). Em **Configurações → Atualizações** você escolhe quando verificar:
+Digite `/` em qualquer linha de uma página e continue digitando para filtrar (ex.: `/tab`, `/colunas`, `/qr`).
 
-> Sempre que abrir o programa · Todos os dias · A cada semana · A cada duas semanas · A cada mês · Nunca
+<img src="docs/screenshots/03-comando-barra.png" width="720" alt="Menu do comando /" />
 
-Quando há novidade, aparece o botão **Atualizar para x.y.z** no topo: o app mostra as notas da versão, baixa o pacote certo para o seu sistema (`.exe`, `.dmg`, `.deb`, `.rpm` ou `.pkg.tar.zst`), **confere o SHA-256** e instala.
+| Categoria | Comando | O que faz |
+|---|---|---|
+| ✨ **IA** | Escrever com IA | Gera textos, planos, tabelas e listas a partir de um pedido |
+| 🔤 **Blocos básicos** | Texto · Título 1 · Título 2 · Título 3 | Parágrafo e títulos |
+| | Lista de tarefas | Caixas de seleção |
+| | Lista com marcadores · Lista numerada | Listas |
+| | Lista recolhível | Conteúdo que abre e fecha (toggle) |
+| | Citação · Destaque | Citação e caixa destacada com emoji |
+| | Divisor · Código | Linha divisória e bloco de código com realce |
+| | Tabela | Tabela com mesclar/dividir células, cabeçalhos e cor da célula |
+| | Data de hoje | Insere a data por extenso |
+| 🧱 **Layout** | 2 · 3 · 4 · 5 colunas | Divide o espaço em colunas iguais |
+| | Conteúdo + barra lateral · Barra lateral + conteúdo | Coluna larga e estreita (2:1 ou 1:2) |
+| | Destaque central | Três colunas com a do meio maior (1:2:1) |
+| | Colunas em cartões | Três cartões lado a lado, estilo site |
+| 🖼️ **Mídia** | Imagem · Galeria de imagens | Imagem única ou galeria com legendas |
+| | YouTube | Vídeo com prévia e tamanho ajustável |
+| | Áudio · Vídeo | Gravar do microfone ou da câmera, ou enviar arquivo |
+| | Anexo | PDF, planilhas, apresentações e outros arquivos |
+| | Mapa e rota | OpenStreetMap com ponto A, ponto B e trajeto |
+| | QR Code | Link, texto, Wi-Fi, Pix, WhatsApp, vCard… com estilo |
+| | Emoji · Sticker | Emojis com busca e stickers vetoriais |
+| 🧩 **Avançados** | Enquete / pesquisa | Votação com resultados |
+| | Sorteio | Nomes ou números, sem repetição |
+| | Botões | Botões com link para páginas, sites ou e-mail |
+| | Cartões | Seções estilo site com ícones e links |
+| | Formulário | Coleta respostas e exporta (ou vira base de dados) |
+| 📄 **Páginas** | Link para página | O mesmo que digitar `[[` |
+| | Subpágina | Cria uma página dentro desta |
+| | Base de dados na página | Tabela, quadro, galeria, calendário… dentro da página |
+| | Base de dados · Relatório BI | Cria uma base ou um painel de gráficos como subpágina |
+| ⭐ **Meus modelos** | (seus modelos salvos) | Insere um modelo salvo por você |
+| 📚 **Templates** | 25 modelos prontos | Ata de reunião, relatório semanal, OKRs, diário, hábitos, humor, aula (Cornell), plano de estudos, leitura, plano de aula, intercorrências em sala, plano de projeto, Kanban, tarefas, Eisenhower, **produção de evento cultural**, cofre de senhas, links, contatos, inventário, orçamento, viagem, receitas, segundo cérebro (PARA) e painel BI |
+
+**Outros atalhos de escrita:** `[[` liga a outra página · selecione um trecho para formatar ou pedir à IA · botão direito do mouse abre o menu do bloco · a alça ⠿ ao lado de cada bloco arrasta, duplica e transforma.
 
 ## ⬇️ Download e instalação
 
@@ -207,66 +218,27 @@ O instalador já traz o núcleo nativo (Rust), o banco de dados SQLite, as fonte
 
 ## 🖼️ Telas
 
-### Novidades da 1.4
+> As telas usam apenas dados de exemplo.
 
-| | |
+| Página com colunas e links em cartões | Comando `/` |
 |---|---|
-| <img src="docs/screenshots/v1.4/01-apresentacao.png" alt="Apresentação" /> | <img src="docs/screenshots/v1.4/02-apresentacoes.png" alt="Apresentações" /> |
-| <img src="docs/screenshots/v1.4/03-diagramas.png" alt="Diagramas" /> | <img src="docs/screenshots/v1.4/04-fundo-conectores.png" alt="Fundos e conectores" /> |
-| <img src="docs/screenshots/v1.4/05-gantt.png" alt="Gantt" /> | <img src="docs/screenshots/v1.4/06-cronograma.png" alt="Cronograma" /> |
-| <img src="docs/screenshots/v1.4/07-anexos.png" alt="Anexos" /> | <img src="docs/screenshots/v1.4/08-intercorrencias.png" alt="Intercorrências em sala" /> |
-
-### Novidades da 1.3
-
-| | |
-|---|---|
-| <img src="docs/screenshots/v1.3/01-botoes-edicao.png" alt="Botões" /> | <img src="docs/screenshots/v1.3/02-cartoes.png" alt="Cartões" /> |
-| <img src="docs/screenshots/v1.3/03-quadro-botao.png" alt="Botão no quadro" /> | <img src="docs/screenshots/v1.3/04-quadro-grafico.png" alt="Gráfico no quadro" /> |
-| <img src="docs/screenshots/v1.3/05-grafo.png" alt="Grafo" /> | <img src="docs/screenshots/v1.3/06-grafo-cores.png" alt="Cores do grafo" /> |
-
-### Novidades da 1.2
-
-| | |
-|---|---|
-| <img src="docs/screenshots/v1.2/03-filtro-excel.png" alt="Filtro estilo Excel" /> | <img src="docs/screenshots/v1.2/05-menu-contexto.png" alt="Menu do botão direito" /> |
-| <img src="docs/screenshots/v1.2/06-tipos-de-campo.png" alt="Tipos de campo" /> | <img src="docs/screenshots/v1.2/07-formula.png" alt="Fórmulas" /> |
-| <img src="docs/screenshots/v1.2/12-menu-bloco.png" alt="Mover e excluir blocos" /> | <img src="docs/screenshots/v1.2/13-comando-barra.png" alt="Comando / colorido" /> |
-| <img src="docs/screenshots/v1.2/16-conector-selecionado.png" alt="Conectores magnéticos" /> | <img src="docs/screenshots/v1.2/17-apresentacao.png" alt="Apresentação" /> |
-| <img src="docs/screenshots/v1.2/20-calendario-mes.png" alt="Calendário" /> | <img src="docs/screenshots/v1.2/22-calendario-dia.png" alt="Agenda do dia" /> |
-| <img src="docs/screenshots/v1.2/19-grafo.png" alt="Grafo inteligente" /> | <img src="docs/screenshots/v1.2/18-quadros.png" alt="Quadros" /> |
-| <img src="docs/screenshots/v1.2/24-guia-google.png" alt="Passo a passo do Google" /> | <img src="docs/screenshots/v1.2/25-notion.png" alt="Notion" /> |
-
-| Celular | | | |
-|---|---|---|---|
-| <img src="docs/screenshots/v1.2/android/02-tarefas.png" width="200" alt="Tabela" /> | <img src="docs/screenshots/v1.2/android/05-menu-contexto.png" width="200" alt="Menu" /> | <img src="docs/screenshots/v1.2/android/20-calendario-mes.png" width="200" alt="Calendário" /> | <img src="docs/screenshots/v1.2/android/01-sidebar-minical.png" width="200" alt="Menu lateral" /> |
-
-### Versão 1.0
-
-| Editor de blocos | Comando `/` |
-|---|---|
-| <img src="docs/screenshots/02-editor.png" alt="Editor" /> | <img src="docs/screenshots/03-comandos.png" alt="Comandos" /> |
-| **Enquete e sorteio** | **Relatório BI** |
-| <img src="docs/screenshots/04-blocos-interativos.png" alt="Blocos interativos" /> | <img src="docs/screenshots/05-relatorio-bi.png" alt="Relatório BI" /> |
-| **Editor de gráficos e cores** | **Quadro Kanban** |
-| <img src="docs/screenshots/06-editor-de-grafico.png" alt="Editor de gráfico" /> | <img src="docs/screenshots/07-kanban.png" alt="Kanban" /> |
-| **Calendário** | **Cofre de senhas** |
-| <img src="docs/screenshots/08-calendario.png" alt="Calendário" /> | <img src="docs/screenshots/09-cofre-de-senhas.png" alt="Cofre de senhas" /> |
-| **Galeria** | **Modo Quadro (desenhar e conectar ideias)** |
-| <img src="docs/screenshots/10-galeria.png" alt="Galeria" /> | <img src="docs/screenshots/11-quadro.png" alt="Quadro" /> |
-| **Grafo de ideias** | **Templates** |
-| <img src="docs/screenshots/12-grafo.png" alt="Grafo" /> | <img src="docs/screenshots/13-templates.png" alt="Templates" /> |
-| **Segundo cérebro (IA)** | **Assistente inicial** |
-| <img src="docs/screenshots/14-segundo-cerebro-ia.png" alt="IA" /> | <img src="docs/screenshots/15-assistente.png" alt="Assistente" /> |
-| **Paleta de comandos** | **Atualizações** |
-| <img src="docs/screenshots/16-paleta-de-comandos.png" alt="Paleta" /> | <img src="docs/screenshots/17-atualizacoes.png" alt="Atualizações" /> |
-| **Backup e nuvem** | **Provedores de IA** |
-| <img src="docs/screenshots/18-backup-nuvem.png" alt="Backup" /> | <img src="docs/screenshots/19-ia.png" alt="IA" /> |
-| **Apoie o projeto** | **Sobre e licença** |
-| <img src="docs/screenshots/20-apoie.png" alt="Apoie" /> | <img src="docs/screenshots/21-sobre.png" alt="Sobre" /> |
-| **Tema claro (inglês)** | **Board (light, English)** |
-| <img src="docs/screenshots/22-light-en-home.png" alt="Light" /> | <img src="docs/screenshots/23-light-en-board.png" alt="Board" /> |
-| **Tema Sakura (espanhol)** | **Login** |
-| <img src="docs/screenshots/24-sakura-es-apoya.png" alt="Sakura" /> | <img src="docs/screenshots/25-login.png" alt="Login" /> |
+| <img src="docs/screenshots/02-pagina.png" alt="Página com colunas e cartões" /> | <img src="docs/screenshots/03-comando-barra.png" alt="Comando /" /> |
+| **Links personalizados** | **Colunas com borda e fundo** |
+| <img src="docs/screenshots/04-links-personalizados.png" alt="Links personalizados" /> | <img src="docs/screenshots/05-colunas-borda-fundo.png" alt="Colunas com borda e fundo" /> |
+| **Kanban** | **Base de dados em tabela** |
+| <img src="docs/screenshots/06-kanban.png" alt="Kanban" /> | <img src="docs/screenshots/07-base-tabela.png" alt="Base de dados" /> |
+| **Relatório BI** | **Quadro com mapa mental** |
+| <img src="docs/screenshots/08-relatorio-bi.png" alt="Relatório BI" /> | <img src="docs/screenshots/09-quadro-mapa-mental.png" alt="Quadro com mapa mental" /> |
+| **Neuro Links** | **Calendário** |
+| <img src="docs/screenshots/10-neuro-links.png" alt="Neuro Links" /> | <img src="docs/screenshots/11-calendario.png" alt="Calendário" /> |
+| **Templates** | **Tarefas** |
+| <img src="docs/screenshots/13-templates.png" alt="Templates" /> | <img src="docs/screenshots/14-tarefas.png" alt="Tarefas" /> |
+| **Cores personalizadas** | **Ícone com imagem própria** |
+| <img src="docs/screenshots/18-cores-personalizadas.png" alt="Cores personalizadas" /> | <img src="docs/screenshots/17-icone-imagem.png" alt="Ícone com imagem" /> |
+| **Inteligência artificial** | **Tema escuro Neuro** |
+| <img src="docs/screenshots/16-config-ia.png" alt="Configurações de IA" /> | <img src="docs/screenshots/19-tema-escuro-inicio.png" alt="Tema escuro" /> |
+| **Página no tema escuro** | **Neuro Links no tema escuro** |
+| <img src="docs/screenshots/20-tema-escuro-pagina.png" alt="Página no tema escuro" /> | <img src="docs/screenshots/21-tema-escuro-neuro-links.png" alt="Neuro Links no tema escuro" /> |
 
 ## 🔐 Segurança e privacidade
 
@@ -283,25 +255,23 @@ O instalador já traz o núcleo nativo (Rust), o banco de dados SQLite, as fonte
 |---|---|
 | `Ctrl/⌘ + K` | Buscar e executar comandos |
 | `Ctrl/⌘ + N` | Nova página |
-| `Ctrl/⌘ + J` | Assistente de IA (segundo cérebro) |
+| `Ctrl/⌘ + J` | Segundo cérebro (perguntar à IA) |
 | `/` | Inserir bloco |
 | `[[` | Ligar a outra página |
+| `Alt + Shift + ↑/↓` | Mover o bloco |
 | `Ctrl/⌘ + Shift + L` | Bloquear o cofre |
 | `Alt + ←/→` | Voltar / avançar |
+| `V H C F P E S T N` | Ferramentas do Quadro |
 
 ## 📱 Android (celular e tablet)
 
-App **nativo** (não é PWA), com todos os recursos da versão para computador e uma interface pensada para toque: barra inferior com botão **＋ Criar**, menu em gaveta, janelas em folha deslizante, pinça para zoom no Quadro, gesto "voltar" do Android e arquivos salvos nas pastas do celular. Detalhes em [docs/MOBILE.md](docs/MOBILE.md).
+App **nativo** (não é PWA), com os mesmos recursos do computador e uma interface pensada para toque: barra inferior com **＋ Criar**, menu em gaveta, janelas deslizantes, pinça para zoom no Quadro, gesto "voltar" e **sincronização automática** com o computador. No Android, o toque longo fica livre para selecionar, copiar e colar. Detalhes em [docs/MOBILE.md](docs/MOBILE.md).
 
-| Início | Criar | Menu | Editor |
-|---|---|---|---|
-| <img src="docs/screenshots/android/03-inicio.png" width="200" alt="Início" /> | <img src="docs/screenshots/android/04-criar.png" width="200" alt="Criar" /> | <img src="docs/screenshots/android/05-menu.png" width="200" alt="Menu" /> | <img src="docs/screenshots/android/06-editor.png" width="200" alt="Editor" /> |
-| **Comando /** | **Relatório BI** | **Kanban** | **Cofre de senhas** |
-| <img src="docs/screenshots/android/07-comandos.png" width="200" alt="Comandos" /> | <img src="docs/screenshots/android/08-relatorio.png" width="200" alt="Relatório" /> | <img src="docs/screenshots/android/09-kanban.png" width="200" alt="Kanban" /> | <img src="docs/screenshots/android/10-senhas.png" width="200" alt="Senhas" /> |
-| **Quadro** | **Grafo** | **Assistente inicial** | **Apoie** |
-| <img src="docs/screenshots/android/11-quadro.png" width="200" alt="Quadro" /> | <img src="docs/screenshots/android/13-grafo.png" width="200" alt="Grafo" /> | <img src="docs/screenshots/android/01-assistente.png" width="200" alt="Assistente" /> | <img src="docs/screenshots/android/15-apoie.png" width="200" alt="Apoie" /> |
-
-O iOS/iPadOS sai do mesmo código e é a próxima etapa.
+| Início | Página | Comando / |
+|---|---|---|
+| <img src="docs/screenshots/android/01-inicio.png" width="220" alt="Início no Android" /> | <img src="docs/screenshots/android/02-pagina.png" width="220" alt="Página no Android" /> | <img src="docs/screenshots/android/03-comando.png" width="220" alt="Comando / no Android" /> |
+| **Kanban** | **Neuro Links** | **Quadro** |
+| <img src="docs/screenshots/android/04-kanban.png" width="220" alt="Kanban no Android" /> | <img src="docs/screenshots/android/05-neuro-links.png" width="220" alt="Neuro Links no Android" /> | <img src="docs/screenshots/android/06-quadro.png" width="220" alt="Quadro no Android" /> |
 
 ## 🛠️ Desenvolvimento
 
@@ -336,33 +306,30 @@ O apoio é voluntário: todas as funções estão disponíveis sem contribuiçã
 
 ## 🇺🇸 English
 
-**GCP-Neuro Notas** brings together a block editor with databases, a connected second brain with `[[links]]`, backlinks and an interactive graph, and an infinite **whiteboard** to draw and connect ideas — in a native, offline, **encrypted** app for Android, Linux, Windows and macOS (Intel and Apple Silicon).
+**GCP-Neuro Notas** brings together a block editor with databases, a connected second brain with `[[links]]`, backlinks and the interactive **Neuro Links** map, plus an infinite **whiteboard** and presentations — in a native, offline, **encrypted** app for Android, Linux, Windows and macOS (Intel and Apple Silicon).
 
-- **Editor:** `/` commands, tables, media, galleries, emojis, stickers, **polls**, **raffles**, **forms**, version history.
-- **Databases:** table, Kanban, gallery, calendar, list, **Gantt**, **timeline**, **map** and **attachments** views, filters, sorting, files and location fields, password fields with generator, full screen, undo/redo.
-- **BI reports:** 10 chart types, series, aggregations, filters and fully custom colors.
-- **Whiteboard:** pen, eraser, frames, shapes, sticky notes, embedded pages, styled connectors, background themes and a bank of ready-made **diagrams and mind maps**; switch any page between *Document* and *Whiteboard*.
-- **Presentations:** continuous zoom navigation between slides, animated connectors, timer, folders with icons, and **PowerPoint export/import** with transitions and animations.
-- **AI (optional, your own key):** Claude, OpenAI, Gemini, Mistral, Groq, DeepSeek, Grok, OpenRouter, Ollama — the app detects the best available model automatically. Ask questions about all your notes with cited sources.
-- **Export:** print, PDF, DOCX, PPTX (native charts), XLSX, Markdown, HTML. **Share** password-protected `.gcpshare` files with other users.
-- **Backup & sync:** Google Drive and OneDrive, end-to-end encrypted; password-protected backup files. Google Drive setup guide: [docs/GOOGLE-DRIVE.md](docs/GOOGLE-DRIVE.md).
+- **Editor:** 45+ `/` commands, 2–5 column layouts with custom borders and backgrounds, page links as tags, buttons or **preview cards**, 25 embedded fonts (including dyslexia-friendly), justified text, custom colors with eyedropper, media recording, QR codes, maps, polls, raffles, forms, version history.
+- **Databases:** table, Kanban, gallery, list, calendar, **Gantt**, **timeline**, **map** and **attachments** views; formulas, currency, files, location, products/services, subtasks, timers, relations; automations and reminders; databases inside pages.
+- **BI reports:** 10 chart types, series, aggregations, filters and custom colors.
+- **Whiteboard & presentations:** shapes, magnetic connectors, diagrams and mind maps, continuous-zoom presentations, PowerPoint import/export.
+- **Neuro Links & AI (optional, your own key):** neural map of your notes with synapses and suggestions; ask your notes with cited sources; Claude, OpenAI, Gemini, Mistral, Groq, DeepSeek, Grok, OpenRouter, Ollama.
+- **Import/export:** PDF, DOCX, PPTX, XLSX, Markdown, HTML; Obsidian, Excel/CSV and **Notion (API and .zip export)**; password-protected `.gcpshare` files.
+- **Automatic sync** between devices via Google Drive or OneDrive, end-to-end encrypted.
 - **Security:** Argon2id + XChaCha20-Poly1305, recovery key, auto-lock. No account, no tracking, no ads.
-- **12 premium themes**, Portuguese/English/Spanish auto-detected, in-app updates with SHA-256 verification.
+- **24 themes** + custom theme, Portuguese/English/Spanish, in-app updates with SHA-256 verification.
 
-Download the installer for your system from the [latest release](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest) — two clicks, nothing else to install. Developed by **Bruno Albertini** · [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). License: GPL-3.0.
+Download the installer for your system from the [latest release](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest). Developed by **Bruno Albertini** · [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). License: GPL-3.0.
 
 ## 🇪🇸 Español
 
-**GCP-Neuro Notas** reúne un editor de bloques con bases de datos, un segundo cerebro conectado con `[[enlaces]]`, retroenlaces y grafo interactivo, y una **pizarra** infinita para dibujar y conectar ideas — en una app nativa, sin conexión y **cifrada** para Android, Linux, Windows y macOS (Intel y Apple Silicon).
+**GCP-Neuro Notas** reúne un editor de bloques con bases de datos, un segundo cerebro conectado con `[[enlaces]]`, retroenlaces y el mapa interactivo **Neuro Links**, además de una **pizarra** infinita y presentaciones — en una app nativa, sin conexión y **cifrada** para Android, Linux, Windows y macOS (Intel y Apple Silicon).
 
-- **Editor:** comandos `/`, tablas, medios, galerías, emojis, stickers, **encuestas**, **sorteos**, **formularios**, historial de versiones.
-- **Bases de datos:** vistas de tabla, Kanban, galería, calendario, lista, **Gantt**, **cronograma**, **mapa** y **adjuntos**, filtros, orden, campos de archivos y lugar, contraseñas con generador, pantalla completa, deshacer/rehacer.
-- **Informes BI:** 10 tipos de gráfico, series, cálculos, filtros y colores personalizados.
-- **Pizarra:** lápiz, borrador, marcos, formas, notas adhesivas, páginas insertadas, conectores con estilos, temas de fondo y banco de **diagramas y mapas mentales**.
-- **Presentaciones:** navegación continua con zoom entre diapositivas, conectores animados, cronómetro, carpetas con íconos y **exportar/importar PowerPoint** con transiciones y animaciones.
-- **IA opcional con tu propia clave**, con detección automática del mejor modelo y respuestas que citan tus notas.
-- **Exportar:** imprimir, PDF, DOCX, PPTX, XLSX, Markdown, HTML. **Compartir** archivos `.gcpshare` protegidos con contraseña.
-- **Copia y sincronización** en Google Drive y OneDrive, cifradas de extremo a extremo. Guía de Google Drive: [docs/GOOGLE-DRIVE.md](docs/GOOGLE-DRIVE.md).
-- **12 temas premium**, portugués/inglés/español detectados automáticamente, actualizaciones dentro de la app.
+- **Editor:** más de 45 comandos `/`, columnas con bordes y fondos personalizados, enlaces como etiquetas, botones o **tarjetas con vista previa**, 25 fuentes integradas (incluso para dislexia), texto justificado, colores con cuentagotas, grabación de audio y video, QR, mapas, encuestas, sorteos, formularios.
+- **Bases de datos:** vistas de tabla, Kanban, galería, lista, calendario, **Gantt**, **cronograma**, **mapa** y **adjuntos**; fórmulas, moneda, archivos, lugar, productos/servicios, subtareas, temporizadores; automatizaciones y recordatorios.
+- **Informes BI**, **pizarra** con diagramas y mapas mentales, **presentaciones** y PowerPoint.
+- **Neuro Links e IA opcional** con tu propia clave, con respuestas que citan tus notas.
+- **Importar/exportar:** PDF, DOCX, PPTX, XLSX, Markdown, HTML; Obsidian, Excel/CSV y **Notion (API y .zip)**.
+- **Sincronización automática** entre dispositivos con Google Drive u OneDrive, cifrada de extremo a extremo.
+- **24 temas** + tema personalizado, portugués/inglés/español, actualizaciones dentro de la app.
 
 Descarga el instalador de tu sistema en la [última versión](https://github.com/cliqueprojeto/GCP-Neuro-Notas/releases/latest). Desarrollado por **Bruno Albertini** · [Gestão Cultural Pro](https://www.gestaoculturalpro.com.br). Licencia: GPL-3.0.
