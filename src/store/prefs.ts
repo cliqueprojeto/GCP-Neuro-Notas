@@ -13,6 +13,8 @@ interface Prefs {
   sidebarCollapsed: boolean;
   sidebarWidth: number;
   miniCalendar: boolean;
+  /** Última visualização do Neuro Links (filtros, cores por, busca e foco), restaurada ao voltar. */
+  graphView?: { q?: string; hier?: boolean; similar?: boolean; mentions?: boolean; tags?: boolean; orphans?: boolean; colorBy?: 'type' | 'group'; focus?: { id: string; depth: number } | null };
   graphColors: { link?: string; board?: string; child?: string; suggestion?: string; synapse?: string; width?: number };
   set: (p: Partial<Omit<Prefs, 'set'>>) => void;
 }

@@ -1,6 +1,6 @@
 [package]
 name = "gcp-notas"
-version = "1.8.4"
+version = "1.8.5"
 description = "GCP Notas"
 authors = ["Bruno Albertini | Gestão Cultural Pro"]
 license = "GPL-3.0-or-later"

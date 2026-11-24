@@ -108,14 +108,20 @@ export function Graph() {
   const updatePage = useVault((s) => s.updatePage);
   const go = useUi((s) => s.go);
   const theme = usePrefs((s) => s.theme);
-  const [q, setQ] = useState('');
-  const [hier, setHier] = useState(true);
-  const [similar, setSimilar] = useState(false);
-  const [mentions, setMentions] = useState(true);
-  const [tags, setTags] = useState(false);
-  const [orphans, setOrphans] = useState(!isMobile); // no celular começa só com o que está ligado
-  const [colorBy, setColorBy] = useState<'type' | 'group'>('type');
-  const [focus, setFocus] = useState<{ id: string; depth: number } | null>(null);
+  // Começa com a última visualização usada (fica salva até o usuário escolher outra).
+  const saved = useMemo(() => usePrefs.getState().graphView || {}, []);
+  const [q, setQ] = useState(saved.q ?? '');
+  const [hier, setHier] = useState(saved.hier ?? true);
+  const [similar, setSimilar] = useState(saved.similar ?? false);
+  const [mentions, setMentions] = useState(saved.mentions ?? true);
+  const [tags, setTags] = useState(saved.tags ?? false);
+  const [orphans, setOrphans] = useState(saved.orphans ?? !isMobile); // no celular começa só com o que está ligado
+  const [colorBy, setColorBy] = useState<'type' | 'group'>(saved.colorBy ?? 'type');
+  const [focus, setFocus] = useState<{ id: string; depth: number } | null>(saved.focus && useVault.getState().pages[saved.focus.id] ? saved.focus : null);
+  useEffect(() => {
+    const h = setTimeout(() => usePrefs.getState().set({ graphView: { q, hier, similar, mentions, tags, orphans, colorBy, focus } }), 300);
+    return () => clearTimeout(h);
+  }, [q, hier, similar, mentions, tags, orphans, colorBy, focus]);
   const [selId, setSelId] = useState<string | null>(null);
   const [linkFrom, setLinkFrom] = useState<string | null>(null);
   const linkFromRef = useRef<string | null>(null);

@@ -48,6 +48,7 @@ import { ButtonsBlockView, CardsBlockView } from './components';
 import { ImageView, MediaRecView, YoutubeView } from './media';
 import type { SuggestItem } from './suggest';
 import { moveCurrentBlock } from './BlockHandle';
+import { PageLinkView } from './pageLinkView';
 
 export const lowlight = createLowlight(common);
 
@@ -166,10 +167,16 @@ export function pageLinkExtension(suggestion?: Partial<SuggestionOptions<any>>) 
       return {
         id: { default: null, parseHTML: (el) => el.getAttribute('data-id'), renderHTML: (a) => (a.id ? { 'data-id': a.id } : {}) },
         label: { default: '', parseHTML: (el) => el.getAttribute('data-label'), renderHTML: (a) => ({ 'data-label': a.label }) },
+        variant: { default: 'chip', parseHTML: (el) => el.getAttribute('data-variant') || 'chip', renderHTML: (a) => (a.variant && a.variant !== 'chip' ? { 'data-variant': a.variant, class: `pl-${a.variant}` } : {}) },
+        color: { default: null, parseHTML: (el) => el.getAttribute('data-color'), renderHTML: (a) => (a.color ? { 'data-color': a.color, style: `--pl:${a.color}`, class: 'pl-colored' } : {}) },
+        icon: { default: true, parseHTML: (el) => el.getAttribute('data-icon') !== 'false', renderHTML: (a) => (a.icon === false ? { 'data-icon': 'false' } : {}) },
       };
     },
     parseHTML() {
       return [{ tag: 'span[data-type="pageLink"]' }];
+    },
+    addNodeView() {
+      return ReactNodeViewRenderer(PageLinkView, { as: 'span' });
     },
   }).configure({
     HTMLAttributes: { class: 'page-link', 'data-type': 'pageLink' },

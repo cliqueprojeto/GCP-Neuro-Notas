@@ -119,6 +119,7 @@ export function Editor({ page, editable = true }: Props) {
       editorProps: {
         attributes: { class: 'prose', spellcheck: String(settings.spellcheck) },
         handleClick: (_view, _pos, event) => {
+          if ((event.target as HTMLElement).closest('.pl-style, .pl-panel')) return true;
           const el = (event.target as HTMLElement).closest('[data-type="pageLink"]') as HTMLElement | null;
           if (el?.dataset.id) {
             const target = useVault.getState().pages[el.dataset.id];

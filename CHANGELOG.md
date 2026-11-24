@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.8.5 — Links de página em cartões e botões, colunas com borda e fundo, Neuro Links lembra a visualização
+
+- **Links de página personalizáveis**: passe o mouse sobre um link e clique no pincel para escolher a aparência: **etiqueta**, **texto**, **botão** ou **cartão com prévia** (ícone, faixa colorida e o começo do texto da página). Também dá para escolher a cor (prontas, código, conta-gotas ou paleta do designer), mostrar ou esconder o ícone da página e **aplicar a todos os links do bloco** de uma vez, por exemplo de uma coluna inteira.
+- **Colunas com borda e fundo próprios**: no botão "Layout", o novo quadrado abre um painel com tipo de borda (sólida, tracejada, pontilhada ou dupla), espessura, cor, fundo com intensidade e arredondamento dos cantos. Vale para cada coluna ou para o bloco inteiro.
+- **Ícones de layout redesenhados**: miniaturas retas e nítidas, com a proporção real das colunas, no lugar dos desenhos ovais.
+- **Neuro Links lembra a visualização**: filtros (hierarquia, sugestões, similares, tags e páginas soltas), "Tipo/Grupos", a busca e o foco ficam salvos e voltam iguais ao reabrir, até você mudar.
+
 ## 1.8.4 — Ícones com imagem do computador e menu de tom de pele legível
 
 - **Ícone com imagem própria**: a escolha de ícone ganhou a aba **Imagem**. Dá para escolher um arquivo do computador ou do celular (PNG, JPG, SVG, ICO, GIF ou WebP), arrastar ou colar com Ctrl+V. As imagens usadas ficam em "Minhas imagens" para usar de novo e sincronizam entre aparelhos. Vale para páginas, pastas de apresentações, botões, cartões, modelos e bases.
