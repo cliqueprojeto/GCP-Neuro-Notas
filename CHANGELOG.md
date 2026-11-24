@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.9.1 — Cartões do Quadro cabendo na tela do celular
+
+- **Celular em pé**: a janela do cartão ficava mais larga que a tela (cortando o lembrete, as seções e o botão "Concluir") porque a fileira de atalhos (Subtarefas, Datas, Produtos/serviços…) esticava a janela em vez de rolar. Agora a janela sempre cabe na tela, e os atalhos rolam para o lado com o dedo.
+- Campos do cartão em uma coluna, lembrete, abas de comentários e caixa de comentário ajustados para telas estreitas; os painéis de cor, fundo e copiar/mover ocupam a largura do celular.
+
 ## 1.9.0 — IA que edita a página, busca na página, capas com IA, Kanban premium e app mais leve
 
 - **A IA edita a página aberta**: no painel "Perguntar à IA", com "Pode editar esta página" ligado, peça mudanças como "normalize as tabelas", "troque estes dados na página" ou "corrija as datas". A IA explica o que mudou e mostra a proposta, com prévia. Você escolhe **Aplicar na página** e pode **Desfazer**. Imagens e blocos especiais são preservados.
